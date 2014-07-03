@@ -1,9 +1,12 @@
- {-# LANGUAGE UnicodeSyntax #-}
+{-# LANGUAGE UnicodeSyntax #-}
 
 module WumpusWorld where
 
 import Data.Graph.Inductive.Graph
 import Data.Graph.Inductive.PatriciaTree
+
+type ℕ = Integer
+type ℝ = Double
 
 {- |A cell-based N-dimensional world.
     Each cell connects to any number of other cells,
@@ -22,9 +25,9 @@ data Wrd
    b
    -- ^World data.
    c = World{ -- ^The graph representing the world's cells.
-              worldCells::(Gr a b),
+              worldCells :: Gr a b,
               -- ^The global state of the world, if any.
-              worldState::c}
+              worldState :: c}
 
 class PlayerData p where
    getPlayerId :: p -> Int
@@ -58,25 +61,25 @@ data WumpusCell
    deriving (Eq, Ord, Show, Read)
 
 -- |The data of a connection between two cells.
-data WumpusEdge = { --^ The amount of danger on a connection ([0,1]).
-                    danger :: ℝ,
-                    --^ The amount of fatigue ([0,1]) incurred by traversing the cell.
-                    fatigue :: ℝ}
+data WumpusEdge = WE{ -- ^ The amount of danger on a connection ([0,1]).
+                      danger :: ℝ,
+                      -- ^ The amount of fatigue ([0,1]) incurred by traversing the cell.
+                      fatigue :: ℝ}
    deriving (Eq, Ord, Show, Read)
 
 -- |Temperature. Goes from Freezing to Hot.
-data Temp = Freezing + Cold + Temperate + Warm + Hot
+data Temp = Freezing | Cold | Temperate | Warm | Hot
    deriving (Eq, Ord, Show, Read, Enum)
 
 -- |Global world data for the wumpus world.
-data WorldData = { -- ^The hours since the beginning of the world.
-                   time :: ℕ,
-                   -- ^The current temperature of the world.
-                   temperature :: Temp}
+data WorldData = WG{ -- ^The hours since the beginning of the world.
+                     time :: ℕ,
+                     -- ^The current temperature of the world.
+                     temperature :: Temp}
    deriving (Eq, Ord, Show, Read)
 
 -- ^A Wumpus in the wumpus world.
-data Wumpus = ...
+data Wumpus = Wumpus Int
 
 -- ^A plant in the wumpus world.
-data Plant = ...
+data Plant = Plant Int
