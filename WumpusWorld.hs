@@ -2,84 +2,82 @@
 
 module WumpusWorld where
 
-import Data.Graph.Inductive.Graph
-import Data.Graph.Inductive.PatriciaTree
+import qualified Data.Map as M
+import Math.Geometry.Grid
+import Math.Geometry.Grid.Square
 
 type ℕ = Integer
 type ℝ = Double
 
-{- |A cell-based N-dimensional world.
-    Each cell connects to any number of other cells,
-    possibly in only a single direction.
-    Each cell, each transition between cells, and the world
-    as a whole can have data attached.
-  
-    The only guaranteed property of the world is that connections
-    are transitive; beyond that, everything depends on the particular
-    world.
--}
-data Wrd
-   -- ^Cell data.
-   a
-   -- ^Connection data.
-   b
-   -- ^World data.
-   c = World{ -- ^The graph representing the world's cells.
-              worldCells :: Gr a b,
-              -- ^The global state of the world, if any.
-              worldState :: c}
+type World = UnboundedSquareGrid
 
-class PlayerData p where
-   getPlayerId :: p -> Int
+type Gesture = String
 
-class World w where
-   getPlayerCells :: PlayerData a => w a b c -> [(Vertex, a)]
-   getAdjacentCells :: w a b c -> Vertex -> [(Vertex, a, b)]
-   getWorldData :: w a b c -> c
-   setCellData :: w a b c -> Vertex -> a -> w a b c
-   setConnectionData :: w a b c -> (Vertex, Vertex) -> b -> w a b c
-   setWorldData :: w a b c -> c -> w a b c
+data Action =
+   Gesture
+   | Move SquareDirection
+   | Attack _
+   | Harvest
+   | Butcher
+   |
+   | ...
 
--- |The data of a cell in the Wumpus world.
-data WumpusCell
-   -- ^Type of the agents.
-   a = WC{ -- ^List of agents in a cell.
-           agents ::[a],
-           -- ^List of wumpuses in a cell.
-           wumpus ::[Wumpus],
-           -- ^The plant in a cell, if present.
-           plants ::Maybe Plant,
-           -- ^The degree of stench in a cell in the interval [0,1]. 
-           stench :: ℝ,
-           -- ^The degree of breeze in a cell in the interval [0,1]. 
-           breeze :: ℝ,
-           -- ^Whether a pit is present in the cell.
-           pit :: Bool,
-           -- ^The amount of gold in a cell.
-           gold :: ℕ
-           }
-   deriving (Eq, Ord, Show, Read)
+data CellData = CD {
+   agents :: [Agent],
+   wumpus :: [Wumpus],
+   stench :: ℝ,
+   breeze :: ℝ,
+   pit :: Bool,
+   gold :: ℕ
+   }
 
--- |The data of a connection between two cells.
-data WumpusEdge = WE{ -- ^ The amount of danger on a connection ([0,1]).
-                      danger :: ℝ,
-                      -- ^ The amount of fatigue ([0,1]) incurred by traversing the cell.
-                      fatigue :: ℝ}
-   deriving (Eq, Ord, Show, Read)
+type Cell = Maybe CellData
 
--- |Temperature. Goes from Freezing to Hot.
-data Temp = Freezing | Cold | Temperate | Warm | Hot
-   deriving (Eq, Ord, Show, Read, Enum)
+data EdgeData = ED {
+   danger :: ℝ,
+   fatigue :: ℝ
+}
 
--- |Global world data for the wumpus world.
-data WorldData = WG{ -- ^The hours since the beginning of the world.
-                     time :: ℕ,
-                     -- ^The current temperature of the world.
-                     temperature :: Temp}
-   deriving (Eq, Ord, Show, Read)
+data Temperature = Freezing | Cold | Temperate | Warm | Hot
 
--- ^A Wumpus in the wumpus world.
-data Wumpus = Wumpus Int
+data WorldData = WD {
+   time :: ℕ,
+   temperature :: Temperature
+}
 
--- ^A plant in the wumpus world.
-data Plant = Plant Int
+data Item = Gold | Fruit | Meat
+
+data Agent s = Agent {
+   agentName :: String,
+   direction :: SquareDirection,
+   aHealth :: ℝ,
+   aFatigue :: ℝ,
+   inventory :: M.Map Item ℕ
+   state :: s
+}
+
+data Wumpus = Wumpus {
+   wHealth :: ℝ,
+   wFatigue :: ℝ
+}
+
+class HasName a where name :: a -> String
+class HasHealth a where health :: a -> ℝ
+class HasFatigue a where fatigue :: a -> ℝ
+
+instance HasName (Agent s) where name = agentName
+instance HasHealth (Agent s) where health = aHealth
+instance HasFatigue (Agent s) where fatigue = aFatigue
+
+instance HasHealth Wumpus where health = wHealth
+instance HasFatigue Wumpus where fatigue = wFatigue
+
+
+type AgentAction w s = s -> w -> (Action, s)
+
+instance Functor (Agent w) where
+   fmap f (Agent g) = Agent $ g . f
+
+cellData :: (Int, Int) -> CellData
+
+updateWorld
