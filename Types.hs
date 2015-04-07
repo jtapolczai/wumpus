@@ -6,10 +6,9 @@ import qualified Data.Map as M
 import Math.Geometry.Grid.Square
 import Math.Geometry.Grid.SquareInternal (SquareDirection(..))
 
-type ℕ = Integer
+type ℕ = Int
 type ℝ = Double
 
-type World = UnboundedSquareGrid
 type EntityName = String
 type GestureName = String
 
@@ -44,6 +43,10 @@ type AgentAction w s = s -> w -> (Action, s)
 -- World data
 -------------------------------------------------------------------------------
 
+instance Ord SquareDirection where
+   x <= y = ind x <= ind y
+      where {ind North = 0; ind East = 1; ind South = 2; ind West = 3}
+
 data Wumpus = Wumpus {
    wHealth :: ℝ,
    wFatigue :: ℝ
@@ -71,10 +74,18 @@ data EdgeData = ED {
 type Edge = Maybe EdgeData
 
 data Temperature = Freezing | Cold | Temperate | Warm | Hot
+   deriving (Show, Eq, Ord, Enum, Bounded)
 
 data WorldData = WD {
    time :: ℕ,
    temperature :: Temperature
+}
+
+data World s = World {
+   worldData :: WorldData,
+   graph :: UnboundedSquareGrid,
+   wEdgeData :: M.Map EdgeInd EdgeData,
+   wCellData :: M.Map CellInd (CellData s)
 }
 
 -- Instances
