@@ -26,3 +26,11 @@ data AgentState = AS {
    sjs :: M.Map EntityName SocialStorage,
    memory :: Memory AgentState
    }
+
+-- |Represents a perception that an agent may receive from the world.
+data Perception = EdgeP EdgeInd EdgeData
+                  | CellP CellInd VisualCellData
+                  | AgentP CellInd VisualAgent
+                  | WumpusP CellInd Wumpus
+                  | TemperatureP Temperature
+                  | TimeP ℕ

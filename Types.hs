@@ -29,6 +29,7 @@ data Action =
    | Eat Item
    | Gesture String EntityName
 
+-- |A agent's entire state.
 data Agent s = Agent {
    agentName :: EntityName,
    direction :: SquareDirection,
@@ -36,6 +37,15 @@ data Agent s = Agent {
    aFatigue :: ℝ,
    inventory :: M.Map Item ℕ,
    state :: s
+}
+
+-- |The slice of an agent's state that another agent
+--  may perceive visually.
+data VisualAgent = VisualAgent {
+   vAgentName :: EntityName,
+   vDirection :: SquareDirection,
+   vHealth :: ℝ,
+   vFatigue :: ℝ
 }
 
 type AgentAction w s = s -> w -> (Action, s)
@@ -52,13 +62,21 @@ data Wumpus = Wumpus {
    wFatigue :: ℝ
 }
 
+-- |All data of a cell.
 data CellData s = CD {
    agents :: [Agent s],
-   wumpus :: [Wumpus],
+   cWumpus :: [Wumpus],
    stench :: ℝ,
    breeze :: ℝ,
-   pit :: Bool,
-   gold :: ℕ
+   cPit :: Bool,
+   cGold :: ℕ
+   }
+
+data VisualCellData = VCD {
+   vAgents :: [VisualAgent],
+   vWumpus :: [Wumpus],
+   vPit :: Bool,
+   vGold :: ℕ
    }
 
 type Cell s = Maybe (CellData s)
@@ -94,10 +112,25 @@ data World s = World {
 class HasName a where name :: a -> String
 class HasHealth a where health :: a -> ℝ
 class HasFatigue a where fatigue :: a -> ℝ
+class HasWumpus a where wumpus :: a -> [Wumpus]
+class HasPit a where pit :: a -> Bool
+class HasGold a where gold :: a -> ℕ
 
 instance HasName (Agent s) where name = agentName
 instance HasHealth (Agent s) where health = aHealth
 instance HasFatigue (Agent s) where fatigue = aFatigue
 
+instance HasName VisualAgent where name = vAgentName
+instance HasHealth VisualAgent where health = vHealth
+instance HasFatigue VisualAgent where fatigue = vFatigue
+
 instance HasHealth Wumpus where health = wHealth
 instance HasFatigue Wumpus where fatigue = wFatigue
+
+instance HasWumpus (CellData s) where wumpus = cWumpus
+instance HasPit (CellData s) where pit = cPit
+instance HasGold (CellData s) where gold = cGold
+
+instance HasWumpus VisualCellData where wumpus = vWumpus
+instance HasPit VisualCellData where pit = vPit
+instance HasGold VisualCellData where gold = vGold

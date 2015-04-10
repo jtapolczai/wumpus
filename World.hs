@@ -15,6 +15,16 @@ cellData = flip M.lookup . wCellData
 edgeData :: World s -> EdgeInd -> Maybe EdgeData
 edgeData = flip M.lookup . wEdgeData
 
+-- |Creates a new world and initializes it (setting the time to the middle of
+--  the day and initializing the outwardly radiating breeze for the pits).
+makeWorld :: [(CellInd, CellData s)]
+          -> [(EdgeInd, EdgeData)]
+          -> World s
+makeWorld cells edges = World (WD 25 Temperate)
+                              UnboundedSquareGrid
+                              (M.fromList edges)
+                              (M.fromList cells)
+
 -- |Advances the world state by one time step.
 simulateStep :: World s -> World s
 simulateStep = undefined
@@ -37,3 +47,31 @@ advanceGlobalData (WD time _) =
       temp' = toEnum $ light time'
    in
       WD time temp'
+
+-- |Initialize the breeze around the pits
+initEnv :: World s -> World s
+initEnv = undefined
+
+-- |Moves the Wumpuses on a given cell and updates the stench.
+moveWumpuses :: World s -> CellInd -> World s
+moveWumpuses = undefined
+
+-- |Regenerates the plants on a given cell.
+regrowPlants :: World s -> CellInd -> World s
+regrowPlants = undefined
+
+-- |Gets the perceptions to which a given agent is entitled.
+getPerceptions :: World s
+                  -> CellInd -- ^The cell on which the agent is.
+                  -> EntityName -- ^The agent's name.
+                  -> [Perception]
+getPerceptions = undefined
+
+
+
+{-
+   todo: environment stuff (plant, wumpus stench, pit (only once))
+         wumpuses (move around, attack)
+         agents (feed in perceptions, get decisions)
+
+-}
