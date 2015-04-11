@@ -64,14 +64,16 @@ data CellData s = CD {
    stench :: Rational,
    breeze :: Rational,
    cPit :: Bool,
-   cGold :: Int
+   cGold :: Int,
+   cPlant :: Maybe Rational
    }
 
 data VisualCellData = VCD {
    vAgents :: [VisualAgent],
    vWumpus :: [Wumpus],
    vPit :: Bool,
-   vGold :: Int
+   vGold :: Int,
+   vPlant :: Maybe Rational
    }
 
 type Cell s = Maybe (CellData s)
@@ -110,6 +112,7 @@ class HasFatigue a where fatigue :: a -> Rational
 class HasWumpus a where wumpus :: a -> [Wumpus]
 class HasPit a where pit :: a -> Bool
 class HasGold a where gold :: a -> Int
+class HasPlant a where plant :: a -> Maybe Rational
 
 instance HasName (Agent s) where name = agentName
 instance HasHealth (Agent s) where health = aHealth
@@ -125,7 +128,9 @@ instance HasFatigue Wumpus where fatigue = wFatigue
 instance HasWumpus (CellData s) where wumpus = cWumpus
 instance HasPit (CellData s) where pit = cPit
 instance HasGold (CellData s) where gold = cGold
+instance HasPlant (CellData s) where plant = cPlant
 
 instance HasWumpus VisualCellData where wumpus = vWumpus
 instance HasPit VisualCellData where pit = vPit
 instance HasGold VisualCellData where gold = vGold
+instance HasPlant VisualCellData where plant = vPlant

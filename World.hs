@@ -54,11 +54,25 @@ advanceGlobalData (WD time _) =
       WD time temp'
 
 -- |Initialize the breeze around the pits.
-initBreeze:: World s -> World s
-initBreeze world = applyIntensityMap setBreeze (intensityMap $ pits world) world
+initBreeze :: World s -> World s
+initBreeze world = applyIntensityMap setBreeze (intensityMap $ filterCells pit world) world
    where
       setBreeze b c = c{breeze = b}
-      pits = map fst . M.toList . M.filter pit . wCellData
+
+-- |Moves the Wumpuses on a given cell and updates the stench.
+moveWumpuses :: World s-> World s
+moveWumpuses = undefined
+
+-- |Regenerates the plants.
+regrowPlants :: World s -> World s
+regrowPlants world = world{wCellData = fmap growPlant $ wCellData world}
+   where
+      growPlant c = c{cPlant = fmap (min 1 . (+ (1 % 10))) $ plant c}
+
+-- |Returns the indices of those cells which fulfil a given predicate.
+filterCells :: (CellData s -> Bool) -> World s -> [CellInd]
+filterCells f = map fst . M.toList . M.filter f . wCellData
+
 
 -- |Applies an intensity map to a world, overwriting the values in affected cells.
 applyIntensityMap :: (Rational -> CellData s -> CellData s) -- ^Setter for a cell.
@@ -100,21 +114,6 @@ reduceIntensity world getF updF = world{wCellData=cellData'}
    where
       cellData' = fmap (updF . pos . subtract (1 % 3) . getF) (wCellData world)
 
--- |Gets the Euclidean distance between two cells.
-dist :: CellInd -> CellInd -> Rational
-dist (x,y) (x',y') = round $ sqrt $ fromIntegral $ (xd ^ 2) + (yd ^ 2)
-   where
-      round = flip approxRational (0.000001)
-      xd = abs $ x - x'
-      yd = abs $ y - y'
-
--- |Moves the Wumpuses on a given cell and updates the stench.
-moveWumpuses :: World s-> World s
-moveWumpuses = undefined
-
--- |Regenerates the plants on a given cell.
-regrowPlants :: World s -> CellInd -> World s
-regrowPlants = undefined
 
 -- |Gets the perceptions to which a given agent is entitled.
 getPerceptions :: World s
@@ -123,9 +122,21 @@ getPerceptions :: World s
                   -> [Perception]
 getPerceptions = undefined
 
+-- Helpers
+-------------------------------------------------------------------------------
+
+-- |Gets the Euclidean distance between two cells.
+dist :: CellInd -> CellInd -> Rational
+dist (x,y) (x',y') = round $ sqrt $ fromIntegral $ (xd ^ 2) + (yd ^ 2)
+   where
+      round = flip approxRational (0.000001)
+      xd = abs $ x - x'
+      yd = abs $ y - y'
+
 -- |Synonym for @max 0@, i.e. constrains a value to be at least 0.
 pos :: (Ord a, Num a) => a -> a
 pos = max 0
+
 
 {-
    todo: environment stuff (plant, wumpus stench, pit (only once))
