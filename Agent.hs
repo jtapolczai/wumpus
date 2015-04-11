@@ -1,5 +1,3 @@
-{-# LANGUAGE UnicodeSyntax #-}
-
 module Agent where
 
 import qualified Data.Map as M
@@ -7,16 +5,16 @@ import qualified Data.Map as M
 import Types
 
 data HormoneStorage = HS {
-   hAnger :: ℝ,
-   hContentment :: ℝ,
-   hEnthusiasm :: ℝ,
-   hFear :: ℝ
+   hAnger :: Rational,
+   hContentment :: Rational,
+   hEnthusiasm :: Rational,
+   hFear :: Rational
    }
 
 data SocialStorage = SJS {
-   sSympathy :: ℝ,
-   sTrust :: ℝ,
-   sRespect :: ℝ
+   sSympathy :: Rational,
+   sTrust :: Rational,
+   sRespect :: Rational
 }
 
 type Memory s = (M.Map CellInd (CellData s), M.Map EdgeInd EdgeData)
@@ -33,4 +31,4 @@ data Perception = EdgeP EdgeInd EdgeData
                   | AgentP CellInd VisualAgent
                   | WumpusP CellInd Wumpus
                   | TemperatureP Temperature
-                  | TimeP ℕ
+                  | TimeP Int

@@ -1,13 +1,8 @@
-{-# LANGUAGE UnicodeSyntax #-}
-
 module Types where
 
 import qualified Data.Map as M
 import Math.Geometry.Grid.Square
 import Math.Geometry.Grid.SquareInternal (SquareDirection(..))
-
-type ℕ = Int
-type ℝ = Double
 
 type EntityName = String
 type GestureName = String
@@ -33,9 +28,9 @@ data Action =
 data Agent s = Agent {
    agentName :: EntityName,
    direction :: SquareDirection,
-   aHealth :: ℝ,
-   aFatigue :: ℝ,
-   inventory :: M.Map Item ℕ,
+   aHealth :: Rational,
+   aFatigue :: Rational,
+   inventory :: M.Map Item Int,
    state :: s
 }
 
@@ -44,8 +39,8 @@ data Agent s = Agent {
 data VisualAgent = VisualAgent {
    vAgentName :: EntityName,
    vDirection :: SquareDirection,
-   vHealth :: ℝ,
-   vFatigue :: ℝ
+   vHealth :: Rational,
+   vFatigue :: Rational
 }
 
 type AgentAction w s = s -> w -> (Action, s)
@@ -58,25 +53,25 @@ instance Ord SquareDirection where
       where {ind North = 0; ind East = 1; ind South = 2; ind West = 3}
 
 data Wumpus = Wumpus {
-   wHealth :: ℝ,
-   wFatigue :: ℝ
+   wHealth :: Rational,
+   wFatigue :: Rational
 }
 
 -- |All data of a cell.
 data CellData s = CD {
    agents :: [Agent s],
    cWumpus :: [Wumpus],
-   stench :: ℝ,
-   breeze :: ℝ,
+   stench :: Rational,
+   breeze :: Rational,
    cPit :: Bool,
-   cGold :: ℕ
+   cGold :: Int
    }
 
 data VisualCellData = VCD {
    vAgents :: [VisualAgent],
    vWumpus :: [Wumpus],
    vPit :: Bool,
-   vGold :: ℕ
+   vGold :: Int
    }
 
 type Cell s = Maybe (CellData s)
@@ -85,8 +80,8 @@ type CellInd = (Int,Int)
 type EdgeInd = (CellInd, SquareDirection)
 
 data EdgeData = ED {
-   danger :: ℝ,
-   eFatigue :: ℝ
+   danger :: Rational,
+   eFatigue :: Rational
 }
 
 type Edge = Maybe EdgeData
@@ -95,7 +90,7 @@ data Temperature = Freezing | Cold | Temperate | Warm | Hot
    deriving (Show, Eq, Ord, Enum, Bounded)
 
 data WorldData = WD {
-   time :: ℕ,
+   time :: Int,
    temperature :: Temperature
 }
 
@@ -110,11 +105,11 @@ data World s = World {
 -------------------------------------------------------------------------------
 
 class HasName a where name :: a -> String
-class HasHealth a where health :: a -> ℝ
-class HasFatigue a where fatigue :: a -> ℝ
+class HasHealth a where health :: a -> Rational
+class HasFatigue a where fatigue :: a -> Rational
 class HasWumpus a where wumpus :: a -> [Wumpus]
 class HasPit a where pit :: a -> Bool
-class HasGold a where gold :: a -> ℕ
+class HasGold a where gold :: a -> Int
 
 instance HasName (Agent s) where name = agentName
 instance HasHealth (Agent s) where health = aHealth
