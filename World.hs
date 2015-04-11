@@ -4,7 +4,7 @@ import Control.Monad ((>=>))
 import Data.List (foldl')
 import qualified Data.Map as M
 import Data.Ratio
-import Math.Geometry.Grid
+import Math.Geometry.Grid hiding (null)
 import Math.Geometry.Grid.Square
 
 import Types
@@ -59,9 +59,19 @@ initBreeze world = applyIntensityMap setBreeze (intensityMap $ filterCells pit w
    where
       setBreeze b c = c{breeze = b}
 
--- |Moves the Wumpuses on a given cell and updates the stench.
+-- |Moves the Wumpuses.
 moveWumpuses :: World s-> World s
 moveWumpuses = undefined
+
+-- |Updates the stench induces by the Wumpuses, reducing it where
+wumpusStench :: World s -> World s
+wumpusStench world = newStench $ clearStench world
+   where
+      wumpuses = filterCells (not.null.wumpus) world
+      setStench s c = c{stench = s}
+
+      newStench = applyIntensityMap setStench (intensityMap wumpuses)
+      clearStench = reduceIntensity stench setStench
 
 -- |Regenerates the plants.
 regrowPlants :: World s -> World s
@@ -106,13 +116,13 @@ getIntensity v = foldl' addCell M.empty $ neighbourhood v
 
 -- |Uniformly reduces the intensity of a sensation (stench) in the whole world
 --  by 1/3, to a minimum of 0.
-reduceIntensity :: World s
-                -> (CellData s -> Rational) -- ^Getter for the sensation.
-                -> (Rational -> CellData s) -- ^Setter for the sensation.
+reduceIntensity :: (CellData s -> Rational) -- ^Getter for the sensation.
+                -> (Rational -> CellData s -> CellData s) -- ^Setter for the sensation.
                 -> World s
-reduceIntensity world getF updF = world{wCellData=cellData'}
+                -> World s
+reduceIntensity getF updF world = world{wCellData=cellData'}
    where
-      cellData' = fmap (updF . pos . subtract (1 % 3) . getF) (wCellData world)
+      cellData' = fmap (\c -> flip updF c . pos . subtract (1 % 3) $ getF c) (wCellData world)
 
 
 -- |Gets the perceptions to which a given agent is entitled.
@@ -139,7 +149,7 @@ pos = max 0
 
 
 {-
-   todo: environment stuff (plant, wumpus stench, pit (only once))
+   todo: environment stuff (wumpus stench)
          wumpuses (move around, attack)
          agents (feed in perceptions, get decisions)
 
