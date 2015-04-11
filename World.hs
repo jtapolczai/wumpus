@@ -79,6 +79,20 @@ regrowPlants world = world{wCellData = fmap growPlant $ wCellData world}
    where
       growPlant c = c{cPlant = fmap (min 1 . (+ (1 % 10))) $ plant c}
 
+
+-- Perceptions
+------------------------------------------------------------------------------
+
+-- |Gets the perceptions to which a given agent is entitled.
+getPerceptions :: World s
+                  -> CellInd -- ^The cell on which the agent is.
+                  -> EntityName -- ^The agent's name.
+                  -> [Perception]
+getPerceptions = undefined
+
+-- Intensity maps
+-------------------------------------------------------------------------------
+
 -- |Returns the indices of those cells which fulfil a given predicate.
 filterCells :: (CellData s -> Bool) -> World s -> [CellInd]
 filterCells f = map fst . M.toList . M.filter f . wCellData
@@ -124,13 +138,6 @@ reduceIntensity getF updF world = world{wCellData=cellData'}
    where
       cellData' = fmap (\c -> flip updF c . pos . subtract (1 % 3) $ getF c) (wCellData world)
 
-
--- |Gets the perceptions to which a given agent is entitled.
-getPerceptions :: World s
-                  -> CellInd -- ^The cell on which the agent is.
-                  -> EntityName -- ^The agent's name.
-                  -> [Perception]
-getPerceptions = undefined
 
 -- Helpers
 -------------------------------------------------------------------------------
