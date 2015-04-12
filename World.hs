@@ -1,11 +1,14 @@
 module World where
 
 import Control.Monad ((>=>))
+import Data.Functor
 import Data.List (foldl')
 import qualified Data.Map as M
+import Data.Maybe
 import Data.Ratio
 import Math.Geometry.Grid hiding (null)
 import Math.Geometry.Grid.Square
+import Math.Geometry.Grid.SquareInternal (SquareDirection(..))
 
 import Types
 import Agent
@@ -33,6 +36,34 @@ makeWorld cells edges = initBreeze newWorld
 -- |Advances the world state by one time step.
 simulateStep :: World s -> World s
 simulateStep = undefined
+
+-- |Performs a action by an agent.
+doAction :: CellInd    -- ^Agent's location.
+         -> Action
+         -> World s
+         -> World s
+doAction _ NoOp world = world
+doAction i (Rotate dir) world = onCell i (onAgent setDir) world
+   where
+      setDir agent = agent{direction = dir}
+doAction i (Move dir) world =
+   if targetFree then world{wCellData = M.adjust (addAgent ag) i'
+                                        $ M.adjust removeAgent i cells}
+                 else world
+   where
+      cells = wCellData world
+      i' = inDirection i dir
+
+      addAgent a c = c{agent = Just a}
+      removeAgent c = c{agent = Nothing}
+
+      ag = fromJust $ agent $ fromJust $ M.lookup i cells
+
+      targetFree =  maybe False cellFree $ M.lookup i' cells
+      cellFree cell = isNothing (wumpus cell) && isNothing (agent cell)
+
+
+   --if target is free then move else noOP
 
 light :: Int -> Int
 light t | 20 <= t'         = 0
@@ -67,7 +98,7 @@ moveWumpuses = undefined
 wumpusStench :: World s -> World s
 wumpusStench world = newStench $ clearStench world
    where
-      wumpuses = filterCells (not.null.wumpus) world
+      wumpuses = filterCells (isJust.wumpus) world
       setStench s c = c{stench = s}
 
       newStench = applyIntensityMap setStench (intensityMap wumpuses)
@@ -154,10 +185,23 @@ dist (x,y) (x',y') = round $ sqrt $ fromIntegral $ (xd ^ 2) + (yd ^ 2)
 pos :: (Ord a, Num a) => a -> a
 pos = max 0
 
+-- |Applies a function on an agent with the given name.
+onAgent :: (Agent s -> Agent s) -> CellData s -> CellData s
+onAgent f cell = cell{agent = f <$> agent cell}
+
+-- |Applies a function to a given cell.
+onCell :: CellInd -> (CellData s -> CellData s) -> World s -> World s
+onCell i f world = world{wCellData = M.adjust f i $ wCellData world}
+
+-- |Moves an index by 1 in a given direction.
+inDirection :: CellInd -> SquareDirection -> CellInd
+inDirection (x,y) North = (x,y+1)
+inDirection (x,y) East = (x+1,y)
+inDirection (x,y) South = (x,y-1)
+inDirection (x,y) West = (x-1,y)
 
 {-
-   todo: environment stuff (wumpus stench)
-         wumpuses (move around, attack)
+   todo: wumpuses (move around, attack)
          agents (feed in perceptions, get decisions)
 
 -}

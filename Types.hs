@@ -59,8 +59,8 @@ data Wumpus = Wumpus {
 
 -- |All data of a cell.
 data CellData s = CD {
-   agents :: [Agent s],
-   cWumpus :: [Wumpus],
+   agent :: Maybe (Agent s),
+   cWumpus :: Maybe Wumpus,
    stench :: Rational,
    breeze :: Rational,
    cPit :: Bool,
@@ -69,8 +69,8 @@ data CellData s = CD {
    }
 
 data VisualCellData = VCD {
-   vAgents :: [VisualAgent],
-   vWumpus :: [Wumpus],
+   vAgent :: Maybe VisualAgent,
+   vWumpus :: Maybe Wumpus,
    vPit :: Bool,
    vGold :: Int,
    vPlant :: Maybe Rational
@@ -109,7 +109,7 @@ data World s = World {
 class HasName a where name :: a -> String
 class HasHealth a where health :: a -> Rational
 class HasFatigue a where fatigue :: a -> Rational
-class HasWumpus a where wumpus :: a -> [Wumpus]
+class HasWumpus a where wumpus :: a -> Maybe Wumpus
 class HasPit a where pit :: a -> Bool
 class HasGold a where gold :: a -> Int
 class HasPlant a where plant :: a -> Maybe Rational
