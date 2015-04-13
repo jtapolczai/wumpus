@@ -77,9 +77,20 @@ doAction i Gather world = doIf (cellHas (^.plant . to (fromMaybe 0) . to (1==)) 
 doAction i Butcher world = undefined
 doAction i Collect world = onCell i collect world
    where
-      collect c = (gold .~ 0)
-                   $ onAgent (inventory . ix Gold +~ (c ^. gold)) c
-doAction i (Eat item) world = undefined
+      collect c = (gold .~ 0) $ onAgent (inventory . ix Gold +~ (c ^. gold)) c
+
+-- Eat fruit or meat. Remove the item from the agent's inventory and regain
+-- 0.5 health.
+doAction i (Eat item) world = doIf hasItem (onCell i eatItem) world
+   where
+      hasItem = cellHas (^. entity
+                          . to fromAgent
+                          . inventory
+                          . at item
+                          . to (maybe False (0<))) i
+      eatItem = onAgent (health %~ (min 1 . (1%2 + )))
+                . onAgent (inventory . ix item -~ 1)
+
 doAction i (Gesture s) world = undefined
 
 
