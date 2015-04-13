@@ -1,4 +1,5 @@
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module World where
 
@@ -42,24 +43,42 @@ simulateStep :: World s -> World s
 simulateStep = undefined
 
 -- |Performs a action by an agent.
-
-doAction :: CellInd    -- ^Agent's location.
+doAction :: forall s.CellInd    -- ^Agent's location.
          -> Action
          -> World s
          -> World s
 doAction _ NoOp world = world
 doAction i (Rotate dir) world = onCell i (onAgent (direction .~ dir)) world
-doAction i (Move dir) world = if cellFree j world then moveEntity agent i j world
-                                                  else world
+doAction i (Move dir) world = doIf (cellFree j) (moveEntity i j) world
    where j = inDirection i dir
 doAction i Attack world = undefined
-doAction i (Give item) world = undefined
+doAction i (Give item) world = doIf (cellHas (^. entity . to isAgent) j)
+                                    give
+                                    world
+   where
+      j = inDirection i (me ^. direction)
+      me :: Agent s
+      me = entityAt i fromAgent world
+      other = entityAt j fromAgent world
+
+      qty :: Int
+      qty = me ^. inventory . at item . to (maybe 0 (min 1))
+
+      give :: World s -> World s
+      give w = w & cellData . ix i %~ (onAgent (inventory . ix item %~ subtract qty))
+                 & cellData . ix i %~ (onAgent (inventory . ix item %~ (+qty)))
+
+
+         --onCell i (onAgent (inventory & ix item %~ subtract qty))
+         --    . onCell j (onAgent (inventory & ix item %~ (+qty)))
+
+
+
 doAction i Gather world = undefined
 doAction i Butcher world = undefined
 doAction i Collect world = undefined
 doAction i (Eat item) world = undefined
 doAction i (Gesture s) world = undefined
-
 
    --if target is free then move else noOP
 
@@ -67,24 +86,32 @@ doAction i (Gesture s) world = undefined
 --  in the target cell is overwritten.
 --  If the source cell does not exist or if it contains no entity, the
 --  entity in the target cell is overwritten with @Nothing@.
-moveEntity :: Lens' (CellData s) (Maybe entity)
-           -> CellInd
+moveEntity :: CellInd
            -> CellInd
            -> World s
            -> World s
-moveEntity lens from to world = world & cellData %~ move
+moveEntity i j world = world & cellData %~ move
    where
-      ent = M.lookup from (world ^. cellData) >>= (^. lens)
-      move = M.adjust (lens .~ ent) to
-             . M.adjust (lens .~ Nothing) from
+      ent = world ^. cellData . at i . to fromJust . entity
+      move m = m & ix i %~ (entity .~ None)
+                 & ix j %~ (entity .~ ent)
 
 -- |Returns True iff the given cell exists and has neither a Wumpus nor an
 --  agent on it.
 cellFree :: CellInd -> World s -> Bool
-cellFree i world = world ^. cellData . to (M.lookup i) . to (maybe False free)
-   where
-      free c = case (c ^. agent,c ^. wumpus) of (Nothing,Nothing) -> True
-                                                _                 -> False
+cellFree = cellHas (^. entity . to isNone)
+
+cellAgent :: CellInd -> World s -> Bool
+cellAgent = cellHas (^. entity . to isAgent)
+
+-- |Returns True iff a given cell exists and has an entity (an agent or a Wumpus)
+--  on it.
+cellEntity :: CellInd -> World s -> Bool
+cellEntity = cellHas (^. entity . to (not.isNone))
+
+-- |Returns True iff a given cell exists and if it satisfies a predicate.
+cellHas :: (CellData s -> Bool) -> CellInd -> World s -> Bool
+cellHas p i world = world ^. cellData . to (M.lookup i) . to (maybe False p)
 
 -- |Gets a light value from 0 to 4, depending on the time.
 light :: Int -> Int
@@ -116,7 +143,7 @@ moveWumpuses = undefined
 wumpusStench :: World s -> World s
 wumpusStench world = newStench $ clearStench world
    where
-      wumpuses = filterCells (isJust.(^.wumpus)) world
+      wumpuses = filterCells (^. entity . to isWumpus) world
 
       newStench = applyIntensityMap stench (intensityMap wumpuses)
       clearStench = reduceIntensity stench
@@ -200,9 +227,21 @@ dist (x,y) (x',y') = round $ sqrt $ fromIntegral $ (xd ^ 2) + (yd ^ 2)
 pos :: (Ord a, Num a) => a -> a
 pos = max 0
 
+-- |Performs an action if a predicate is fulfiled. Otherwise does nothing.
+doIf :: (a -> Bool) -> (a -> a) -> a -> a
+doIf pred act x = if pred x then act x else x
+
 -- |Applies a function on an agent with the given name.
 onAgent :: (Agent s -> Agent s) -> CellData s -> CellData s
-onAgent f cell = cell & agent %~ fmap f
+onAgent f cell = cell & entity %~ f'
+   where
+      f' (Ag s) = Ag (f s)
+      f' s = s
+
+-- |Gets the entity on a given cell. Fails if the cell does not exist or has
+--  has no entity.
+entityAt :: CellInd -> (Entity (Agent s) -> a) -> World s -> a
+entityAt i f world = world ^. cellData . at i . to fromJust . entity . to f
 
 -- |Applies a function to a given cell.
 onCell :: CellInd -> (CellData s -> CellData s) -> World s -> World s

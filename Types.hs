@@ -17,6 +17,7 @@ type GestureName = String
 -------------------------------------------------------------------------------
 
 data Item = Gold | Fruit | Meat
+   deriving (Show, Eq, Ord, Enum, Bounded)
 
 data Action =
    NoOp
@@ -58,6 +59,28 @@ type AgentAction w s = s -> w -> (Action, s)
 -- World data
 -------------------------------------------------------------------------------
 
+data Entity s = Ag s| Wu Wumpus | None
+
+isNone :: Entity s -> Bool
+isNone None = True
+isNone _    = False
+
+isAgent :: Entity s -> Bool
+isAgent (Ag _) = True
+isAgent _      = False
+
+isWumpus :: Entity s -> Bool
+isWumpus (Wu _) = True
+isWumpus _      = False
+
+fromAgent :: Entity s -> s
+fromAgent (Ag s) = s
+fromAgent _ = error "fromAgent called on non-Agent!"
+
+fromWumpus :: Entity s -> Wumpus
+fromWumpus (Wu s) = s
+fromWumpus _ = error "fromWumpus called on non-Agent!"
+
 instance Ord SquareDirection where
    x <= y = ind x <= ind y
       where {ind North = 0; ind East = 1; ind South = 2; ind West = 3}
@@ -71,8 +94,7 @@ makeFields ''Wumpus
 
 -- |All data of a cell.
 data CellData s = CD {
-   _cellDataAgent :: Maybe (Agent s),
-   _cellDataWumpus :: Maybe Wumpus,
+   _cellDataEntity :: Entity (Agent s),
    _cellDataStench :: Rational,
    _cellDataBreeze :: Rational,
    _cellDataPit :: Bool,
@@ -83,8 +105,7 @@ data CellData s = CD {
 makeFields ''CellData
 
 data VisualCellData = VCD {
-   _visualCellDataAgent :: Maybe VisualAgent,
-   _visualCellDataWumpus :: Maybe Wumpus,
+   _visualCellDataAgent :: Entity VisualAgent,
    _visualCellDataPit :: Bool,
    _visualCellDataGold :: Int,
    _visualCellDataPlant :: Maybe Rational
