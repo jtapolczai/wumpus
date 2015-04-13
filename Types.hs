@@ -59,7 +59,7 @@ type AgentAction w s = s -> w -> (Action, s)
 -- World data
 -------------------------------------------------------------------------------
 
-data Entity s = Ag s| Wu Wumpus | None
+data Entity s = Ag s | Wu Wumpus | None
 
 isNone :: Entity s -> Bool
 isNone None = True

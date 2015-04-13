@@ -65,20 +65,21 @@ doAction i (Give item) world = doIf (cellHas (^. entity . to isAgent) j)
       qty = me ^. inventory . at item . to (maybe 0 (min 1))
 
       give :: World s -> World s
-      give w = w & cellData . ix i %~ (onAgent (inventory . ix item %~ subtract qty))
-                 & cellData . ix i %~ (onAgent (inventory . ix item %~ (+qty)))
+      give = onCell j (onAgent (inventory . ix item +~ qty))
+             . onCell i (onAgent (inventory . ix item -~ qty))
 
-
-         --onCell i (onAgent (inventory & ix item %~ subtract qty))
-         --    . onCell j (onAgent (inventory & ix item %~ (+qty)))
-
-
-
-doAction i Gather world = undefined
+doAction i Gather world = doIf (cellHas (^.plant . to (fromMaybe 0) . to (1==)) i)
+                               harvest
+                               world
+   where
+      harvest = onCell i (onAgent (inventory . ix Fruit +~ 1))
+                . onCell i (plant %~ ($> 0))
 doAction i Butcher world = undefined
 doAction i Collect world = undefined
 doAction i (Eat item) world = undefined
 doAction i (Gesture s) world = undefined
+
+
 
    --if target is free then move else noOP
 
