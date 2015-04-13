@@ -1,5 +1,11 @@
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE FlexibleInstances #-}
+
 module Types where
 
+
+import Control.Lens.TH
 import qualified Data.Map as M
 import Math.Geometry.Grid.Square
 import Math.Geometry.Grid.SquareInternal (SquareDirection(..))
@@ -16,32 +22,36 @@ data Action =
    NoOp
    | Rotate SquareDirection
    | Move SquareDirection
-   | Attack SquareDirection EntityName
-   | Give Item EntityName
+   | Attack
+   | Give Item
    | Gather
    | Butcher
    | Collect
    | Eat Item
-   | Gesture String EntityName
+   | Gesture String
 
 -- |A agent's entire state.
 data Agent s = Agent {
-   agentName :: EntityName,
-   direction :: SquareDirection,
-   aHealth :: Rational,
-   aFatigue :: Rational,
-   inventory :: M.Map Item Int,
-   state :: s
+   _agentName :: EntityName,
+   _agentDirection :: SquareDirection,
+   _agentHealth :: Rational,
+   _agentFatigue :: Rational,
+   _agentInventory :: M.Map Item Int,
+   _agentState :: s
 }
+
+makeFields ''Agent
 
 -- |The slice of an agent's state that another agent
 --  may perceive visually.
 data VisualAgent = VisualAgent {
-   vAgentName :: EntityName,
-   vDirection :: SquareDirection,
-   vHealth :: Rational,
-   vFatigue :: Rational
+   _visualAgentName :: EntityName,
+   _visualAgentDirection :: SquareDirection,
+   _visualAgentHealth :: Rational,
+   _visualAgentFatigue :: Rational
 }
+
+makeFields ''VisualAgent
 
 type AgentAction w s = s -> w -> (Action, s)
 
@@ -53,28 +63,34 @@ instance Ord SquareDirection where
       where {ind North = 0; ind East = 1; ind South = 2; ind West = 3}
 
 data Wumpus = Wumpus {
-   wHealth :: Rational,
-   wFatigue :: Rational
+   _wumpusHealth :: Rational,
+   _wumpusFatigue :: Rational
 }
+
+makeFields ''Wumpus
 
 -- |All data of a cell.
 data CellData s = CD {
-   agent :: Maybe (Agent s),
-   cWumpus :: Maybe Wumpus,
-   stench :: Rational,
-   breeze :: Rational,
-   cPit :: Bool,
-   cGold :: Int,
-   cPlant :: Maybe Rational
+   _cellDataAgent :: Maybe (Agent s),
+   _cellDataWumpus :: Maybe Wumpus,
+   _cellDataStench :: Rational,
+   _cellDataBreeze :: Rational,
+   _cellDataPit :: Bool,
+   _cellDataGold :: Int,
+   _cellDataPlant :: Maybe Rational
    }
 
+makeFields ''CellData
+
 data VisualCellData = VCD {
-   vAgent :: Maybe VisualAgent,
-   vWumpus :: Maybe Wumpus,
-   vPit :: Bool,
-   vGold :: Int,
-   vPlant :: Maybe Rational
+   _visualCellDataAgent :: Maybe VisualAgent,
+   _visualCellDataWumpus :: Maybe Wumpus,
+   _visualCellDataPit :: Bool,
+   _visualCellDataGold :: Int,
+   _visualCellDataPlant :: Maybe Rational
    }
+
+makeFields ''VisualCellData
 
 type Cell s = Maybe (CellData s)
 
@@ -82,9 +98,11 @@ type CellInd = (Int,Int)
 type EdgeInd = (CellInd, SquareDirection)
 
 data EdgeData = ED {
-   danger :: Rational,
-   eFatigue :: Rational
+   _edgeDataDanger :: Rational,
+   _edgeDataFatigue :: Rational
 }
+
+makeFields ''EdgeData
 
 type Edge = Maybe EdgeData
 
@@ -92,20 +110,25 @@ data Temperature = Freezing | Cold | Temperate | Warm | Hot
    deriving (Show, Eq, Ord, Enum, Bounded)
 
 data WorldData = WD {
-   time :: Int,
-   temperature :: Temperature
+   _worldDataTime :: Int,
+   _worldDataTemperature :: Temperature
 }
 
+makeFields ''WorldData
+
 data World s = World {
-   worldData :: WorldData,
-   graph :: UnboundedSquareGrid,
-   wEdgeData :: M.Map EdgeInd EdgeData,
-   wCellData :: M.Map CellInd (CellData s)
+   _worldWorldData :: WorldData,
+   _worldGraph :: UnboundedSquareGrid,
+   _worldEdgeData :: M.Map EdgeInd EdgeData,
+   _worldCellData :: M.Map CellInd (CellData s)
 }
+
+makeFields ''World
 
 -- Instances
 -------------------------------------------------------------------------------
 
+{-
 class HasName a where name :: a -> String
 class HasHealth a where health :: a -> Rational
 class HasFatigue a where fatigue :: a -> Rational
@@ -134,3 +157,4 @@ instance HasWumpus VisualCellData where wumpus = vWumpus
 instance HasPit VisualCellData where pit = vPit
 instance HasGold VisualCellData where gold = vGold
 instance HasPlant VisualCellData where plant = vPlant
+-}

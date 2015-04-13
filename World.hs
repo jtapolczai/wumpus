@@ -1,5 +1,8 @@
+{-# LANGUAGE RankNTypes #-}
+
 module World where
 
+import Control.Lens
 import Control.Monad ((>=>))
 import Data.Functor
 import Data.List (foldl')
@@ -13,13 +16,14 @@ import Math.Geometry.Grid.SquareInternal (SquareDirection(..))
 import Types
 import Agent
 
+wCellData = undefined
 type IntensityMap = M.Map CellInd Rational
 
-cellData :: World s -> CellInd -> Maybe (CellData s)
-cellData = flip M.lookup . wCellData
+--cellData :: World s -> CellInd -> Maybe (CellData s)
+--cellData = flip M.lookup . wCellData
 
-edgeData :: World s -> EdgeInd -> Maybe EdgeData
-edgeData = flip M.lookup . wEdgeData
+--edgeData :: World s -> EdgeInd -> Maybe EdgeData
+--edgeData = flip M.lookup . wEdgeData
 
 -- |Creates a new world and initializes it (setting the time to the middle of
 --  the day and initializing the outwardly radiating breeze for the pits).
@@ -38,33 +42,51 @@ simulateStep :: World s -> World s
 simulateStep = undefined
 
 -- |Performs a action by an agent.
+
 doAction :: CellInd    -- ^Agent's location.
          -> Action
          -> World s
          -> World s
 doAction _ NoOp world = world
-doAction i (Rotate dir) world = onCell i (onAgent setDir) world
-   where
-      setDir agent = agent{direction = dir}
-doAction i (Move dir) world =
-   if targetFree then world{wCellData = M.adjust (addAgent ag) i'
-                                        $ M.adjust removeAgent i cells}
-                 else world
-   where
-      cells = wCellData world
-      i' = inDirection i dir
-
-      addAgent a c = c{agent = Just a}
-      removeAgent c = c{agent = Nothing}
-
-      ag = fromJust $ agent $ fromJust $ M.lookup i cells
-
-      targetFree =  maybe False cellFree $ M.lookup i' cells
-      cellFree cell = isNothing (wumpus cell) && isNothing (agent cell)
+doAction i (Rotate dir) world = onCell i (onAgent (direction .~ dir)) world
+doAction i (Move dir) world = if cellFree j world then moveEntity agent i j world
+                                                  else world
+   where j = inDirection i dir
+doAction i Attack world = undefined
+doAction i (Give item) world = undefined
+doAction i Gather world = undefined
+doAction i Butcher world = undefined
+doAction i Collect world = undefined
+doAction i (Eat item) world = undefined
+doAction i (Gesture s) world = undefined
 
 
    --if target is free then move else noOP
 
+-- |Removes an entity from one cell and puts it into another. The entity
+--  in the target cell is overwritten.
+--  If the source cell does not exist or if it contains no entity, the
+--  entity in the target cell is overwritten with @Nothing@.
+moveEntity :: Lens' (CellData s) (Maybe entity)
+           -> CellInd
+           -> CellInd
+           -> World s
+           -> World s
+moveEntity lens from to world = world & cellData %~ move
+   where
+      ent = M.lookup from (world ^. cellData) >>= (^. lens)
+      move = M.adjust (lens .~ ent) to
+             . M.adjust (lens .~ Nothing) from
+
+-- |Returns True iff the given cell exists and has neither a Wumpus nor an
+--  agent on it.
+cellFree :: CellInd -> World s -> Bool
+cellFree i world = world ^. cellData . to (M.lookup i) . to (maybe False free)
+   where
+      free c = case (c ^. agent,c ^. wumpus) of (Nothing,Nothing) -> True
+                                                _                 -> False
+
+-- |Gets a light value from 0 to 4, depending on the time.
 light :: Int -> Int
 light t | 20 <= t'         = 0
         | between t' 15 20 = 1
@@ -76,19 +98,15 @@ light t | 20 <= t'         = 0
 
 -- |Advances the time and temperature.
 advanceGlobalData :: WorldData -> WorldData
-advanceGlobalData (WD time _) =
-   let
-      time' = (time + 1) `mod` 50
-
+advanceGlobalData world = world & time .~ time'
+                                & temperature .~ temp'
+   where
+      time' = (world ^. time + 1) `mod` 50
       temp' = toEnum $ light time'
-   in
-      WD time temp'
 
 -- |Initialize the breeze around the pits.
 initBreeze :: World s -> World s
-initBreeze world = applyIntensityMap setBreeze (intensityMap $ filterCells pit world) world
-   where
-      setBreeze b c = c{breeze = b}
+initBreeze world = applyIntensityMap breeze (intensityMap $ filterCells (^.pit) world) world
 
 -- |Moves the Wumpuses.
 moveWumpuses :: World s-> World s
@@ -98,17 +116,16 @@ moveWumpuses = undefined
 wumpusStench :: World s -> World s
 wumpusStench world = newStench $ clearStench world
    where
-      wumpuses = filterCells (isJust.wumpus) world
-      setStench s c = c{stench = s}
+      wumpuses = filterCells (isJust.(^.wumpus)) world
 
-      newStench = applyIntensityMap setStench (intensityMap wumpuses)
-      clearStench = reduceIntensity stench setStench
+      newStench = applyIntensityMap stench (intensityMap wumpuses)
+      clearStench = reduceIntensity stench
 
 -- |Regenerates the plants.
 regrowPlants :: World s -> World s
-regrowPlants world = world{wCellData = fmap growPlant $ wCellData world}
+regrowPlants = cellData %~ fmap growPlant
    where
-      growPlant c = c{cPlant = fmap (min 1 . (+ (1 % 10))) $ plant c}
+      growPlant c = c & plant %~ fmap (min 1 . (+ (1 % 10)))
 
 
 -- Perceptions
@@ -130,13 +147,13 @@ filterCells f = map fst . M.toList . M.filter f . wCellData
 
 
 -- |Applies an intensity map to a world, overwriting the values in affected cells.
-applyIntensityMap :: (Rational -> CellData s -> CellData s) -- ^Setter for a cell.
+applyIntensityMap :: Setter' (CellData s) Rational
                   -> IntensityMap
                   -> World s
                   -> World s
-applyIntensityMap set intM world = world{wCellData = cellData'}
+applyIntensityMap set intM = cellData %~ M.intersectionWith set' intM
    where
-      cellData' = M.intersectionWith set intM $ wCellData world
+      set' b c = c & set .~ b
 
 -- |Creates a map with sensation intenstities.
 --  The given list of @CellInd@ are the sources from which sensations (breeze,
@@ -161,14 +178,12 @@ getIntensity v = foldl' addCell M.empty $ neighbourhood v
 
 -- |Uniformly reduces the intensity of a sensation (stench) in the whole world
 --  by 1/3, to a minimum of 0.
-reduceIntensity :: (CellData s -> Rational) -- ^Getter for the sensation.
-                -> (Rational -> CellData s -> CellData s) -- ^Setter for the sensation.
+reduceIntensity :: Lens' (CellData s) Rational
                 -> World s
                 -> World s
-reduceIntensity getF updF world = world{wCellData=cellData'}
+reduceIntensity lens = cellData %~ fmap (& lens %~ reduce)
    where
-      cellData' = fmap (\c -> flip updF c . pos . subtract (1 % 3) $ getF c) (wCellData world)
-
+      reduce = pos . subtract (1%3)
 
 -- Helpers
 -------------------------------------------------------------------------------
@@ -187,11 +202,11 @@ pos = max 0
 
 -- |Applies a function on an agent with the given name.
 onAgent :: (Agent s -> Agent s) -> CellData s -> CellData s
-onAgent f cell = cell{agent = f <$> agent cell}
+onAgent f cell = cell & agent %~ fmap f
 
 -- |Applies a function to a given cell.
 onCell :: CellInd -> (CellData s -> CellData s) -> World s -> World s
-onCell i f world = world{wCellData = M.adjust f i $ wCellData world}
+onCell i f world = world & cellData %~ M.adjust f i
 
 -- |Moves an index by 1 in a given direction.
 inDirection :: CellInd -> SquareDirection -> CellInd
