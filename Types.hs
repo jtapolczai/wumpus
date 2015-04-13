@@ -145,37 +145,3 @@ data World s = World {
 }
 
 makeFields ''World
-
--- Instances
--------------------------------------------------------------------------------
-
-{-
-class HasName a where name :: a -> String
-class HasHealth a where health :: a -> Rational
-class HasFatigue a where fatigue :: a -> Rational
-class HasWumpus a where wumpus :: a -> Maybe Wumpus
-class HasPit a where pit :: a -> Bool
-class HasGold a where gold :: a -> Int
-class HasPlant a where plant :: a -> Maybe Rational
-
-instance HasName (Agent s) where name = agentName
-instance HasHealth (Agent s) where health = aHealth
-instance HasFatigue (Agent s) where fatigue = aFatigue
-
-instance HasName VisualAgent where name = vAgentName
-instance HasHealth VisualAgent where health = vHealth
-instance HasFatigue VisualAgent where fatigue = vFatigue
-
-instance HasHealth Wumpus where health = wHealth
-instance HasFatigue Wumpus where fatigue = wFatigue
-
-instance HasWumpus (CellData s) where wumpus = cWumpus
-instance HasPit (CellData s) where pit = cPit
-instance HasGold (CellData s) where gold = cGold
-instance HasPlant (CellData s) where plant = cPlant
-
-instance HasWumpus VisualCellData where wumpus = vWumpus
-instance HasPit VisualCellData where pit = vPit
-instance HasGold VisualCellData where gold = vGold
-instance HasPlant VisualCellData where plant = vPlant
--}

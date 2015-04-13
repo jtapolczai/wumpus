@@ -75,13 +75,13 @@ doAction i Gather world = doIf (cellHas (^.plant . to (fromMaybe 0) . to (1==)) 
       harvest = onCell i (onAgent (inventory . ix Fruit +~ 1))
                 . onCell i (plant %~ ($> 0))
 doAction i Butcher world = undefined
-doAction i Collect world = undefined
+doAction i Collect world = onCell i collect world
+   where
+      collect c = (gold .~ 0)
+                   $ onAgent (inventory . ix Gold +~ (c ^. gold)) c
 doAction i (Eat item) world = undefined
 doAction i (Gesture s) world = undefined
 
-
-
-   --if target is free then move else noOP
 
 -- |Removes an entity from one cell and puts it into another. The entity
 --  in the target cell is overwritten.
