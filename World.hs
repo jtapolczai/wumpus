@@ -17,14 +17,7 @@ import Math.Geometry.Grid.SquareInternal (SquareDirection(..))
 import Types
 import Agent
 
-wCellData = undefined
 type IntensityMap = M.Map CellInd Rational
-
---cellData :: World s -> CellInd -> Maybe (CellData s)
---cellData = flip M.lookup . wCellData
-
---edgeData :: World s -> EdgeInd -> Maybe EdgeData
---edgeData = flip M.lookup . wEdgeData
 
 -- |Creates a new world and initializes it (setting the time to the middle of
 --  the day and initializing the outwardly radiating breeze for the pits).
@@ -182,7 +175,7 @@ getPerceptions = undefined
 
 -- |Returns the indices of those cells which fulfil a given predicate.
 filterCells :: (CellData s -> Bool) -> World s -> [CellInd]
-filterCells f = map fst . M.toList . M.filter f . wCellData
+filterCells f = (^. cellData . to (map fst . M.toList . M.filter f))
 
 
 -- |Applies an intensity map to a world, overwriting the values in affected cells.
