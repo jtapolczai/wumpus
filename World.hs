@@ -16,6 +16,7 @@ import Math.Geometry.Grid.SquareInternal (SquareDirection(..))
 
 import Types
 import Agent
+import Agent.Message
 
 type IntensityMap = M.Map CellInd Rational
 
@@ -81,7 +82,12 @@ doAction i (Eat item) world = doIf hasItem (onCell i eatItem) world
       eatItem = onAgent (health %~ (min 1 . (1%2 + )))
                 . onAgent (inventory . ix item -~ 1)
 
-doAction i (Gesture s) world = todo "doAction/Gesture"
+doAction i (Gesture s) world = doIf (cellAgent j) send world
+   where j = inDirection i (me ^. direction)
+         me = entityAt i fromAgent world
+         send = onCell j (onAgent
+                          $ insertMessage
+                          $ GestureM (me ^. name) s)
 
 collect :: Item -> Lens' (CellData s) Int -> CellData s -> CellData s
 collect item lens c = (lens .~ 0) $ onAgent (inventory . ix item +~ (c ^. lens)) c
@@ -167,7 +173,7 @@ regrowPlants = cellData %~ fmap growPlant
 getPerceptions :: World s
                   -> CellInd -- ^The cell on which the agent is.
                   -> EntityName -- ^The agent's name.
-                  -> [Perception]
+                  -> [Message]
 getPerceptions = todo "getPerceptions"
 
 -- Intensity maps
