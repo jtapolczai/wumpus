@@ -35,6 +35,6 @@ data AgentState = AS {
    _agentStateeMessageSpace :: [Message]
    }
 
-instance Agent AgentState where
+instance AgentMind AgentState where
    insertMessage = todo "AgentState/insertMessage"
    getAction = todo "AgentState/getAction"

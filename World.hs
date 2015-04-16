@@ -37,7 +37,8 @@ simulateStep :: World s -> World s
 simulateStep = todo "simulateStep"
 
 -- |Performs a action by an agent.
-doAction :: forall s.CellInd    -- ^Agent's location.
+doAction :: forall s.AgentMind s
+         => CellInd    -- ^Agent's location.
          -> Action
          -> World s
          -> World s
@@ -87,9 +88,7 @@ doAction i (Eat item) world = doIf hasItem (onCell i eatItem) world
 doAction i (Gesture s) world = doIf (cellAgent j) send world
    where j = inDirection i (me ^. direction)
          me = agentAt i world
-         send = onCell j (onAgent
-                          $ insertMessage
-                          $ GestureM (me ^. name) s)
+         send = onCell j $ onAgent (state %~ insertMessage (GestureM (me^.name) s))
 
 collect :: Item -> Lens' (CellData s) Int -> CellData s -> CellData s
 collect item lens c = (lens .~ 0) $ onAgent (inventory . ix item +~ (c ^. lens)) c
@@ -261,12 +260,16 @@ pos = max 0
 doIf :: (a -> Bool) -> (a -> a) -> a -> a
 doIf pred act x = if pred x then act x else x
 
--- |Applies a function on an agent with the given name.
+-- |Applies a function on an agent.
 onAgent :: (Agent s -> Agent s) -> CellData s -> CellData s
 onAgent f cell = cell & entity %~ f'
    where
       f' (Ag s) = Ag (f s)
       f' s = s
+
+-- |Applies a function on a agent's state.
+onAgentMind :: (s -> s) -> Agent s -> Agent s
+onAgentMind f a = a & state %~ f
 
 -- |Gets the entity on a given cell. Fails if the cell does not exist or has
 --  has no entity.
