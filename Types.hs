@@ -13,6 +13,9 @@ import Math.Geometry.Grid.SquareInternal (SquareDirection(..))
 type EntityName = String
 type GestureName = String
 
+todo :: String -> a
+todo = error . (++) "TODO: implement "
+
 -- Agent data
 -------------------------------------------------------------------------------
 
