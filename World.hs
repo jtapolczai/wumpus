@@ -33,7 +33,7 @@ makeWorld cells edges = initBreeze newWorld
 
 -- |Advances the world state by one time step.
 simulateStep :: World s -> World s
-simulateStep = undefined
+simulateStep = todo "simulateStep"
 
 -- |Performs a action by an agent.
 doAction :: forall s.CellInd    -- ^Agent's location.
@@ -44,7 +44,7 @@ doAction _ NoOp world = world
 doAction i (Rotate dir) world = onCell i (onAgent (direction .~ dir)) world
 doAction i (Move dir) world = doIf (cellFree j) (moveEntity i j) world
    where j = inDirection i dir
-doAction i Attack world = undefined
+doAction i Attack world = todo "doAction/Attack"
 doAction i (Give item) world = doIf (cellHas (^. entity . to isAgent) j)
                                     give
                                     world
@@ -67,11 +67,8 @@ doAction i Gather world = doIf (cellHas (^.plant . to (fromMaybe 0) . to (1==)) 
    where
       harvest = onCell i (onAgent (inventory . ix Fruit +~ 1))
                 . onCell i (plant %~ ($> 0))
-doAction i Butcher world = undefined
-doAction i Collect world = onCell i collect world
-   where
-      collect c = (gold .~ 0) $ onAgent (inventory . ix Gold +~ (c ^. gold)) c
-
+doAction i Butcher world = onCell i (collect Meat meat) world
+doAction i Collect world = onCell i (collect Gold gold) world
 -- Eat fruit or meat. Remove the item from the agent's inventory and regain
 -- 0.5 health.
 doAction i (Eat item) world = doIf hasItem (onCell i eatItem) world
@@ -84,7 +81,10 @@ doAction i (Eat item) world = doIf hasItem (onCell i eatItem) world
       eatItem = onAgent (health %~ (min 1 . (1%2 + )))
                 . onAgent (inventory . ix item -~ 1)
 
-doAction i (Gesture s) world = undefined
+doAction i (Gesture s) world = todo "doAction/Gesture"
+
+collect :: Item -> Lens' (CellData s) Int -> CellData s -> CellData s
+collect item lens c = (lens .~ 0) $ onAgent (inventory . ix item +~ (c ^. lens)) c
 
 
 -- |Removes an entity from one cell and puts it into another. The entity
@@ -142,7 +142,7 @@ initBreeze world = applyIntensityMap breeze (intensityMap $ filterCells (^.pit) 
 
 -- |Moves the Wumpuses.
 moveWumpuses :: World s-> World s
-moveWumpuses = undefined
+moveWumpuses = todo "moveWumpuses"
 
 -- |Updates the stench induces by the Wumpuses, reducing it where
 wumpusStench :: World s -> World s
@@ -168,7 +168,7 @@ getPerceptions :: World s
                   -> CellInd -- ^The cell on which the agent is.
                   -> EntityName -- ^The agent's name.
                   -> [Perception]
-getPerceptions = undefined
+getPerceptions = todo "getPerceptions"
 
 -- Intensity maps
 -------------------------------------------------------------------------------
@@ -258,9 +258,3 @@ inDirection (x,y) North = (x,y+1)
 inDirection (x,y) East = (x+1,y)
 inDirection (x,y) South = (x,y-1)
 inDirection (x,y) West = (x-1,y)
-
-{-
-   todo: wumpuses (move around, attack)
-         agents (feed in perceptions, get decisions)
-
--}

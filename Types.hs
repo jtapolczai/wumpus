@@ -102,6 +102,7 @@ data CellData s = CD {
    _cellDataBreeze :: Rational,
    _cellDataPit :: Bool,
    _cellDataGold :: Int,
+   _cellDataMeat :: Int,
    _cellDataPlant :: Maybe Rational
    }
 
