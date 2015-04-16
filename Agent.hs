@@ -12,5 +12,15 @@ import Agent.Message
 --  its environment and produce an action that it wants to take in the
 --  world.
 class AgentMind a where
+   -- |Directly access the world state. Note that, when a world simulator calls
+   --  this function, it trusts that the agent won't \"cheat\" and gain more
+   --  more knowledge that it's supposed to.
+   --
+   -- Default implementation:
+   -- >>> getPerception _ = id
+   getPerception :: World a -> a -> a
+   getPerception _ = id
+   -- |Pass a message/percept from the world simulator to the agent.
    insertMessage :: Message -> a -> a
+   -- |Get the agent's action, given its current state.
    getAction :: a -> Action
