@@ -45,15 +45,17 @@ doAction _ NoOp world = world
 doAction i (Rotate dir) world = onCell i (onAgent (direction .~ dir)) world
 doAction i (Move dir) world = doIf (cellFree j) (moveEntity i j) world
    where j = inDirection i dir
-doAction i Attack world = todo "doAction/Attack"
+doAction i Attack world = doIf (not . cellFree j) (attack i j) world
+   where
+      j = inDirection i (agentAt i world ^. direction)
 doAction i (Give item) world = doIf (cellHas (^. entity . to isAgent) j)
                                     give
                                     world
    where
       j = inDirection i (me ^. direction)
       me :: Agent s
-      me = entityAt i fromAgent world
-      other = entityAt j fromAgent world
+      me = agentAt i world
+      other = agentAt j world
 
       qty :: Int
       qty = me ^. inventory . at item . to (maybe 0 (min 1))
@@ -84,7 +86,7 @@ doAction i (Eat item) world = doIf hasItem (onCell i eatItem) world
 
 doAction i (Gesture s) world = doIf (cellAgent j) send world
    where j = inDirection i (me ^. direction)
-         me = entityAt i fromAgent world
+         me = agentAt i world
          send = onCell j (onAgent
                           $ insertMessage
                           $ GestureM (me ^. name) s)
@@ -106,6 +108,23 @@ moveEntity i j world = world & cellData %~ move
       ent = world ^. cellData . at i . to fromJust . entity
       move m = m & ix i %~ (entity .~ None)
                  & ix j %~ (entity .~ ent)
+
+-- |Performs an attack of one entity on another.
+--  Each combatant has its health decreased by that of the other. Any entity
+--  whose health becomes <=0, dies.
+attack :: CellInd -> CellInd -> World s -> World s
+attack i j world = onCell j (die . fight other)
+                   $ onCell i (die . fight me) world
+   where
+      me = agentAt i world
+      other = agentAt j world
+
+      die x = if x ^. entity . to fromAgent . health <= 0
+                 then x & entity .~ None
+                 else x
+
+      fight enemy = onAgent (health -~ (enemy ^. health))
+
 
 -- |Returns True iff the given cell exists and has neither a Wumpus nor an
 --  agent on it.
@@ -253,6 +272,11 @@ onAgent f cell = cell & entity %~ f'
 --  has no entity.
 entityAt :: CellInd -> (Entity (Agent s) -> a) -> World s -> a
 entityAt i f world = world ^. cellData . at i . to fromJust . entity . to f
+
+-- |Gets the agent on a given cell. Fails of the cell does not exist or has
+--  not agent.
+agentAt :: CellInd -> World s -> Agent s
+agentAt i = entityAt i fromAgent
 
 -- |Applies a function to a given cell.
 onCell :: CellInd -> (CellData s -> CellData s) -> World s -> World s
