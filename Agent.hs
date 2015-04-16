@@ -2,6 +2,8 @@
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE FlexibleInstances #-}
 
+-- |General interface for agents, from the point of view of a world simulator
+--  which passes percepts to and gets decisions from them.
 module Agent where
 
 import Types
@@ -12,9 +14,9 @@ import Agent.Message
 --  its environment and produce an action that it wants to take in the
 --  world.
 class AgentMind a where
-   -- |Directly access the world state. Note that, when a world simulator calls
-   --  this function, it trusts that the agent won't \"cheat\" and gain more
-   --  more knowledge that it's supposed to.
+   -- |Directly access the world state. Note that, when/if a world simulator
+   --  calls this function, it trusts that the agent won't \"cheat\" and gain
+   --  more knowledge that it's supposed to have.
    --
    -- Default implementation:
    -- >>> getPerception _ = id

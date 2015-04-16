@@ -2,6 +2,7 @@
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE FlexibleInstances #-}
 
+-- |General stuff on which other modules depend.
 module Types where
 
 
@@ -22,6 +23,7 @@ todo = error . (++) "TODO: implement "
 data Item = Gold | Fruit | Meat
    deriving (Show, Eq, Ord, Enum, Bounded)
 
+-- |An action that an agent can take.
 data Action =
    NoOp
    | Rotate SquareDirection
