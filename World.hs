@@ -211,6 +211,9 @@ verticesInSightCone world i d = filter (liftA2 (&&) direct angle) near
       angle = todo "angle"
       near = todo "near"
 
+      max_distance = world ^. worldData . time . to coneLength
+      coneLength = (3%2 *) . (1+) . fromIntegral . light
+
       --whatever the current target j is
       --chain monadically to get a list of shortest paths
       --filter with OR (direct)
@@ -277,6 +280,19 @@ dist (x,y) (x',y') = round $ sqrt $ fromIntegral $ (xd ^ 2) + (yd ^ 2)
       round = flip approxRational (0.000001)
       xd = abs $ x - x'
       yd = abs $ y - y'
+
+-- |Gets the angle between point i and point j in radians.
+angle :: CellInd -> CellInd -> Float
+angle i@(x1,y1) j@(x2,y2) = case (x1 <= x2, y1 <= y2) of
+   -- 4 circle-segments of 90°, going CCW
+   (True, True) -> angle'
+   (False, True) -> angle' + pi*0.5
+   (False, False) -> angle' + pi
+   (True, False) -> angle' + pi*1.5
+   where
+      -- |Gets an angle from 0 to pi/4 based on delta y.
+      angle' :: Float
+      angle' = asin $ (fromIntegral $ abs (y1-y2)) / fromRational (dist i j)
 
 -- |Synonym for @max 0@, i.e. constrains a value to be at least 0.
 pos :: (Ord a, Num a) => a -> a
