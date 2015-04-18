@@ -6,7 +6,7 @@
 module Types where
 
 
-import Control.Lens.TH
+import Control.Lens
 import qualified Data.Map as M
 import Math.Geometry.Grid.Square
 import Math.Geometry.Grid.SquareInternal (SquareDirection(..))
@@ -16,6 +16,10 @@ type GestureName = String
 
 todo :: String -> a
 todo = error . (++) "TODO: implement "
+
+-- |Defines an "castable to" relation between two types.
+class Castable a b where
+   cast :: a -> b
 
 -- Agent data
 -------------------------------------------------------------------------------
@@ -59,12 +63,21 @@ data VisualAgent = VisualAgent {
 
 makeFields ''VisualAgent
 
-type AgentAction w s = s -> w -> (Action, s)
+instance Castable (Agent s) VisualAgent where
+   cast a = VisualAgent (a ^. name)
+                        (a ^. direction)
+                        (a ^. health)
+                        (a ^. fatigue)
 
 -- World data
 -------------------------------------------------------------------------------
 
 data Entity s = Ag s | Wu Wumpus | None
+
+instance Castable s t => Castable (Entity s) (Entity t) where
+   cast (Ag s) = Ag (cast s)
+   cast (Wu s) = Wu s
+   cast None   = None
 
 isNone :: Entity s -> Bool
 isNone None = True
@@ -111,13 +124,21 @@ data CellData s = CD {
 makeFields ''CellData
 
 data VisualCellData = VCD {
-   _visualCellDataAgent :: Entity VisualAgent,
+   _visualCellDataEntity :: Entity VisualAgent,
    _visualCellDataPit :: Bool,
    _visualCellDataGold :: Int,
+   _visualCellDataMeat :: Int,
    _visualCellDataPlant :: Maybe Rational
    }
 
 makeFields ''VisualCellData
+
+instance Castable (CellData s) VisualCellData where
+   cast a = VCD (cast $ a ^. entity)
+                (a ^. pit)
+                (a ^. gold)
+                (a ^. meat)
+                (a ^. plant)
 
 type Cell s = Maybe (CellData s)
 
