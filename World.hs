@@ -4,9 +4,8 @@
 
 module World where
 
-import Control.Applicative
 import Control.Lens
-import Control.Monad ((>=>))
+import Control.Monad ((>=>), guard)
 import Data.Functor
 import Data.List (foldl')
 import qualified Data.Map as M
@@ -142,7 +141,7 @@ cellEntity = cellHas (^. entity . to (not.isNone))
 
 -- |Returns True iff a given cell exists and if it satisfies a predicate.
 cellHas :: (CellData s -> Bool) -> CellInd -> World s -> Bool
-cellHas p i world = world ^. cellData . to (M.lookup i) . to (maybe False p)
+cellHas p i world = world ^. cellData . at i . to (maybe False p)
 
 -- |Gets a light value from 0 to 4, depending on the time.
 light :: Int -> Int
@@ -205,11 +204,17 @@ verticesInSightCone :: World s
                     -> CellInd
                     -> SquareDirection
                     -> [CellInd]
-verticesInSightCone world i d = filter (liftA2 (&&) direct angle) near
+verticesInSightCone world i d =
+   filter (\x -> all ($ x) [direct, smallAngle, distance]) proximity
    where
       direct = todo "near"
-      angle = todo "angle"
-      near = todo "near"
+      smallAngle j = abs (angle i j - angleOf d) <= pi * 0.25
+      distance j = dist i j <= max_distance
+      -- a small segment of cells that can possibly be in the sight cone.
+      -- we generate this list to avoid looking at every cell in the world.
+      proximity = [(x,y) | x <- [fst i - 8 .. fst i + 8],
+                           y <- [snd i - 8 .. snd i + 8]]
+
 
       max_distance = world ^. worldData . time . to coneLength
       coneLength = (3%2 *) . (1+) . fromIntegral . light
@@ -273,6 +278,16 @@ reduceIntensity lens = cellData %~ fmap (& lens %~ reduce)
 -- Helpers
 -------------------------------------------------------------------------------
 
+-- |Gets the shortest paths from i to j in the world. Only paths
+--  over existing cells are returned.
+shortestPaths :: World s -> CellInd -> CellInd -> [[CellInd]]
+shortestPaths world cur t =
+   if cur == t then return [cur]
+               else do next <- adjacentTilesToward (world ^. graph) cur t
+                       guard $ M.member next (world ^. cellData)
+                       rest <- shortestPaths world next t
+                       return (cur : rest)
+
 -- |Gets the Euclidean distance between two cells.
 dist :: CellInd -> CellInd -> Rational
 dist (x,y) (x',y') = round $ sqrt $ fromIntegral $ (xd ^ 2) + (yd ^ 2)
@@ -297,6 +312,14 @@ angle i@(x1,y1) j@(x2,y2) = case (x1 <= x2, y1 <= y2) of
 -- |Synonym for @max 0@, i.e. constrains a value to be at least 0.
 pos :: (Ord a, Num a) => a -> a
 pos = max 0
+
+-- |Gets the angle associated with a square direction by drawing an infinite
+--  line from a point into the given direction. Noth is pi/4, i.e. up.
+angleOf :: SquareDirection -> Float
+angleOf North = pi*0.5
+angleOf West = pi
+angleOf South = pi*1.5
+angleOf East = 0
 
 -- |Performs an action if a predicate is fulfiled. Otherwise does nothing.
 doIf :: (a -> Bool) -> (a -> a) -> a -> a
