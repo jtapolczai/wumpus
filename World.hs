@@ -200,6 +200,13 @@ getPerceptions world i d = local : global : visual
       visual = map visualData $ verticesInSightCone world i d
       visualData j = VisualPerception False j $ cast $ cellAt j world
 
+-- |Returns all the cells in an agent's sight cone.
+--  To be in an agent's sight cone, a cell has to fulfil three criteria:
+--
+--  * the Euclidean distance has to be small (depending on the world's light),
+--  * it has to fall into the agent's POV (90° in the agent's direction), and
+--  * it has to be unobstructed, \"unobstructed" meaning that each cell along
+--    at least one path from the agent has to stay close to the direct line.
 verticesInSightCone :: World s
                     -> CellInd
                     -> SquareDirection
@@ -207,26 +214,25 @@ verticesInSightCone :: World s
 verticesInSightCone world i d =
    filter (\x -> all ($ x) [direct, smallAngle, distance]) proximity
    where
-      direct = todo "near"
+      -- there has to exist at least one path from i to j on which every
+      -- point is close to the straight line from i to j
+      direct j = any (all $ closeToLine i j) $ shortestPaths world i j
+      closeToLine i j d = lineDistance i j d <= toRational (sqrt 2 * 0.5)
+
+      -- the difference between the angle between i and j, and the angle
+      -- in which i is "lookup" (up/down/left/right) must be less than pi/4
       smallAngle j = abs (angle i j - angleOf d) <= pi * 0.25
       distance j = dist i j <= max_distance
+      -- the maximum distance at which a cell can be visible from i
+      max_distance = world ^. worldData . time . to coneLength
+      coneLength = (3%2 *) . (1+) . fromIntegral . light
+
       -- a small segment of cells that can possibly be in the sight cone.
       -- we generate this list to avoid looking at every cell in the world.
       proximity = [(x,y) | x <- [fst i - 8 .. fst i + 8],
                            y <- [snd i - 8 .. snd i + 8]]
 
 
-      max_distance = world ^. worldData . time . to coneLength
-      coneLength = (3%2 *) . (1+) . fromIntegral . light
-
-      --whatever the current target j is
-      --chain monadically to get a list of shortest paths
-      --filter with OR (direct)
-
-      --direct = ALL nodes less (or equal?-> look it up) than sqrt(2)/2
-      -- distance away from straight line i->j
-      -- how do i calculate the nearest point to the line???
-      -- flip (adjacentTilesToward (world ^. graph)) j
 
 -- Intensity maps
 -------------------------------------------------------------------------------
@@ -290,9 +296,8 @@ shortestPaths world cur t =
 
 -- |Gets the Euclidean distance between two cells.
 dist :: CellInd -> CellInd -> Rational
-dist (x,y) (x',y') = round $ sqrt $ fromIntegral $ (xd ^ 2) + (yd ^ 2)
+dist (x,y) (x',y') = toRational $ sqrt $ fromIntegral $ (xd ^ 2) + (yd ^ 2)
    where
-      round = flip approxRational (0.000001)
       xd = abs $ x - x'
       yd = abs $ y - y'
 
