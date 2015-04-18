@@ -296,6 +296,17 @@ dist (x,y) (x',y') = round $ sqrt $ fromIntegral $ (xd ^ 2) + (yd ^ 2)
       xd = abs $ x - x'
       yd = abs $ y - y'
 
+-- |Gets the shortest distance from point D to the infinite line passing
+--  through V and W.
+--  From <http://en.wikipedia.org/wiki/Distance_from_a_point_to_a_line#Line_defined_by_two_points>
+lineDistance :: CellInd -- V
+             -> CellInd -- W
+             -> CellInd -- D
+             -> Rational
+lineDistance v@(x1,y1) w@(x2,y2) (dx,dy) = fromIntegral (abs nom) / dist v w
+   where
+      nom = (y2 - y1)*dx - (x2-x1)*dy + x2*y1 + y2*x1
+
 -- |Gets the angle between point i and point j in radians.
 angle :: CellInd -> CellInd -> Float
 angle i@(x1,y1) j@(x2,y2) = case (x1 <= x2, y1 <= y2) of
