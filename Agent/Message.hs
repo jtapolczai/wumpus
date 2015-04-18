@@ -14,7 +14,7 @@ data Message =
    Affective
    | VisualPerception IsImaginary CellInd VisualCellData
    | forall s.LocalPerception IsImaginary CellInd (CellData s)
-   | GlobalPerception WorldData
+   | GlobalPerception IsImaginary WorldData
    | Control
    | Action
    | GestureM EntityName GestureName

@@ -1,8 +1,10 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE ExistentialQuantification #-}
 
 module World where
 
+import Control.Applicative
 import Control.Lens
 import Control.Monad ((>=>))
 import Data.Functor
@@ -189,10 +191,34 @@ regrowPlants = cellData %~ fmap growPlant
 
 -- |Gets the perceptions to which a given agent is entitled.
 getPerceptions :: World s
-                  -> CellInd -- ^The cell on which the agent is.
-                  -> EntityName -- ^The agent's name.
-                  -> [Message]
-getPerceptions = todo "getPerceptions"
+               -> CellInd -- ^The cell on which the agent is.
+               -> SquareDirection -- ^The direction in which the agent is facing.
+               -> [Message]
+getPerceptions world i d = local : global : visual
+   where
+      local = LocalPerception False i $ cellAt i world
+      global = GlobalPerception False $ world ^. worldData
+      visual = map visualData $ verticesInSightCone world i d
+      visualData j = VisualPerception False j $ cast $ cellAt j world
+
+verticesInSightCone :: World s
+                    -> CellInd
+                    -> SquareDirection
+                    -> [CellInd]
+verticesInSightCone world i d = filter (liftA2 (&&) direct angle) near
+   where
+      direct = todo "near"
+      angle = todo "angle"
+      near = todo "near"
+
+      --whatever the current target j is
+      --chain monadically to get a list of shortest paths
+      --filter with OR (direct)
+
+      --direct = ALL nodes less (or equal?-> look it up) than sqrt(2)/2
+      -- distance away from straight line i->j
+      -- how do i calculate the nearest point to the line???
+      -- flip (adjacentTilesToward (world ^. graph)) j
 
 -- Intensity maps
 -------------------------------------------------------------------------------
@@ -280,6 +306,10 @@ entityAt i f world = world ^. cellData . at i . to fromJust . entity . to f
 --  not agent.
 agentAt :: CellInd -> World s -> Agent s
 agentAt i = entityAt i fromAgent
+
+-- |Gets the cell with a given index. Fails if the cell does not exist.
+cellAt :: CellInd -> World s -> CellData s
+cellAt i world = world ^. cellData . at i . to fromJust
 
 -- |Applies a function to a given cell.
 onCell :: CellInd -> (CellData s -> CellData s) -> World s -> World s
