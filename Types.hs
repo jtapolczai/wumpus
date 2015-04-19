@@ -40,8 +40,8 @@ data Action =
    | Attack SquareDirection
    | Give Item
    | Gather
-   | Butcher
-   | Collect
+   | Collect Item
+   | Drop Item
    | Eat Item
    | Gesture String
 
@@ -118,6 +118,7 @@ data CellData s = CD {
    _cellDataPit :: Bool,
    _cellDataGold :: Int,
    _cellDataMeat :: Int,
+   _cellDataFruit :: Int,
    _cellDataPlant :: Maybe Rational
    }
 
@@ -126,6 +127,7 @@ data VisualCellData = VCD {
    _visualCellDataPit :: Bool,
    _visualCellDataGold :: Int,
    _visualCellDataMeat :: Int,
+   _visualCellDataFruit :: Int,
    _visualCellDataPlant :: Maybe Rational
    }
 
@@ -176,5 +178,6 @@ instance Castable (CellData s) VisualCellData where
                 (a ^. pit)
                 (a ^. gold)
                 (a ^. meat)
+                (a ^. fruit)
                 (a ^. plant)
 

@@ -107,12 +107,12 @@ doAction _ NoOp world = world
 doAction i (Rotate dir) world = onCell i (onAgent (direction .~ dir)) world
 doAction i (Move dir) world = doIf (cellFree j) (moveEntity i j) world
    where j = inDirection i dir
+-- Attack another entity.
 doAction i (Attack dir) world = doIf (not . cellFree j) (attack i j) world
    where
       j = inDirection i dir
-doAction i (Give item) world = doIf (cellHas (^. entity . to isAgent) j)
-                                    give
-                                    world
+-- Give one item to another agent.
+doAction i (Give item) world = doIf (cellHas (^. entity . to isAgent) j) give world
    where
       j = inDirection i (me ^. direction)
       me :: Agent s
@@ -126,14 +126,22 @@ doAction i (Give item) world = doIf (cellHas (^. entity . to isAgent) j)
       give = onCell j (onAgent (inventory . ix item +~ qty))
              . onCell i (onAgent (inventory . ix item -~ qty))
 
+-- Gather fruit from plant on the cell.
 doAction i Gather world = doIf (cellHas (^.plant . to (fromMaybe 0) . to (1==)) i)
                                harvest
                                world
    where
       harvest = onCell i (onAgent (inventory . ix Fruit +~ 1))
                 . onCell i (plant %~ ($> 0))
-doAction i Butcher world = onCell i (collect Meat meat) world
-doAction i Collect world = onCell i (collect Gold gold) world
+-- Collect something on the cell.
+doAction i (Collect item) world = onCell i (collect item $ itemLens item) world
+-- Drop one piece of an item from the agent's inventory on the floor.
+doAction i (Drop item) world = onCell i drop world
+   where
+      me = agentAt i world
+      qty = me ^. inventory . at item . to (fromMaybe 0) .  to (min 1)
+      decr x = max 0 (x-1)
+      drop = (itemLens item +~ qty) . onAgent (inventory . ix item %~ decr)
 -- Eat fruit or meat. Remove the item from the agent's inventory and regain
 -- 0.5 health.
 doAction i (Eat item) world = doIf hasItem (onCell i eatItem) world
@@ -143,7 +151,7 @@ doAction i (Eat item) world = doIf hasItem (onCell i eatItem) world
                           . inventory
                           . at item
                           . to (maybe False (0<))) i
-      eatItem = onAgent (health %~ (min 1 . (1%2 + )))
+      eatItem = onAgent (health %~ (min 2 . (1%2 + )))
                 . onAgent (inventory . ix item -~ 1)
 
 doAction i (Gesture s) world = doIf (cellAgent j) send world
@@ -154,6 +162,11 @@ doAction i (Gesture s) world = doIf (cellAgent j) send world
 collect :: Item -> Lens' (CellData s) Int -> CellData s -> CellData s
 collect item lens c = (lens .~ 0) $ onAgent (inventory . ix item +~ (c ^. lens)) c
 
+-- |Gets the lens associated with an item.
+itemLens :: Item -> Lens' (CellData s) Int
+itemLens Meat = meat
+itemLens Gold = gold
+itemLens Fruit = fruit
 
 -- |Removes an entity from one cell and puts it into another. The entity
 --  in the target cell is overwritten.
