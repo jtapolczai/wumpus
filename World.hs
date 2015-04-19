@@ -36,9 +36,33 @@ makeWorld cells edges = initBreeze newWorld
                        (M.fromList edges)
                        (M.fromList cells)
 
--- |Advances the world state by one time step.
-simulateStep :: World s -> World s
-simulateStep = todo "simulateStep"
+-- |Advances the world state by one time step. The actors perform their actions,
+--  the plants regrow, the stench is updated.
+simulateStep :: AgentMind s => World s -> IO (World s)
+simulateStep world = (worldData %~ advanceGlobalData) . regrowPlants
+                     <$> foldM updateAgent world (worldAgents world)
+   where
+      -- "updating an agent" means giving it its perceptions and performing
+      -- its action. We also update the wumpus stench to have accurate stench
+      -- information.
+      updateAgent world ent = wumpusStench <$> doEntityAction world' ent
+         where world' = giveEntityPerceptions world ent
+
+-- |Gives an entits its perceptions based on the current world, and updates
+--  the world accordingly.
+giveEntityPerceptions :: AgentMind s
+                      => World s
+                      -> (CellInd, (Entity (Agent s)))
+                      -> World s
+giveEntityPerceptions world (i, ag) = world & cellData . ix i . entity .~ ag'
+   where
+      ag' = foldl' addPerc ag $ getPerceptions world i (entityAt i agentDir world)
+
+      addPerc (Ag a) m = Ag (a & state %~ insertMessage m)
+
+      agentDir (Ag agent) = agent ^. direction
+      agentDir (Wu _) = North
+
 -- missing: insert messages/world (for wumpuses), update time, stench
 --          get actions
 
@@ -55,30 +79,23 @@ worldAgents world = uncurry (++)
       cells = world ^. cellData . to M.assocs
 
 
--- |Goes through all entities (Wumpuses first), gets the action they want
---  to perform in this step, and changes the world accordingly.
---
---  Actions are performed sequentially, not in parallel, meaning that
---  action sequence @A;B@ might result in a different world than @B;A@.
-doEntityActions :: forall s.AgentMind s
-                => World s
-                -> IO (World s)
-doEntityActions world = foldM perform world (worldAgents world)
-   where
-      perform :: World s -> (CellInd, Entity (Agent s)) -> IO (World s)
-      -- only perform an action if the entity is still there
-      -- (i.e. a previous agent's actions haven't killed it)
-      perform world (i, ag) = if cellFree i world
-         then return world
-         else case ag of
-            Ag agent -> do (action, ag') <- getAction (agent ^. state)
-                           let agent' = Ag (agent & state .~ ag')
-                               world' = world & cellData . ix i . entity .~ agent'
-                           return $ doAction i action world'
-            Wu wumpus -> do (action, ag') <- getAction (wumpus ^. state)
-                            let wumpus' = Wu (wumpus & state .~ ag')
-                                world' = world & cellData . ix i . entity .~ wumpus'
-                            return $ doAction i action world'
+-- |Gets the actopm am entity wishes to perform and does it in the world.
+--  This function can be used in a fold and will not perform any action if
+--  the given cell has no entity (i.e. if it was killed by the actions of
+--  another).
+doEntityAction :: forall s.AgentMind s
+                => World s -> (CellInd, Entity (Agent s)) -> IO (World s)
+doEntityAction world (i, ag) = if cellFree i world
+   then return world
+   else case ag of
+      Ag agent -> do (action, ag') <- getAction (agent ^. state)
+                     let agent' = Ag (agent & state .~ ag')
+                         world' = world & cellData . ix i . entity .~ agent'
+                     return $ doAction i action world'
+      Wu wumpus -> do (action, ag') <- getAction (wumpus ^. state)
+                      let wumpus' = Wu (wumpus & state .~ ag')
+                          world' = world & cellData . ix i . entity .~ wumpus'
+                      return $ doAction i action world'
 
 -- |Performs a action by an agent.
 doAction :: forall s.AgentMind s
@@ -154,7 +171,7 @@ moveEntity i j world = world & cellData %~ move
 
 -- |Performs an attack of one entity on another.
 --  Each combatant has its health decreased by that of the other. Any entity
---  whose health becomes <=0, dies.
+--  whose health becomes <=0 dies. Upon death, entities drop their inventory.
 attack :: CellInd -> CellInd -> World s -> World s
 attack i j world = onCell j (die . fight other)
                    $ onCell i (die . fight me) world
@@ -180,7 +197,7 @@ advanceGlobalData world = world & time .~ time'
 initBreeze :: World s -> World s
 initBreeze world = applyIntensityMap breeze (intensityMap $ filterCells (^.pit) world) world
 
--- |Updates the stench induces by the Wumpuses, reducing it where
+-- |Updates the stench induces by the Wumpuses.
 wumpusStench :: World s -> World s
 wumpusStench world = newStench $ clearStench world
    where
