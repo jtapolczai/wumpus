@@ -39,6 +39,8 @@ makeWorld cells edges = initBreeze newWorld
 -- |Advances the world state by one time step.
 simulateStep :: World s -> World s
 simulateStep = todo "simulateStep"
+-- missing: insert messages/world (for wumpuses), update time, stench
+--          get actions
 
 -- |Gets all agents and Wumpuses in the worlds.
 --  The Wumpuses will be in the front of the list.
@@ -202,10 +204,11 @@ getPerceptions :: World s
                -> CellInd -- ^The cell on which the agent is.
                -> SquareDirection -- ^The direction in which the agent is facing.
                -> [Message]
-getPerceptions world i d = local : global : visual
+getPerceptions world i d = local : global : location : visual
    where
       local = LocalPerception False i $ cellAt i world
       global = GlobalPerception False $ world ^. worldData
+      location = PositionPerception False i
       visual = map visualData $ verticesInSightCone world i d
       visualData j = VisualPerception False j $ cast $ cellAt j world
 
