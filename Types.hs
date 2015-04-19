@@ -1,6 +1,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE ExistentialQuantification #-}
 
 -- |General stuff on which other modules depend.
 module Types where
@@ -20,6 +21,10 @@ todo = error . (++) "TODO: implement "
 -- |Defines an "castable to" relation between two types.
 class Castable a b where
    cast :: a -> b
+
+instance Ord SquareDirection where
+   x <= y = ind x <= ind y
+      where {ind North = 0; ind East = 1; ind South = 2; ind West = 3}
 
 -- Agent data
 -------------------------------------------------------------------------------
@@ -50,8 +55,6 @@ data Agent s = Agent {
    _agentState :: s
 }
 
-makeFields ''Agent
-
 -- |The slice of an agent's state that another agent
 --  may perceive visually.
 data VisualAgent = VisualAgent {
@@ -61,15 +64,20 @@ data VisualAgent = VisualAgent {
    _visualAgentFatigue :: Rational
 }
 
-makeFields ''VisualAgent
+-- Wumpus data
+-------------------------------------------------------------------------------
 
-instance Castable (Agent s) VisualAgent where
-   cast a = VisualAgent (a ^. name)
-                        (a ^. direction)
-                        (a ^. health)
-                        (a ^. fatigue)
+-- |A mind for a Wumpus. It just contains the entire world and no further
+--  internal state.
+data WumpusMind = forall s.WumpusMind (World s) CellInd
 
--- World data
+data Wumpus = Wumpus {
+   _wumpusState :: WumpusMind,
+   _wumpusHealth :: Rational,
+   _wumpusFatigue :: Rational
+}
+
+-- Entities
 -------------------------------------------------------------------------------
 
 data Entity s = Ag s | Wu Wumpus | None
@@ -99,16 +107,8 @@ fromWumpus :: Entity s -> Wumpus
 fromWumpus (Wu s) = s
 fromWumpus _ = error "fromWumpus called on non-Agent!"
 
-instance Ord SquareDirection where
-   x <= y = ind x <= ind y
-      where {ind North = 0; ind East = 1; ind South = 2; ind West = 3}
-
-data Wumpus = Wumpus {
-   _wumpusHealth :: Rational,
-   _wumpusFatigue :: Rational
-}
-
-makeFields ''Wumpus
+-- World data
+-------------------------------------------------------------------------------
 
 -- |All data of a cell.
 data CellData s = CD {
@@ -121,8 +121,6 @@ data CellData s = CD {
    _cellDataPlant :: Maybe Rational
    }
 
-makeFields ''CellData
-
 data VisualCellData = VCD {
    _visualCellDataEntity :: Entity VisualAgent,
    _visualCellDataPit :: Bool,
@@ -130,15 +128,6 @@ data VisualCellData = VCD {
    _visualCellDataMeat :: Int,
    _visualCellDataPlant :: Maybe Rational
    }
-
-makeFields ''VisualCellData
-
-instance Castable (CellData s) VisualCellData where
-   cast a = VCD (cast $ a ^. entity)
-                (a ^. pit)
-                (a ^. gold)
-                (a ^. meat)
-                (a ^. plant)
 
 type Cell s = Maybe (CellData s)
 
@@ -150,8 +139,6 @@ data EdgeData = ED {
    _edgeDataFatigue :: Rational
 }
 
-makeFields ''EdgeData
-
 type Edge = Maybe EdgeData
 
 data Temperature = Freezing | Cold | Temperate | Warm | Hot
@@ -162,8 +149,6 @@ data WorldData = WD {
    _worldDataTemperature :: Temperature
 }
 
-makeFields ''WorldData
-
 data World s = World {
    _worldWorldData :: WorldData,
    _worldGraph :: UnboundedSquareGrid,
@@ -171,4 +156,24 @@ data World s = World {
    _worldCellData :: M.Map CellInd (CellData s)
 }
 
+makeFields ''Agent
+makeFields ''VisualAgent
+makeFields ''Wumpus
+makeFields ''CellData
+makeFields ''VisualCellData
+makeFields ''EdgeData
+makeFields ''WorldData
 makeFields ''World
+
+instance Castable (Agent s) VisualAgent where
+   cast a = VisualAgent (a ^. name)
+                        (a ^. direction)
+                        (a ^. health)
+                        (a ^. fatigue)
+
+instance Castable (CellData s) VisualCellData where
+   cast a = VCD (cast $ a ^. entity)
+                (a ^. pit)
+                (a ^. gold)
+                (a ^. meat)
+                (a ^. plant)
