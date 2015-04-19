@@ -4,10 +4,11 @@
 
 module World where
 
+import Control.Arrow (second)
 import Control.Lens
-import Control.Monad ((>=>))
+import Control.Monad ((>=>), foldM)
 import Data.Functor
-import Data.List (foldl')
+import Data.List (foldl', partition)
 import qualified Data.Map as M
 import Data.Maybe
 import Data.Ratio
@@ -18,6 +19,7 @@ import Math.Geometry.Grid.SquareInternal (SquareDirection(..))
 import Types
 import Agent
 import Agent.Message
+import Agent.Wumpus()
 import World.Utils
 
 type IntensityMap = M.Map CellInd Rational
@@ -37,6 +39,44 @@ makeWorld cells edges = initBreeze newWorld
 -- |Advances the world state by one time step.
 simulateStep :: World s -> World s
 simulateStep = todo "simulateStep"
+
+-- |Gets all agents and Wumpuses in the worlds.
+--  The Wumpuses will be in the front of the list.
+worldAgents :: World s -> [(CellInd, Entity (Agent s))]
+worldAgents world = uncurry (++)
+                    $ partition (^. to snd . to isWumpus)
+                    $ filter (^. to snd . to (not.isNone))
+                    $ map (second (^.entity))
+                    $ cells
+   where
+      hasEntity = not . flip cellEntity world
+      cells = world ^. cellData . to M.assocs
+
+
+-- |Goes through all entities (Wumpuses first), gets the action they want
+--  to perform in this step, and changes the world accordingly.
+--
+--  Actions are performed sequentially, not in parallel, meaning that
+--  action sequence @A;B@ might result in a different world than @B;A@.
+doEntityActions :: forall s.AgentMind s
+                => World s
+                -> IO (World s)
+doEntityActions world = foldM perform world (worldAgents world)
+   where
+      perform :: World s -> (CellInd, Entity (Agent s)) -> IO (World s)
+      -- only perform an action if the entity is still there
+      -- (i.e. a previous agent's actions haven't killed it)
+      perform world (i, ag) = if cellFree i world
+         then return world
+         else case ag of
+            Ag agent -> do (action, ag') <- getAction (agent ^. state)
+                           let agent' = Ag (agent & state .~ ag')
+                               world' = world & cellData . ix i . entity .~ agent'
+                           return $ doAction i action world'
+            Wu wumpus -> do (action, ag') <- getAction (wumpus ^. state)
+                            let wumpus' = Wu (wumpus & state .~ ag')
+                                world' = world & cellData . ix i . entity .~ wumpus'
+                            return $ doAction i action world'
 
 -- |Performs a action by an agent.
 doAction :: forall s.AgentMind s
@@ -137,10 +177,6 @@ advanceGlobalData world = world & time .~ time'
 -- |Initialize the breeze around the pits.
 initBreeze :: World s -> World s
 initBreeze world = applyIntensityMap breeze (intensityMap $ filterCells (^.pit) world) world
-
--- |Moves the Wumpuses.
-moveWumpuses :: World s-> World s
-moveWumpuses = todo "moveWumpuses"
 
 -- |Updates the stench induces by the Wumpuses, reducing it where
 wumpusStench :: World s -> World s

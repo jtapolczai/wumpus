@@ -177,3 +177,4 @@ instance Castable (CellData s) VisualCellData where
                 (a ^. gold)
                 (a ^. meat)
                 (a ^. plant)
+

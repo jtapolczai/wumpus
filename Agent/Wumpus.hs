@@ -17,10 +17,6 @@ import Agent
 import Types
 import World.Utils
 
--- |A mind for a Wumpus. It just contains the entire world and no further
---  internal state.
-data WumpusMind = forall s.WumpusMind (World s) CellInd
-
 instance AgentMind WumpusMind where
    -- |Just store the entire world.
    getPerception world (WumpusMind _ i) = WumpusMind world i
