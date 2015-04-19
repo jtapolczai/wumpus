@@ -15,6 +15,7 @@ data Message =
    | VisualPerception IsImaginary CellInd VisualCellData
    | forall s.LocalPerception IsImaginary CellInd (CellData s)
    | GlobalPerception IsImaginary WorldData
+   | PositionPerception IsImaginary CellInd
    | Control
    | Action
    | GestureM EntityName GestureName
