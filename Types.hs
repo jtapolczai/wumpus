@@ -32,7 +32,7 @@ data Action =
    NoOp
    | Rotate SquareDirection
    | Move SquareDirection
-   | Attack
+   | Attack SquareDirection
    | Give Item
    | Gather
    | Butcher

@@ -25,4 +25,4 @@ class AgentMind a where
    -- |Pass a message/percept from the world simulator to the agent.
    insertMessage :: Message -> a -> a
    -- |Get the agent's action, given its current state.
-   getAction :: a -> Action
+   getAction :: a -> IO (Action, a)

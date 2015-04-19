@@ -9,6 +9,7 @@ import qualified Data.Map as M
 import Control.Lens
 
 import Agent.Message
+import Agent
 import Types
 
 data HormoneStorage = HS {
