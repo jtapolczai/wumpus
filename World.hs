@@ -195,9 +195,19 @@ attack i j world = onCell j (die . fight other)
       me = agentAt i world
       other = agentAt j world
 
-      die x = if x ^. entity . to fromAgent . health <= 0
-                 then x & entity .~ None
-                 else x
+      -- |Let the entity on cell x die. Dying means removing
+      --  the entity and dropping the contents of its inventory to
+      --  the ground. In addition, one item of meat is dropped (the
+      --  body of the agent/Wumpus).
+      die x = let
+         x' = if x ^. entity . health <= 0 then x & entity .~ None else x
+         inv = x ^. entity ^. to fromAgent . inventory
+         in
+         if isAgent (x ^. entity) then
+            x' & meat +~ (inv ^. at Meat . to (fromMaybe 0))
+               & fruit +~ (inv ^. at Fruit . to (fromMaybe 0))
+               & gold +~ (inv ^. at Gold . to (fromMaybe 0))
+         else x'
 
       fight enemy = onAgent (health -~ (enemy ^. health))
 
