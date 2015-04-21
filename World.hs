@@ -170,6 +170,7 @@ itemLens Fruit = fruit
 
 -- |Removes an entity from one cell and puts it into another. The entity
 --  in the target cell is overwritten.
+--  If the target cell has a pit, the entity is deleted from the world.
 --  If the source cell does not exist or if it contains no entity, the
 --  entity in the target cell is overwritten with @Nothing@.
 moveEntity :: CellInd
@@ -179,8 +180,10 @@ moveEntity :: CellInd
 moveEntity i j world = world & cellData %~ move
    where
       ent = world ^. cellData . at i . to fromJust . entity
+      putEnt c = if c ^. pit then c else c & entity .~ ent
+
       move m = m & ix i %~ (entity .~ None)
-                 & ix j %~ (entity .~ ent)
+                 & ix j %~ putEnt
 
 -- |Performs an attack of one entity on another.
 --  Each combatant has its health decreased by that of the other. Any entity
