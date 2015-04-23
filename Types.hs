@@ -7,8 +7,8 @@
 -- |General stuff on which other modules depend.
 module Types where
 
-
 import Control.Lens
+import Data.Default
 import qualified Data.Map as M
 import Math.Geometry.Grid.Square
 import Math.Geometry.Grid.SquareInternal (SquareDirection(..))
@@ -55,6 +55,9 @@ data Agent s = Agent {
    _agentInventory :: M.Map Item Int,
    _agentState :: s
 }
+
+instance Default s => Default (Agent s) where
+   def = Agent "" North 1 1 M.empty def
 
 -- |The slice of an agent's state that another agent
 --  may perceive visually.
@@ -122,6 +125,9 @@ data CellData s = CD {
    _cellDataFruit :: Int,
    _cellDataPlant :: Maybe Rational
    }
+
+instance Default (CellData s) where
+   def = CD None 0 0 False 0 0 0 Nothing
 
 data VisualCellData = VCD {
    _visualCellDataEntity :: Entity VisualAgent,

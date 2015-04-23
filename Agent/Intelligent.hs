@@ -7,6 +7,7 @@ module Agent.Intelligent where
 import qualified Data.Map as M
 
 import Control.Lens
+import Data.Default
 
 import Agent.Message
 import Agent
@@ -37,5 +38,9 @@ data AgentState = AS {
    }
 
 instance AgentMind AgentState where
-   insertMessage = todo "AgentState/insertMessage"
-   getAction = todo "AgentState/getAction"
+   insertMessage msg a = todo "AgentState/insertMessage"
+   getAction a = todo "AgentState/getAction"
+
+
+instance Default AgentState where
+   def = todo "AgentState/def"
