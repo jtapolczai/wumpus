@@ -20,7 +20,7 @@ class AgentMind a where
    --
    -- Default implementation:
    -- >>> getPerception _ = id
-   getPerception :: World a -> a -> a
+   getPerception :: World s -> a -> a
    getPerception _ = id
    -- |Pass a message/percept from the world simulator to the agent.
    insertMessage :: Message -> a -> a
