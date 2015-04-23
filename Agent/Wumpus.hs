@@ -18,8 +18,18 @@ import Types
 import World.Utils
 
 instance AgentMind WumpusMind where
-   -- |Just store the entire world.
-   getPerception world (WumpusMind _ i) = WumpusMind world i
+   -- |Just store the entire world, sans the internal states of agents.
+   --
+   --  It is __important__ that the internal state of agents and Wumpuses
+   --  gets deleted, because otherwise, we'd be storing all the past states
+   --  of the world.
+   getPerception world (WumpusMind _ i) = WumpusMind world' i
+      where
+         world' = world & cellData %~ fmap deleteState
+         deleteState cd = cd & entity %~ deleteState'
+         deleteState' (Ag a) = Ag (a & state .~ undefined)
+         deleteState' (Wu a) = Wu (a & state .~ undefined)
+         deleteState' None = None
 
    -- |Wumpuses only care about position messages.
    insertMessage (PositionPerception _ i) (WumpusMind world _) = WumpusMind world i
