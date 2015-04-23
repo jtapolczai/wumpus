@@ -11,6 +11,7 @@ import Data.Functor
 import Data.List (foldl', partition)
 import qualified Data.Map as M
 import Data.Maybe
+import Data.Monoid (Monoid(..))
 import Data.Ratio
 import Math.Geometry.Grid hiding (null)
 import Math.Geometry.Grid.Square
@@ -23,6 +24,10 @@ import Agent.Wumpus()
 import World.Utils
 
 type IntensityMap = M.Map CellInd Rational
+
+instance Monoid Bool where
+   mempty = False
+   mappend = (&&)
 
 -- |Creates a new world and initializes it (setting the time to the middle of
 --  the day and initializing the outwardly radiating breeze for the pits).
@@ -58,7 +63,7 @@ giveEntityPerceptions world (i, ag) = world & cellData . ix i . entity .~ ag'
    where
       ag' = foldl' addPerc ag $ getPerceptions world i (entityAt i agentDir world)
 
-      addPerc (Ag a) m = Ag (a & state %~ insertMessage m)
+      addPerc a m = a & _Ag . state %~ insertMessage m
 
       agentDir (Ag agent) = agent ^. direction
       agentDir (Wu _) = North
@@ -147,7 +152,7 @@ doAction i (Drop item) world = onCell i drop world
 doAction i (Eat item) world = doIf hasItem (onCell i eatItem) world
    where
       hasItem = cellHas (^. entity
-                          . to fromAgent
+                          . _Ag
                           . inventory
                           . at item
                           . to (maybe False (0<))) i
@@ -201,13 +206,11 @@ attack i j world = onCell j (die . fight other)
       --  body of the agent/Wumpus).
       die x = let
          x' = if x ^. entity . health <= 0 then x & entity .~ None else x
-         inv = x ^. entity ^. to fromAgent . inventory
+         inv = x ^. entity ^. _Ag . inventory
          in
-         if isAgent (x ^. entity) then
             x' & meat +~ (inv ^. at Meat . to (fromMaybe 0))
                & fruit +~ (inv ^. at Fruit . to (fromMaybe 0))
                & gold +~ (inv ^. at Gold . to (fromMaybe 0))
-         else x'
 
       fight enemy = onAgent (health -~ (enemy ^. health))
 
