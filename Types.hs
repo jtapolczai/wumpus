@@ -177,6 +177,8 @@ makeFields ''VisualCellData
 makeFields ''EdgeData
 makeFields ''WorldData
 makeFields ''World
+makePrisms ''Entity
+
 
 -- |We give "health" and "fatigue" fields to Entity directly so as to
 --  avoid pointless case distinctions and code duplication when accessing

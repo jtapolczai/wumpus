@@ -15,10 +15,11 @@ import Data.Functor.Monadic
 import Data.Word
 import Math.Geometry.Grid.Square
 import System.Directory
-import System.IO
 
+import Agent
+import Agent.Wumpus()
 import Types
-import World
+import World.Utils
 
 -- |An RGB pixel.
 type Pixel = (Word8,Word8,Word8)
@@ -46,6 +47,7 @@ is = (==)
 --                   @#000001@ to @#0000FF@ an agent, with the value of the
 --                   blue channel being the agent's ID. The agent's mind can
 --                   can be stored in an @agent_ID.txt@ file.
+--                   @#646400@ represents a pit.
 readWorld :: forall s.String -> IO (World s)
 readWorld dir = do
    topography <- M.fromList . map (second def) . filter (is white.snd) <$> readBitmap (dir ++ "/topography.bmp")
@@ -55,11 +57,25 @@ readWorld dir = do
 
    let cd = M.foldrWithKey (\k v t -> t & ix k %~ addItem v) topography items
        cd' = M.foldrWithKey (\k v t -> t & ix k %~ addEntity agents k v) cd entities
+       cd'' = fmap (entity . _Wu . state %~ getPerception world) cd'
 
-   return $ World (WD 0 Freezing)
-                  UnboundedSquareGrid
-                  undefined
-                  cd'
+       -- |Adds a bidirectional edge to m if its target @to@ is an existing cell.
+       addEdge from to m = if M.member to topography then
+            M.insert (to, getDirection to from) def
+            $ M.insert (from, getDirection from to) def m
+         else m
+
+       -- |Adds edges to a cell's horizontal and vertical predecessor.
+       addEdges i@(x,y) _ m = addEdge i (x-1,y) $ addEdge i (x,y-1) m
+
+       -- |We go through all cells and try to add edges to their neighbors.
+       --  Each cell only adds edges to its (at most) 2 predecessors: the
+       --  cell directly to the left and the cell directly above.
+       edges = M.foldrWithKey addEdges M.empty topography
+
+       world = World (WD 0 Freezing) UnboundedSquareGrid edges cd'
+
+   return (world & cellData .~ cd'')
 
    where
       readAgent' :: Show a => a -> IO (Maybe (a, Agent s))
@@ -70,7 +86,7 @@ readWorld dir = do
       addEntity :: M.Map Word8 (Agent s) -> CellInd -> Pixel -> CellData s -> CellData s
       addEntity _ i (255,0,0) c = c & entity .~ Wu (Wumpus (WumpusMind undefined i) 1 1)
       addEntity _ _ (0,255,0) c = c & plant .~ Just 1
-      addEntity a i (0,0,v) c| v > 0 = c & entity .~ Ag (a M.! v)
+      addEntity a _ (0,0,v) c| v > 0 = c & entity .~ Ag (a M.! v)
       addEntity _ _ _ c = c
 
 
