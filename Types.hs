@@ -150,7 +150,7 @@ data EdgeData = ED {
 }
 
 instance Default EdgeData where
-   def = ED 0 (1 % 20)
+   def = ED 0 1
 
 type Edge = Maybe EdgeData
 
