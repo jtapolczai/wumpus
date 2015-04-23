@@ -10,6 +10,7 @@ module Types where
 import Control.Lens
 import Data.Default
 import qualified Data.Map as M
+import Data.Ratio
 import Math.Geometry.Grid.Square
 import Math.Geometry.Grid.SquareInternal (SquareDirection(..))
 
@@ -147,6 +148,9 @@ data EdgeData = ED {
    _edgeDataDanger :: Rational,
    _edgeDataFatigue :: Rational
 }
+
+instance Default EdgeData where
+   def = ED 0 (1 % 20)
 
 type Edge = Maybe EdgeData
 
