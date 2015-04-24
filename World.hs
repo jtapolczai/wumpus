@@ -4,6 +4,7 @@
 
 module World where
 
+import Control.Applicative (liftA2)
 import Control.Arrow (second)
 import Control.Lens
 import Control.Monad ((>=>), foldM)
@@ -116,7 +117,9 @@ doAction :: forall s.AgentMind s
 doAction _ NoOp world = world
 doAction i (Rotate dir) world = onCell i (onAgent (direction .~ dir)) world
 doAction i (Move dir) world = doIf (cellFree j) (moveEntity i j) world
-   where j = inDirection i dir
+   where
+      cond = liftA2 (&&) (cellFree j) (hasFatigue (i,dir))
+      j = inDirection i dir
 -- Attack another entity.
 doAction i (Attack dir) world = doIf (not . cellFree j) (attack i j) world
    where

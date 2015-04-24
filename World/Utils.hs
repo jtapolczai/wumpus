@@ -15,6 +15,19 @@ import Math.Geometry.Grid.SquareInternal (SquareDirection(..))
 
 import Types
 
+-- |Returns True iff an edge @(i,dir)@ exists and if the agent on cell @i@
+--  has at least as much fatigue as the edge. If the edge of the cell do not
+--  exist, False is returned.
+hasFatigue :: EdgeInd -> World s -> Bool
+hasFatigue (i,dir) world = case (me, ef) of
+   (Just me', Just ef') -> me' >= ef'
+   _                    -> False
+   where
+      me :: Maybe Rational
+      me = world ^. cellData . at i . to (fmap $ view $ entity . fatigue)
+      ef :: Maybe Rational
+      ef = world ^. edgeData . at (i,dir) . to (fmap $ view fatigue)
+
 -- |Returns True iff the given cell exists and has neither a Wumpus nor an
 --  agent on it.
 cellFree :: CellInd -> World s -> Bool
