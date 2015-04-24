@@ -43,6 +43,10 @@ light t | 20 <= t'         = 0
    where t' = abs (t - 25)
          between n l u = l <= n && n < u
 
+-- |Converts a time into a temperature.
+light' :: Int -> Temperature
+light' = toEnum . light
+
 -- Helpers
 -------------------------------------------------------------------------------
 
@@ -166,7 +170,6 @@ inDirection i d = fromJust $ neighbour UnboundedSquareGrid i d
 -- |Gets the direction in which j lies from i.
 getDirection :: CellInd -> CellInd -> SquareDirection
 getDirection i j = head $ directionTo UnboundedSquareGrid i j
-
 
 instance Monoid Int where
    mempty = 0
