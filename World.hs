@@ -181,6 +181,19 @@ itemLens Meat = meat
 itemLens Gold = gold
 itemLens Fruit = fruit
 
+-- |Returns True iff an edge @(i,dir)@ exists and if the agent on cell @i@
+--  has at least as much fatigue as the edge. If the edge of the cell do not
+--  exist, False is returned.
+hasFatigue :: EdgeInd -> World s -> Bool
+hasFatigue (i,dir) world = case (me, ef) of
+   (Just me', Just ef') -> me' >= cEDGE_FATIGUE * ef'
+   _                    -> False
+   where
+      me :: Maybe Rational
+      me = world ^. cellData . at i . to (fmap $ view $ entity . fatigue)
+      ef :: Maybe Rational
+      ef = world ^. edgeData . at (i,dir) . to (fmap $ view fatigue)
+
 -- |Removes an entity from one cell and puts it into another. The entity
 --  in the target cell is overwritten.
 --  If the target cell has a pit, the entity is deleted from the world.
@@ -192,8 +205,11 @@ moveEntity :: CellInd
            -> World s
 moveEntity i j world = world & cellData %~ move
    where
+      fat = world ^. edgeData . at (i,getDirection i j) . to (maybe 0 $ view fatigue)
+
       ent = world ^. cellData . at i . to fromJust . entity
-      putEnt c = if c ^. pit then c else c & entity .~ ent
+      ent' = ent & fatigue -~ cEDGE_FATIGUE * fat
+      putEnt c = if c ^. pit then c else c & entity .~ ent'
 
       move m = m & ix i %~ (entity .~ None)
                  & ix j %~ putEnt
