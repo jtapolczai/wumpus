@@ -10,7 +10,6 @@ module Types where
 import Control.Lens
 import Data.Default
 import qualified Data.Map as M
-import Data.Ratio
 import Math.Geometry.Grid.Square
 import Math.Geometry.Grid.SquareInternal (SquareDirection(..))
 

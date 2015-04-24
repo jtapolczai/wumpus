@@ -1,0 +1,2 @@
+number of edges: 154
+number of cells: 64
