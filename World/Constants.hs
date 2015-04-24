@@ -29,3 +29,18 @@ cPLANT_REGROWTH = 0.1
 
 cDAY_LENGTH :: Integral a => a
 cDAY_LENGTH = 50
+
+cSTART_TIME :: Integral a => a
+cSTART_TIME = 0
+
+cPLANT_HARVEST :: Fractional a => a
+cPLANT_HARVEST = 1
+
+cPLANT_MAX :: Fractional a => a
+cPLANT_MAX = 1
+
+cSTENCH_RADIUS :: Integral a => a
+cSTENCH_RADIUS = 3
+
+cBREEZE_RADIUS :: Integral a => a
+cBREEZE_RADIUS = 3
