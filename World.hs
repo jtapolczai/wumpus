@@ -21,6 +21,7 @@ import Types
 import Agent
 import Agent.Message
 import Agent.Wumpus()
+import World.Constants
 import World.Utils
 
 type IntensityMap = M.Map CellInd Rational
@@ -44,7 +45,8 @@ makeWorld cells edges = initBreeze newWorld
 -- |Advances the world state by one time step. The actors perform their actions,
 --  the plants regrow, the stench is updated.
 simulateStep :: AgentMind s => World s -> IO (World s)
-simulateStep world = (worldData %~ advanceGlobalData) . regrowPlants
+simulateStep world = (worldData %~ advanceGlobalData)
+                     . (cellData %~ fmap advanceLocalData)
                      <$> foldM updateAgent world (worldAgents world)
    where
       -- "updating an agent" means giving it its perceptions and performing
@@ -52,6 +54,9 @@ simulateStep world = (worldData %~ advanceGlobalData) . regrowPlants
       -- information.
       updateAgent world ent = wumpusStench <$> doEntityAction world' ent
          where world' = giveEntityPerceptions world ent
+
+      -- perform local changes to agents/plants
+      advanceLocalData = increaseFatigue . increaseHunger . regrowPlants
 
 -- |Gives an entits its perceptions based on the current world, and updates
 --  the world accordingly.
@@ -132,12 +137,12 @@ doAction i (Give item) world = doIf (cellHas (^. entity . to isAgent) j) give wo
              . onCell i (onAgent (inventory . ix item -~ qty))
 
 -- Gather fruit from plant on the cell.
-doAction i Gather world = doIf (cellHas (^.plant . to (fromMaybe 0) . to (1==)) i)
+doAction i Gather world = doIf (cellHas (^.plant . to (fromMaybe 0) . to (cPLANT_HARVEST>=)) i)
                                harvest
                                world
    where
       harvest = onCell i (onAgent (inventory . ix Fruit +~ 1))
-                . onCell i (plant %~ ($> 0))
+                . onCell i (plant . _Just -~ cPLANT_HARVEST)
 -- Collect something on the cell.
 doAction i (Collect item) world = onCell i (collect item $ itemLens item) world
 -- Drop one piece of an item from the agent's inventory on the floor.
@@ -148,7 +153,7 @@ doAction i (Drop item) world = onCell i drop world
       decr x = max 0 (x-1)
       drop = (itemLens item +~ qty) . onAgent (inventory . ix item %~ decr)
 -- Eat fruit or meat. Remove the item from the agent's inventory and regain
--- 0.5 health.
+-- 0.5 health (+0.01 to compensate for this round's hunger).
 doAction i (Eat item) world = doIf hasItem (onCell i eatItem) world
    where
       hasItem = cellHas (^. entity
@@ -156,7 +161,7 @@ doAction i (Eat item) world = doIf hasItem (onCell i eatItem) world
                           . inventory
                           . at item
                           . to (maybe False (0<))) i
-      eatItem = onAgent (health %~ (min 2 . (1%2 + )))
+      eatItem = onAgent (health %~ (min cMAX_AGENT_HEALTH . (cHEAL_FOOD + cHUNGER_RATE +)))
                 . onAgent (inventory . ix item -~ 1)
 
 doAction i (Gesture s) world = doIf (cellAgent j) send world
@@ -208,7 +213,7 @@ attack i j world = onCell j (die . fight other)
          x' = if x ^. entity . health <= 0 then x & entity .~ None else x
          inv = x ^. entity ^. _Ag . inventory
          in
-            x' & meat +~ (inv ^. at Meat . to (fromMaybe 0))
+            x' & meat +~ (1 + inv ^. at Meat . to (fromMaybe 0))
                & fruit +~ (inv ^. at Fruit . to (fromMaybe 0))
                & gold +~ (inv ^. at Gold . to (fromMaybe 0))
 
@@ -217,10 +222,9 @@ attack i j world = onCell j (die . fight other)
 -- |Advances the time and temperature.
 advanceGlobalData :: WorldData -> WorldData
 advanceGlobalData world = world & time .~ time'
-                                & temperature .~ temp'
+                                & temperature .~ light' time'
    where
-      time' = (world ^. time + 1) `mod` 50
-      temp' = toEnum $ light time'
+      time' = (world ^. time + 1) `mod` cDAY_LENGTH
 
 -- |Initialize the breeze around the pits.
 initBreeze :: World s -> World s
@@ -236,11 +240,15 @@ wumpusStench world = newStench $ clearStench world
       clearStench = reduceIntensity stench
 
 -- |Regenerates the plants.
-regrowPlants :: World s -> World s
-regrowPlants = cellData %~ fmap growPlant
-   where
-      growPlant c = c & plant %~ fmap (min 1 . (+ (1 % 10)))
+regrowPlants :: CellData s -> CellData s
+regrowPlants = plant %~ fmap (min 1 . (cPLANT_REGROWTH+))
 
+-- |Increases the hungar of an agent (reduces health by 0.01)
+increaseHunger :: CellData s -> CellData s
+increaseHunger = onAgent (health -~ cHUNGER_RATE)
+
+increaseFatigue :: CellData s -> CellData s
+increaseFatigue = onAgent (fatigue +~ cFATIGUE_RESTORE)
 
 -- Perceptions
 ------------------------------------------------------------------------------

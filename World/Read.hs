@@ -19,6 +19,7 @@ import System.Directory
 import Agent
 import Agent.Wumpus()
 import Types
+import World.Constants
 import World.Utils
 
 -- |An RGB pixel.
@@ -73,7 +74,7 @@ readWorld dir = do
        --  cell directly to the left and the cell directly above.
        edges = M.foldrWithKey addEdges M.empty topography
 
-       world = World (WD 0 Freezing) UnboundedSquareGrid edges cd'
+       world = World (WD cSTART_TIME $ light' cSTART_TIME) UnboundedSquareGrid edges cd'
 
    return (world & cellData .~ cd'')
 
@@ -84,8 +85,8 @@ readWorld dir = do
       addItem (r,g,b) c = c & meat +~ fromIntegral r & fruit +~ fromIntegral g & gold +~ fromIntegral b
 
       addEntity :: M.Map Word8 (Agent s) -> CellInd -> Pixel -> CellData s -> CellData s
-      addEntity _ i (255,0,0) c = c & entity .~ Wu (Wumpus (WumpusMind undefined i) 1 1)
-      addEntity _ _ (0,255,0) c = c & plant .~ Just 1
+      addEntity _ i (255,0,0) c = c & entity .~ Wu (Wumpus (WumpusMind undefined i) cDEFAULT_WUMPUS_HEALTH cMAX_AGENT_FATIGUE)
+      addEntity _ _ (0,255,0) c = c & plant .~ Just cPLANT_MAX
       addEntity a _ (0,0,v) c| v > 0 = c & entity .~ Ag (a M.! v)
       addEntity _ _ _ c = c
 
