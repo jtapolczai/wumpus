@@ -13,6 +13,8 @@ import Agent.Message
 import Agent
 import Types
 
+type Counter = Int
+
 data HormoneStorage = HS {
    _hormoneStorageAnger :: Rational,
    _hormoneStorageContentment :: Rational,
@@ -31,14 +33,18 @@ data SocialStorage = SJS {
 type Memory s = (M.Map CellInd (CellData s), M.Map EdgeInd EdgeData)
 
 data AgentState = AS {
-   _agentStateeHS :: HormoneStorage,
-   _agentStateeSJS :: M.Map EntityName SocialStorage,
-   _agentStateeMemory :: Memory AgentState,
-   _agentStateeMessageSpace :: [Message]
+   _agentStateMessageCounter :: Counter,
+   _agentStateHS :: HormoneStorage,
+   _agentStateSJS :: M.Map EntityName SocialStorage,
+   _agentStateMemory :: Memory AgentState,
+   _agentStateMessageSpace :: [(Counter, Message)]
    }
 
+makeFields ''AgentState
+
 instance AgentMind AgentState where
-   insertMessage msg a = todo "AgentState/insertMessage"
+   insertMessage msg a = a & messageSpace %~ ((a ^. messageCounter,msg):)
+                           & messageCounter +~ 1
    getAction a = todo "AgentState/getAction"
 
 
