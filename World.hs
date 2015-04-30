@@ -279,11 +279,11 @@ getPerceptions :: World s
                -> [Message]
 getPerceptions world i d = local : global : location : visual
    where
-      local = LocalPerception False i $ cellAt i world
-      global = GlobalPerception False $ world ^. worldData
-      location = PositionPerception False i
+      local = LocalPerception i $ cellAt i world
+      global = GlobalPerception $ world ^. worldData
+      location = PositionPerception i
       visual = map visualData $ verticesInSightCone world i d
-      visualData j = VisualPerception False j $ cast $ cellAt j world
+      visualData j = VisualPerception j $ cast $ cellAt j world
 
 -- |Returns all the cells in an agent's sight cone.
 --  To be in an agent's sight cone, a cell has to fulfil three criteria:

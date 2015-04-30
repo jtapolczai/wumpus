@@ -32,7 +32,7 @@ instance AgentMind WumpusMind where
          deleteState' None = None
 
    -- |Wumpuses only care about position messages.
-   insertMessage (PositionPerception _ i) (WumpusMind world _) = WumpusMind world i
+   insertMessage (PositionPerception i) (WumpusMind world _) = WumpusMind world i
    insertMessage _ mind = mind
 
    -- |Proced along the fixed paths:
