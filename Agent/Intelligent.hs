@@ -1,6 +1,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE LambdaCase #-}
 
 module Agent.Intelligent where
 
@@ -14,7 +15,7 @@ import Agent
 import Types
 
 type Counter = Int
-type AffectiveReaction = Message -> Rational
+type AffectiveReaction = AgentMessage -> Rational
 -- |Indicates that the message came from the agent's mind, rather than from
 --  the physical world.
 type IsImaginary = Bool
@@ -40,6 +41,8 @@ data AgentMessage =
    -- |Visual perceptions.
    | AMVisualAgent CellInd VisualAgent
    | AMVisualWumpus CellInd Wumpus
+   | AMVisualWumpusHealth CellInd Rational
+   | AMVisualWumpusFatigue CellInd Rational
    | AMVisualFree CellInd
    | AMVisualPit CellInd Bool
    | AMVisualGold CellInd Int
@@ -59,6 +62,7 @@ data AgentMessage =
    | AMEmotionFear Rational
    | AMEmotionEnthusiasm Rational
    | AMEmotionContentment Rational
+   deriving (Show, Eq, Ord)
 
 type AgentMessage' = (AgentMessage, IsImaginary)
 
@@ -99,8 +103,19 @@ psbc :: AgentState -> Message -> AgentState
 psbc _ _ = todo "psbc"
 
 -- |Gets the anger value associated with a stimulus.
---psbc_anger :: M.Map Message Rational
---psbc_anger = M.fromList []
+psbc_anger :: AffectiveReaction
+psbc_anger = todo "psbc/anger"
+
+-- |Processes and breaks up messages from the outside world into smaller
+--  ones that the other sub-systems of the agent can process.
+perception :: Message -> [AgentMessage]
+perception (VisualPerception i d) = undefined
+perception (LocalPerception i d) = undefined
+perception (GlobalPerception d) = undefined
+perception (PositionPerception i) = undefined
+perception (GestureM n g) = [AMGesture n g]
+
+
 
 
 

@@ -57,7 +57,7 @@ readWorld dir = do
    agents <- M.fromList . catMaybes <$< mapM readAgent' [1..255]
 
    let cd = M.foldrWithKey (\k v t -> t & ix k %~ addItem v) topography items
-       cd' = M.foldrWithKey (\k v t -> t & ix k %~ addEntity agents k v) cd entities
+       cd' = fst $ M.foldrWithKey (addEntity' agents) (cd,[1..]) entities
        cd'' = fmap (entity . _Wu . state %~ getPerception world) cd'
 
        -- |Adds a bidirectional edge to m if its target @to@ is an existing cell.
@@ -79,16 +79,18 @@ readWorld dir = do
    return (world & cellData .~ cd'')
 
    where
+      addEntity' a k v (t, (n:ns)) = (t & ix k %~ addEntity a n k v, ns)
+
       readAgent' :: Show a => a -> IO (Maybe (a, Agent s))
       readAgent' i = readAgent (dir ++ "/agent" ++ show i ++ ".txt") >$> (>$> (i,))
 
       addItem (r,g,b) c = c & meat +~ fromIntegral r & fruit +~ fromIntegral g & gold +~ fromIntegral b
 
-      addEntity :: M.Map Word8 (Agent s) -> CellInd -> Pixel -> CellData s -> CellData s
-      addEntity _ i (255,0,0) c = c & entity .~ Wu (Wumpus (WumpusMind undefined i) cDEFAULT_WUMPUS_HEALTH cMAX_AGENT_FATIGUE)
-      addEntity _ _ (0,255,0) c = c & plant .~ Just cPLANT_MAX
-      addEntity a _ (0,0,v) c| v > 0 = c & entity .~ Ag (a M.! v)
-      addEntity _ _ _ c = c
+      addEntity :: M.Map Word8 (Agent s) -> Int -> CellInd -> Pixel -> CellData s -> CellData s
+      addEntity _ n i (255,0,0) c = c & entity .~ Wu (Wumpus (WumpusMind undefined i) (show n) cDEFAULT_WUMPUS_HEALTH cMAX_AGENT_FATIGUE)
+      addEntity _ _ _ (0,255,0) c = c & plant .~ Just cPLANT_MAX
+      addEntity a _ _ (0,0,v) c| v > 0 = c & entity .~ Ag (a M.! v)
+      addEntity _ _ _ _ c = c
 
 
 readAgent :: String -> IO (Maybe (Agent s))
