@@ -54,7 +54,7 @@ data Agent s = Agent {
    _agentFatigue :: Rational,
    _agentInventory :: M.Map Item Int,
    _agentState :: s
-}
+   }
 
 instance Default s => Default (Agent s) where
    def = Agent "" North 1 1 M.empty def
@@ -66,7 +66,8 @@ data VisualAgent = VisualAgent {
    _visualAgentDirection :: SquareDirection,
    _visualAgentHealth :: Rational,
    _visualAgentFatigue :: Rational
-}
+   }
+   deriving (Show, Eq, Ord)
 
 -- Wumpus data
 -------------------------------------------------------------------------------
@@ -77,14 +78,24 @@ data WumpusMind = forall s.WumpusMind (World s) CellInd
 
 data Wumpus = Wumpus {
    _wumpusState :: WumpusMind,
+   _wumpusName :: EntityName,
    _wumpusHealth :: Rational,
    _wumpusFatigue :: Rational
-}
+   }
+
+instance Show Wumpus where
+   show w = _wumpusName w ++ " (health: " ++ show (_wumpusHealth w)
+            ++ ", fatigue: " ++ show (_wumpusFatigue w) ++ ")"
+instance Eq Wumpus where w1 == w2 = _wumpusName w1 == _wumpusName w2
+instance Ord Wumpus where
+   compare w1 w2 = compare (d w1) (d w2)
+      where d w = (_wumpusName w, _wumpusHealth w, _wumpusFatigue w)
 
 -- Entities
 -------------------------------------------------------------------------------
 
 data Entity s = Ag s | Wu Wumpus | None
+   deriving (Show, Eq, Ord)
 
 instance Castable s t => Castable (Entity s) (Entity t) where
    cast (Ag s) = Ag (cast s)
@@ -137,6 +148,7 @@ data VisualCellData = VCD {
    _visualCellDataFruit :: Int,
    _visualCellDataPlant :: Maybe Rational
    }
+   deriving (Show, Eq, Ord)
 
 type Cell s = Maybe (CellData s)
 
