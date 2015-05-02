@@ -102,14 +102,21 @@ instance Castable s t => Castable (Entity s) (Entity t) where
    cast (Wu s) = Wu s
    cast None   = None
 
+-- |Negation of 'isNone'.
+isEntity :: Entity s -> Bool
+isEntity = not . isNone
+
+-- |Returns True iff @e == None@.
 isNone :: Entity s -> Bool
 isNone None = True
 isNone _    = False
 
+-- |Returns True iff the entity is an agent.
 isAgent :: Entity s -> Bool
 isAgent (Ag _) = True
 isAgent _      = False
 
+-- |Returns True iff the entity is a Wumpus.
 isWumpus :: Entity s -> Bool
 isWumpus (Wu _) = True
 isWumpus _      = False
