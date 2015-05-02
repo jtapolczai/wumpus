@@ -4,9 +4,8 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE TemplateHaskell #-}
 
-module Agent.Intelligent.Filter where
+module Types.Agent.Intelligent.Filter where
 
-import Control.Lens
 import Data.Graph
 import qualified Data.Map as M
 import qualified Data.Set as S
@@ -37,6 +36,3 @@ data Filter a = FI {
    _filterOutputNodes :: S.Set Vertex,
    _filterNodeInfo :: M.Map Vertex FilterNode
 }
-
-makeFields ''FilterNode
-makeFields ''Filter

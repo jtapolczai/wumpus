@@ -1,9 +1,9 @@
 {-# LANGUAGE ExistentialQuantification #-}
 
 -- |Messages that agents can receive from the environment.
-module Agent.Message where
+module Types.Agent.Message where
 
-import Types
+import Types.World
 
 -- |A message.
 data Message =

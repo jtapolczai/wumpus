@@ -20,7 +20,6 @@ import Math.Geometry.Grid.SquareInternal (SquareDirection(..))
 
 import Types
 import Agent
-import Agent.Message
 import Agent.Wumpus()
 import World.Constants
 import World.Utils

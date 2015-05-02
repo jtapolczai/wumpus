@@ -13,8 +13,6 @@ import Data.Default
 import Data.Maybe
 import Data.Monoid
 
-import Agent.Message
-import Agent.Intelligent.Filter
 import Agent
 import Types
 

@@ -12,7 +12,6 @@ import Data.Ord
 import Math.Geometry.Grid.SquareInternal (SquareDirection(..))
 import System.Random (randomRIO)
 
-import Agent.Message
 import Agent
 import Types
 import World.Utils

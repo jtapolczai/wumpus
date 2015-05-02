@@ -7,7 +7,6 @@
 module Agent where
 
 import Types
-import Agent.Message
 
 -- |The class of agents.
 --  An agent is a object that can receive messages (percepts) from its
