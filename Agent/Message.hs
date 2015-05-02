@@ -8,7 +8,7 @@ import Types
 -- |A message.
 data Message =
    VisualPerception CellInd VisualCellData
-   | forall s.LocalPerception CellInd (CellData s)
+   | forall s.LocalPerception (CellData s)
    | GlobalPerception WorldData
    | PositionPerception CellInd
    | GestureM EntityName GestureName

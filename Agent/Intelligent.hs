@@ -7,8 +7,11 @@ module Agent.Intelligent where
 
 import qualified Data.Map as M
 
+import Control.Applicative
 import Control.Lens
 import Data.Default
+import Data.Maybe
+import Data.Monoid
 
 import Agent.Message
 import Agent
@@ -31,9 +34,9 @@ type IsImaginary = Bool
 --  messages or objects, which renders them incapable of abstract reasoning.
 data AgentMessage =
    -- |The current temperature.
-   AMTemperature Rational
+   AMTemperature Temperature
    -- |The current time.
-   | AMTime Rational
+   | AMTime Int
    -- |A gesture coming from another agent.
    | AMGesture EntityName GestureName
    -- |The agent's position.
@@ -41,14 +44,14 @@ data AgentMessage =
    -- |Visual perceptions.
    | AMVisualAgent CellInd VisualAgent
    | AMVisualWumpus CellInd Wumpus
-   | AMVisualWumpusHealth CellInd Rational
-   | AMVisualWumpusFatigue CellInd Rational
+   | AMVisualEntityHealth CellInd Rational
+   | AMVisualEntityFatigue CellInd Rational
    | AMVisualFree CellInd
-   | AMVisualPit CellInd Bool
+   | AMVisualPit CellInd
    | AMVisualGold CellInd Int
    | AMVisualMeat CellInd Int
    | AMVisualFruit CellInd Int
-   | AMVisualPlant CellInd (Maybe Rational)
+   | AMVisualPlant CellInd Rational
    -- |Local perceptions
    | AMLocalStench Rational
    | AMLocalBreeze Rational
@@ -109,15 +112,36 @@ psbc_anger = todo "psbc/anger"
 -- |Processes and breaks up messages from the outside world into smaller
 --  ones that the other sub-systems of the agent can process.
 perception :: Message -> [AgentMessage]
-perception (VisualPerception i d) = undefined
-perception (LocalPerception i d) = undefined
-perception (GlobalPerception d) = undefined
-perception (PositionPerception i) = undefined
+perception (VisualPerception i d) =
+   [AMVisualGold i (d ^. gold),
+    AMVisualMeat i (d ^. meat),
+    AMVisualFruit i (d ^. fruit)]
+   ++ cond (d ^. pit) (AMVisualPit i)
+   ++ cond (d ^. plant . to isJust) (AMVisualPlant i $ d ^. plant . to fromJust)
+   ++ cond (d ^. entity . to isAgent) (AMVisualAgent i $ d ^. entity . to fromAgent)
+   ++ cond (d ^. entity . to isWumpus) (AMVisualWumpus i $ d ^. entity . to fromWumpus)
+   ++ cond (d ^. entity . to isEntity) (AMVisualEntityHealth i $ d ^. entity . health)
+   ++ cond (d ^. entity . to isEntity) (AMVisualEntityFatigue i $ d ^. entity . fatigue)
+   ++ cond (d ^. entity . to isNone) (AMVisualFree i)
+perception (LocalPerception d) =
+   [AMLocalGold (d ^. gold),
+    AMLocalMeat (d ^. meat),
+    AMLocalFruit (d ^. fruit),
+    AMLocalBreeze (d ^. breeze),
+    AMLocalStench (d ^. stench),
+    AMMyHealth (d ^. entity . to fromAgent . health),
+    AMMyFatigue (d ^. entity . to fromAgent . fatigue)]
+perception (GlobalPerception d) =
+   [AMTemperature $ d ^. temperature,
+    AMTime $ d ^. time]
+perception (PositionPerception i) = [AMPosition i]
 perception (GestureM n g) = [AMGesture n g]
 
-
-
-
+-- |Returns the given element if the first argument is True and
+--  the monoid's neutral element otherwise.
+cond :: (Monoid (f a), Applicative f) => Bool -> a -> f a
+cond True x = pure x
+cond False _ = mempty
 
 instance Default AgentState where
    def = todo "AgentState/def"

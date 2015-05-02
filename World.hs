@@ -279,7 +279,7 @@ getPerceptions :: World s
                -> [Message]
 getPerceptions world i d = local : global : location : visual
    where
-      local = LocalPerception i $ cellAt i world
+      local = LocalPerception $ cellAt i world
       global = GlobalPerception $ world ^. worldData
       location = PositionPerception i
       visual = map visualData $ verticesInSightCone world i d
