@@ -8,6 +8,7 @@
 module Types (
    module Types.World,
    module Types.Agent.Message,
+   module Types.Agent.Intelligent,
    module Types.Agent.Intelligent.Filter,
    module Types.Castable,
    module Types,
@@ -18,6 +19,7 @@ import Control.Lens
 import Types.Castable
 import Types.World
 import Types.Agent.Message
+import Types.Agent.Intelligent
 import Types.Agent.Intelligent.Filter
 
 todo :: String -> a
@@ -34,6 +36,9 @@ makeFields ''EdgeData
 makeFields ''WorldData
 makeFields ''World
 makePrisms ''Entity
+makeFields ''HormoneStorage
+makeFields ''SocialStorage
+makeFields ''AgentState
 
 -- |We give "health" and "fatigue" fields to Entity directly so as to
 --  avoid pointless case distinctions and code duplication when accessing
