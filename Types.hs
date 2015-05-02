@@ -23,6 +23,8 @@ import Types.Agent.Intelligent.Filter
 todo :: String -> a
 todo = error . (++) "TODO: implement "
 
+makeFields ''FilterNode
+makeFields ''Filter
 makeFields ''Agent
 makeFields ''VisualAgent
 makeFields ''Wumpus
