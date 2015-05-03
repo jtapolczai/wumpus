@@ -31,7 +31,7 @@ data NodeCondition a =
 data FilterNode a = FN {
    _filterNodeCondition :: NodeCondition a,
    _filterNodeExcitement :: Int,
-   _filterNodeTreshold :: Int,
+   _filterNodeThreshold :: Int,
    _filterNodeExcitementInc :: Int,
    _filterNodeActive :: Bool
    }
