@@ -7,7 +7,7 @@
 module Types.Agent.Intelligent.Filter where
 
 import Data.Graph
-import qualified Data.Map as M
+import qualified Data.HashMap.Strict as HM
 
 type NodeSignificance = Int
 
@@ -33,12 +33,11 @@ data FilterNode a = FN {
    _filterNodeExcitement :: Int,
    _filterNodeThreshold :: Int,
    _filterNodeExcitementInc :: Int,
-   _filterNodeActive :: Bool
+   _filterNodeActive :: Bool,
+   _filterNodeNeighbors :: [(Vertex, Rational)]
    }
 
 data Filter a = FI {
-   _filterGraph :: Graph,
-   _filterEdgeStrength :: M.Map Edge Rational,
-   _filterOutputNodes :: M.Map Vertex NodeSignificance,
-   _filterNodeInfo :: M.Map Vertex (FilterNode a)
+   _filterGraph :: HM.HashMap Vertex (FilterNode a),
+   _filterOutputNodes :: HM.HashMap Vertex NodeSignificance
 }

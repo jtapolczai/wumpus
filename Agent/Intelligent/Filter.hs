@@ -1,9 +1,10 @@
 module Agent.Intelligent.Filter where
 
 import Control.Lens
-import qualified Data.Graph as G
-import qualified Data.Map as M
 import Data.Functor
+import qualified Data.Graph as G
+import qualified Data.HashMap.Strict as HM
+import Data.Maybe
 
 import Types
 
@@ -24,15 +25,13 @@ exciteNode x fn =
            (excitement +~ (fn ^. excitementInc)) fn
 
 -- |Sends excitation along one edge to a neighbor.
-exciteNeighbor :: FilterNode AgentMessage
-               -> G.Vertex
-               -> Rational
+exciteNeighbor :: G.Vertex -- ^Target node.
+               -> Rational -- ^Edge strength to target node.
                -> Filter AgentMessage
                -> Filter AgentMessage
-exciteNeighbor n mk es ns = ns & nodeInfo %~ M.adjust exInc mk
+exciteNeighbor nk es f = f & graph . ix nk %~ exInc
    where
-      exInc m = m & excitement +~ round (fromIntegral (m ^. threshold) * es)
-
+      exInc n = n & excitement +~ round (fromIntegral (n ^. threshold) * es)
 
 -- |Inputs a list of messages into filter and returns the sum of the
 --  signifcances of actived output nodes (how "strongly" the filter responds
@@ -50,18 +49,20 @@ runFilter ms limit filt = undefined
 
       -- update the excitement levels of all the nodes.
       -- each nodes gets all the messages fed to it in sequence.
-      newNodes = sendMessages <$> (filt ^. nodeInfo)
-      newActiveNodes = M.filter (^. active) newNodes
-      oldActiveNodes = M.filter (^. active) (filt ^. nodeInfo)
+      newNodes = sendMessages <$> (filt ^. graph)
+      newActiveNodes = HM.filter (^. active) newNodes
+      oldActiveNodes = HM.filter (^. active) (filt ^. graph)
 
       -- newly activated nodes send excitement along their outgoing edges.
-      activatedNodes = M.difference newActiveNodes oldActiveNodes
+      activatedNodes = HM.difference newActiveNodes oldActiveNodes
 
-      exciteNeighbors :: FilterNode AgentMessage
+      -- send excitement to every neighbor of a node.
+      exciteNeighbors :: G.Vertex
+                      -> FilterNode AgentMessage
                       -> Filter AgentMessage
                       -> Filter AgentMessage
-      exciteNeighbors fn f = undefined -- foldr (abb) f neighbors
-         --where
-         --   abb
-         --   neighbors = f ^.
+      exciteNeighbors k v f = foldr excite f neighbors'
+         where
+            excite (nk, es) f' = exciteNeighbor nk es f'
+            neighbors' = f ^. graph . at k . to fromJust . neighbors
 
