@@ -14,6 +14,7 @@ import Data.Maybe
 import Data.Monoid
 
 import Agent
+import Agent.Intelligent.Filter
 import Types
 
 instance AgentMind AgentState where
@@ -56,12 +57,6 @@ perception (GlobalPerception d) =
     AMTime $ d ^. time]
 perception (PositionPerception i) = [AMPosition i]
 perception (GestureM n g) = [AMGesture n g]
-
--- |Returns the given element if the first argument is True and
---  the monoid's neutral element otherwise.
-cond :: (Monoid (f a), Applicative f) => Bool -> a -> f a
-cond True x = pure x
-cond False _ = mempty
 
 instance Default AgentState where
    def = todo "AgentState/def"

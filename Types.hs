@@ -14,7 +14,9 @@ module Types (
    module Types,
    ) where
 
+import Control.Applicative
 import Control.Lens
+import Data.Monoid
 
 import Types.Castable
 import Types.World
@@ -24,6 +26,16 @@ import Types.Agent.Intelligent.Filter
 
 todo :: String -> a
 todo = error . (++) "TODO: implement "
+
+-- |Returns the given element if the first argument is True and
+--  the monoid's neutral element otherwise.
+cond :: (Monoid (f a), Applicative f) => Bool -> a -> f a
+cond True x = pure x
+cond False _ = mempty
+
+-- |Applies a function to an object iff the condition is True.
+cond' :: (a -> Bool) -> (a -> a) -> a -> a
+cond' p f x = if p x then f x else x
 
 makeFields ''FilterNode
 makeFields ''Filter
