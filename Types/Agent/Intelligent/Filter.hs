@@ -8,12 +8,16 @@ module Types.Agent.Intelligent.Filter where
 
 import Data.Graph
 import qualified Data.Map as M
-import qualified Data.Set as S
+
+type NodeSignificance = Int
 
 -- |A condition for the firing of a node.
 data NodeCondition a =
+   -- |\"Equal to x\".
    NodeEQ a
+   -- |\"Greater than (or equal to) x\" (i.e. @(NodeGT x) y <=> x <= y@).
    | NodeGT a
+   -- |The reverse of 'NodeGT' (but not its negation).
    | NodeLT a
    -- These combinators are commented out under the assumption that
    -- the complexity of the detection will lie in the graph structure and
@@ -24,15 +28,17 @@ data NodeCondition a =
    -- | NodeOr (NodeCondition a) (NodeCondition a)
    -- | NodeNot (NodeCondition a)
 
-data FilterNode = FN {
-   _filterNodeCondition :: NodeCondition Int,
+data FilterNode a = FN {
+   _filterNodeCondition :: NodeCondition a,
    _filterNodeExcitement :: Int,
-   _filterNodeTreshold :: Int
+   _filterNodeTreshold :: Int,
+   _filterNodeExcitementInc :: Int,
+   _filterNodeActive :: Bool
    }
 
 data Filter a = FI {
    _filterGraph :: Graph,
    _filterEdgeStrength :: M.Map Edge Rational,
-   _filterOutputNodes :: S.Set Vertex,
-   _filterNodeInfo :: M.Map Vertex FilterNode
+   _filterOutputNodes :: M.Map Vertex NodeSignificance,
+   _filterNodeInfo :: M.Map Vertex (FilterNode a)
 }
