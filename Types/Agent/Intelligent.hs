@@ -9,6 +9,7 @@ import Types.Agent.Intelligent.Filter
 
 type Counter = Int
 type HormoneLevel = Rational
+data EmotionName = Anger | Fear | Enthusiasm | Contentment
 
 -- |Indicates that the message came from the agent's mind, rather than from
 --  the physical world.
@@ -69,7 +70,7 @@ type Memory s = (M.Map CellInd (CellData s), M.Map EdgeInd EdgeData)
 
 data AgentState = AS {
    _agentStateMessageCounter :: Counter,
-   _agentStatePSBC :: M.Map String (HormoneLevel, Filter AgentMessage),
+   _agentStatePSBC :: M.Map EmotionName (HormoneLevel, Filter AgentMessage),
    _agentStateSJS :: M.Map EntityName SocialStorage,
    _agentStateMemory :: Memory AgentState,
    _agentStateMessageSpace :: [(Counter, Message)]
