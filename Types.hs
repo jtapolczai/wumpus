@@ -48,7 +48,6 @@ makeFields ''EdgeData
 makeFields ''WorldData
 makeFields ''World
 makePrisms ''Entity
-makeFields ''HormoneStorage
 makeFields ''SocialStorage
 makeFields ''AgentState
 

@@ -12,10 +12,12 @@ import Control.Lens
 import Data.Default
 import Data.Maybe
 import Data.Monoid
+import Data.Ratio
 
 import Agent
 import Agent.Intelligent.Filter
 import Types
+import World.Constants
 
 instance AgentMind AgentState where
    insertMessage msg a = a & messageSpace %~ ((a ^. messageCounter,msg):)
@@ -26,9 +28,14 @@ instance AgentMind AgentState where
 psbc :: AgentState -> Message -> AgentState
 psbc _ _ = todo "psbc"
 
--- |Gets the anger value associated with a stimulus.
-psbc_anger :: AffectiveReaction
-psbc_anger = todo "psbc/anger"
+-- |Runs a stimulus through a filter and gets the resultant emotional response.
+psbc_emotion :: [AgentMessage]
+             -> Filter AgentMessage
+             -> Rational -- ^The strength of the emotional response (-1 to 1).
+psbc_emotion ms filt = fromIntegral (runFilter ms limit filt) % sig
+   where
+      limit = cAGENT_FILTER_ROUNDS
+      sig = cAGENT_FILTER_MAX_SIGNIFICANCE
 
 -- |Processes and breaks up messages from the outside world into smaller
 --  ones that the other sub-systems of the agent can process.
