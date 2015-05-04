@@ -20,19 +20,36 @@ import Types
 import World.Constants
 
 instance AgentMind AgentState where
-   insertMessage msg a = a & messageSpace %~ ((a ^. messageCounter,msg):)
-                           & messageCounter +~ 1
+   insertMessage msg a = a & messageSpace %~ (msg'++)
+                           & messageCounter +~ length msg'
+      where msg' = zip [a ^. messageCounter ..] $ perception msg
    getAction a = todo "AgentState/getAction"
 
 -- |Modulates an agent's emotional state based on stimuli.
-psbc :: AgentState -> Message -> AgentState
-psbc _ _ = todo "psbc"
+--  Only messages with counter values greater or equal to the given one are
+--  fed into the emotional system. The message space is left unchanged.
+run_psbc :: AgentState -> Counter -> AgentState
+run_psbc as c = foldr (psbc_emotion messages) as [minBound..maxBound]
+   where
+      messages = map snd $ filter ((c<=).fst) $ as ^. messageSpace
+
+-- |Updates one emotion based on messages.
+psbc_emotion :: [AgentMessage]
+             -> EmotionName
+             -> AgentState
+             -> AgentState
+psbc_emotion ms emo as = as & psbc . ix emo .~ (new_lvl , filt)
+   where
+      (lvl, filt) = as ^. psbc . at emo . to fromJust
+      val = psbc_emotion_value ms filt
+
+      new_lvl = (lvl + val) * (1 % 2)
 
 -- |Runs a stimulus through a filter and gets the resultant emotional response.
-psbc_emotion :: [AgentMessage]
-             -> Filter AgentMessage
-             -> Rational -- ^The strength of the emotional response (-1 to 1).
-psbc_emotion ms filt = fromIntegral (runFilter ms limit filt) % sig
+psbc_emotion_value :: [AgentMessage]
+                   -> Filter AgentMessage
+                   -> Rational -- ^The strength of the emotional response (-1 to 1).
+psbc_emotion_value ms filt = fromIntegral (runFilter ms limit filt) % sig
    where
       limit = cAGENT_FILTER_ROUNDS
       sig = cAGENT_FILTER_MAX_SIGNIFICANCE
