@@ -9,6 +9,7 @@ import Control.Monad (guard)
 import qualified Data.Map as M
 import Data.Maybe
 import Data.Monoid (Monoid(..))
+import Data.Ratio
 import Math.Geometry.Grid hiding (null)
 import Math.Geometry.Grid.Square
 import Math.Geometry.Grid.SquareInternal (SquareDirection(..))
@@ -129,6 +130,12 @@ angleOf North = pi*0.5
 angleOf West = pi
 angleOf South = pi*1.5
 angleOf East = 0
+
+-- |Computes the average of a list of values (sum xs / length xs).
+avg :: [Rational] -> Rational
+avg = res . foldr (\x (s,a) -> (s+x,a+1)) (0,0)
+   where
+      res (s,a) = s * (1 % a)
 
 -- |Performs an action if a predicate is fulfiled. Otherwise does nothing.
 doIf :: (a -> Bool) -> (a -> a) -> a -> a
