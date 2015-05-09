@@ -11,6 +11,9 @@ type HormoneLevel = Rational
 data EmotionName = Anger | Fear | Enthusiasm | Contentment
    deriving (Show, Eq, Ord, Read, Enum, Bounded)
 
+data SocialEmotionName = Trust | Respect | Sympathy
+   deriving (Show, Eq, Ord, Read, Enum, Bounded)
+
 -- |Indicates that the message came from the agent's mind, rather than from
 --  the physical world.
 type IsImaginary = Bool
@@ -60,11 +63,7 @@ data AgentMessage =
 
 type AgentMessage' = (AgentMessage, IsImaginary)
 
-data SocialStorage = SJS {
-   _socialStorageSympathy :: Rational,
-   _socialStorageTrust :: Rational,
-   _socialStorageRespect :: Rational
-}
+type SocialStorage = M.Map SocialEmotionName (HormoneLevel, Filter AgentMessage)
 
 type Memory s = (M.Map CellInd (CellData s), M.Map EdgeInd EdgeData)
 

@@ -18,12 +18,39 @@ import Agent
 import Agent.Intelligent.Filter
 import Types
 import World.Constants
+import World.Utils
 
 instance AgentMind AgentState where
    insertMessage msg a = a & messageSpace %~ (msg'++)
                            & messageCounter +~ length msg'
       where msg' = zip [a ^. messageCounter ..] $ perception msg
+
+   -- todo: agents should clear out their message space upon delivering an
+   -- action (since we don't need messages from past time points)
    getAction a = todo "AgentState/getAction"
+
+-- |Modulates an agent's opinion about other agents based on stimuli.
+--  Only messages with counter values greater or equal to the given one are
+--  fed into the emotional system. The message space is left unchanged.
+run_sjs :: AgentState -> Counter -> AgentState
+run_sjs = undefined
+
+-- sjs_entity :: AgentState
+
+
+-- |Modulates an agent's social emotional state regarding another agent
+--  based on stimuli.
+sjs_entity_emotion :: [AgentMessage]
+                   -> EntityName
+                   -> SocialEmotionName
+                   -> AgentState
+                   -> AgentState
+sjs_entity_emotion ms other emo as = as & sjs . ix other . ix emo .~ (new_lvl, filt)
+   where
+      (lvl, filt) = as ^. sjs . at other . to fromJust . at emo . to fromJust
+      val = emotion_value ms filt
+
+      new_lvl = avg [lvl, val]
 
 -- |Modulates an agent's emotional state based on stimuli.
 --  Only messages with counter values greater or equal to the given one are
@@ -41,15 +68,15 @@ psbc_emotion :: [AgentMessage]
 psbc_emotion ms emo as = as & psbc . ix emo .~ (new_lvl , filt)
    where
       (lvl, filt) = as ^. psbc . at emo . to fromJust
-      val = psbc_emotion_value ms filt
+      val = emotion_value ms filt
 
-      new_lvl = (lvl + val) * (1 % 2)
+      new_lvl = avg [lvl, val]
 
 -- |Runs a stimulus through a filter and gets the resultant emotional response.
-psbc_emotion_value :: [AgentMessage]
+emotion_value :: [AgentMessage]
                    -> Filter AgentMessage
                    -> Rational -- ^The strength of the emotional response (-1 to 1).
-psbc_emotion_value ms filt = fromIntegral (runFilter ms limit filt) % sig
+emotion_value ms filt = fromIntegral (runFilter ms limit filt) % sig
    where
       limit = cAGENT_FILTER_ROUNDS
       sig = cAGENT_FILTER_MAX_SIGNIFICANCE

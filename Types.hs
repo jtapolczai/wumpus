@@ -48,7 +48,6 @@ makeFields ''EdgeData
 makeFields ''WorldData
 makeFields ''World
 makePrisms ''Entity
-makeFields ''SocialStorage
 makeFields ''AgentState
 
 -- |We give "health" and "fatigue" fields to Entity directly so as to
