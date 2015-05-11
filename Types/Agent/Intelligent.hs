@@ -2,9 +2,6 @@ module Types.Agent.Intelligent where
 
 import qualified Data.Map as M
 
-import Control.Lens
-import Data.Monoid (First)
-
 import Types.Agent.Dummy
 import Types.World
 import Types.Agent.Intelligent.Filter
@@ -77,12 +74,3 @@ data AgentState = AS {
    _agentStateMemory :: Memory DummyMind,
    _agentStateMessageSpace :: [(Counter, AgentMessage)]
    }
-
--- |A clumsy combinator that applies a function to a single constructor of
---  a sum type and returns Nothing if the given constructor doesn't match.
---
---  Example usage:
---  >>> extractOver (AMTime 3) _AMTime (+1) = Just 4
---  >>> extractOver (AMEmotionAnger 0) _AMTime (+1) = Nothing
-extractOver :: Getting (First a) s a -> (a -> b) -> s -> Maybe b
-extractOver lens f x = (x ^? lens) & _Just %~ f

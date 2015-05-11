@@ -9,6 +9,7 @@ module Agent.Intelligent.Utils where
 import Control.Lens
 import Data.List
 import Data.Maybe
+import Data.Monoid (First(..))
 import Data.Ord
 
 import Types
@@ -27,3 +28,12 @@ firstWhere l = head'
    where
       head' [] = Nothing
       head' (x:_) = Just x
+
+-- |A clumsy combinator that applies a function to a single constructor of
+--  a sum type and returns Nothing if the given constructor doesn't match.
+--
+--  Example usage:
+--  >>> extractOver (AMTime 3) _AMTime (+1) = Just 4
+--  >>> extractOver (AMEmotionAnger 0) _AMTime (+1) = Nothing
+extractOver :: Getting (First a) s a -> (a -> b) -> s -> Maybe b
+extractOver lens f x = (x ^? lens) & _Just %~ f
