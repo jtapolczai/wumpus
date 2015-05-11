@@ -1,10 +1,8 @@
 module Agent.Dummy where
 
 import Agent
+import Types.Agent.Dummy
 import Types.World
-
--- |A mind that does nothing.
-data DummyMind = DummyMind
 
 instance AgentMind DummyMind where
    getPerception _ = id

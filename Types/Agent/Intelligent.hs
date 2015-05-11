@@ -5,8 +5,8 @@ import qualified Data.Map as M
 import Control.Lens
 import Data.Monoid (First)
 
+import Types.Agent.Dummy
 import Types.World
-import Types.Agent.Message
 import Types.Agent.Intelligent.Filter
 
 type Counter = Int
@@ -74,7 +74,7 @@ data AgentState = AS {
    _agentStateMessageCounter :: Counter,
    _agentStatePsbc :: M.Map EmotionName (HormoneLevel, Filter AgentMessage),
    _agentStateSjs :: M.Map EntityName SocialStorage,
-   _agentStateMemory :: Memory AgentState,
+   _agentStateMemory :: Memory DummyMind,
    _agentStateMessageSpace :: [(Counter, AgentMessage)]
    }
 
