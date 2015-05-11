@@ -11,6 +11,7 @@ import Data.Default
 import Agent
 import Agent.Dummy
 import Agent.Intelligent.Affect
+import Agent.Intelligent.BeliefGenerator
 import Agent.Intelligent.Memory
 import Agent.Intelligent.Perception
 import Agent.Intelligent.Utils

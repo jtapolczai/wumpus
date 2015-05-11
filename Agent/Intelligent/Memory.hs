@@ -13,14 +13,6 @@ import Math.Geometry.Grid.Square (UnboundedSquareGrid(..))
 import Agent.Intelligent.Utils
 import Types
 
--- |Performs a hypothetical action and gets the consequences, in message-form.
---  Note that these resultant messages shouldn't be inserted directly into
---  the agent's message space, but should be marked as imaginary (unless you
---  want the agent to be psychotic).
-simulateConsequences :: Action -> AgentState -> [AgentMessage]
-simulateConsequences act as = todo "simulateConsequences"
-   where
-
 -- |Takes the agent's memory (and current messages about global data) and
 --  constructs a world from it.
 --  World will contain the 'WumpusMind's, but other agents will be given
