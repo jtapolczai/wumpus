@@ -45,7 +45,7 @@ data Agent s = Agent {
    _agentName :: EntityName,
    _agentDirection :: SquareDirection,
    _agentHealth :: Rational,
-   _agentFatigue :: Rational,
+   _agentStamina :: Rational,
    _agentInventory :: M.Map Item Int,
    _agentState :: s
    }
@@ -59,7 +59,7 @@ data VisualAgent = VisualAgent {
    _visualAgentName :: EntityName,
    _visualAgentDirection :: SquareDirection,
    _visualAgentHealth :: Rational,
-   _visualAgentFatigue :: Rational
+   _visualAgentStamina :: Rational
    }
    deriving (Show, Eq, Ord)
 
@@ -74,16 +74,16 @@ data Wumpus = Wumpus {
    _wumpusState :: WumpusMind,
    _wumpusName :: EntityName,
    _wumpusHealth :: Rational,
-   _wumpusFatigue :: Rational
+   _wumpusStamina :: Rational
    }
 
 instance Show Wumpus where
    show w = _wumpusName w ++ " (health: " ++ show (_wumpusHealth w)
-            ++ ", fatigue: " ++ show (_wumpusFatigue w) ++ ")"
+            ++ ", stamina: " ++ show (_wumpusStamina w) ++ ")"
 instance Eq Wumpus where w1 == w2 = _wumpusName w1 == _wumpusName w2
 instance Ord Wumpus where
    compare w1 w2 = compare (d w1) (d w2)
-      where d w = (_wumpusName w, _wumpusHealth w, _wumpusFatigue w)
+      where d w = (_wumpusName w, _wumpusHealth w, _wumpusStamina w)
 
 -- Entities
 -------------------------------------------------------------------------------

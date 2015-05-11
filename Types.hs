@@ -61,17 +61,17 @@ instance HasHealth s Rational => HasHealth (Entity s) Rational where
    health f (Wu x) = fmap (\h -> Wu $ x & health .~ h) (f $ x ^. health)
    health _ None = error "called HasHealth on entity-type \"None\"!"
 
-instance HasFatigue s Rational => HasFatigue (Entity s) Rational where
-   fatigue f (Ag x) = fmap (\h -> Ag $ x & fatigue .~ h) (f $ x ^. fatigue)
-   fatigue f (Wu x) = fmap (\h -> Wu $ x & fatigue .~ h) (f $ x ^. fatigue)
-   fatigue _ None = error "called HasFatigue on entity-type \"None\"!"
+instance HasStamina s Rational => HasStamina (Entity s) Rational where
+   stamina f (Ag x) = fmap (\h -> Ag $ x & stamina .~ h) (f $ x ^. stamina)
+   stamina f (Wu x) = fmap (\h -> Wu $ x & stamina .~ h) (f $ x ^. stamina)
+   stamina _ None = error "called HasFatigue on entity-type \"None\"!"
 
 
 instance Castable (Agent s) VisualAgent where
    cast a = VisualAgent (a ^. name)
                         (a ^. direction)
                         (a ^. health)
-                        (a ^. fatigue)
+                        (a ^. stamina)
 
 instance Castable (CellData s) VisualCellData where
    cast a = VCD (cast $ a ^. entity)

@@ -22,7 +22,7 @@ perception (VisualPerception i d) =
    ++ cond (d ^. entity . to isAgent) (AMVisualAgent i $ d ^. entity . to fromAgent)
    ++ cond (d ^. entity . to isWumpus) (AMVisualWumpus i $ d ^. entity . to fromWumpus)
    ++ cond (d ^. entity . to isEntity) (AMVisualEntityHealth i $ d ^. entity . health)
-   ++ cond (d ^. entity . to isEntity) (AMVisualEntityFatigue i $ d ^. entity . fatigue)
+   ++ cond (d ^. entity . to isEntity) (AMVisualEntityStamina i $ d ^. entity . stamina)
    ++ cond (d ^. entity . to isNone) (AMVisualFree i)
 perception (LocalPerception d) =
    [AMLocalGold (d ^. gold),
@@ -31,7 +31,7 @@ perception (LocalPerception d) =
     AMLocalBreeze (d ^. breeze),
     AMLocalStench (d ^. stench),
     AMMyHealth (d ^. entity . to fromAgent . health),
-    AMMyFatigue (d ^. entity . to fromAgent . fatigue)]
+    AMMyStamina (d ^. entity . to fromAgent . stamina)]
 perception (GlobalPerception d) =
    [AMTemperature $ d ^. temperature,
     AMTime $ d ^. time]

@@ -87,7 +87,7 @@ readWorld dir = do
       addItem (r,g,b) c = c & meat +~ fromIntegral r & fruit +~ fromIntegral g & gold +~ fromIntegral b
 
       addEntity :: M.Map Word8 (Agent s) -> Int -> CellInd -> Pixel -> CellData s -> CellData s
-      addEntity _ n i (255,0,0) c = c & entity .~ Wu (Wumpus (WumpusMind undefined i) (show n) cDEFAULT_WUMPUS_HEALTH cMAX_AGENT_FATIGUE)
+      addEntity _ n i (255,0,0) c = c & entity .~ Wu (Wumpus (WumpusMind undefined i) (show n) cDEFAULT_WUMPUS_HEALTH cMAX_AGENT_STAMINA)
       addEntity _ _ _ (0,255,0) c = c & plant .~ Just cPLANT_MAX
       addEntity a _ _ (0,0,v) c| v > 0 = c & entity .~ Ag (a M.! v)
       addEntity _ _ _ _ c = c

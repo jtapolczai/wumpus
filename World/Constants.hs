@@ -6,8 +6,8 @@ cHEAL_FOOD = 0.5
 cHUNGER_RATE :: Fractional a => a
 cHUNGER_RATE = 0.01
 
-cFATIGUE_RESTORE :: Fractional a => a
-cFATIGUE_RESTORE = 0.1
+cSTAMINA_RESTORE :: Fractional a => a
+cSTAMINA_RESTORE = 0.1
 
 cEDGE_FATIGUE :: Fractional a => a
 cEDGE_FATIGUE = 0.05
@@ -21,8 +21,8 @@ cDEFAULT_WUMPUS_HEALTH = 1
 cMAX_AGENT_HEALTH :: Fractional a => a
 cMAX_AGENT_HEALTH = 2
 
-cMAX_AGENT_FATIGUE :: Fractional a => a
-cMAX_AGENT_FATIGUE = 1
+cMAX_AGENT_STAMINA :: Fractional a => a
+cMAX_AGENT_STAMINA = 1
 
 cPLANT_REGROWTH :: Fractional a => a
 cPLANT_REGROWTH = 0.1

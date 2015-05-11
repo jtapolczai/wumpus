@@ -117,7 +117,7 @@ doAction _ NoOp world = world
 doAction i (Rotate dir) world = onCell i (onAgent (direction .~ dir)) world
 doAction i (Move dir) world = doIf (cellFree j) (moveEntity i j) world
    where
-      cond = liftA2 (&&) (cellFree j) (hasFatigue (i,dir))
+      cond = liftA2 (&&) (cellFree j) (hasStamina (i,dir))
       j = inDirection i dir
 -- Attack another entity.
 doAction i (Attack dir) world = doIf (not . cellFree j) (attack i j) world
@@ -181,15 +181,15 @@ itemLens Gold = gold
 itemLens Fruit = fruit
 
 -- |Returns True iff an edge @(i,dir)@ exists and if the agent on cell @i@
---  has at least as much fatigue as the edge. If the edge of the cell do not
---  exist, False is returned.
-hasFatigue :: EdgeInd -> World s -> Bool
-hasFatigue (i,dir) world = case (me, ef) of
+--  has at least as much stamina as the edge requires. If the edge of the
+--  cell do not exist, False is returned.
+hasStamina :: EdgeInd -> World s -> Bool
+hasStamina (i,dir) world = case (me, ef) of
    (Just me', Just ef') -> me' >= cEDGE_FATIGUE * ef'
    _                    -> False
    where
       me :: Maybe Rational
-      me = world ^. cellData . at i . to (fmap $ view $ entity . fatigue)
+      me = world ^. cellData . at i . to (fmap $ view $ entity . stamina)
       ef :: Maybe Rational
       ef = world ^. edgeData . at (i,dir) . to (fmap $ view fatigue)
 
@@ -207,7 +207,7 @@ moveEntity i j world = world & cellData %~ move
       fat = world ^. edgeData . at (i,getDirection i j) . to (maybe 0 $ view fatigue)
 
       ent = world ^. cellData . at i . to fromJust . entity
-      ent' = ent & fatigue -~ cEDGE_FATIGUE * fat
+      ent' = ent & stamina -~ cEDGE_FATIGUE * fat
       putEnt c = if c ^. pit then c else c & entity .~ ent'
 
       move m = m & ix i %~ (entity .~ None)
@@ -266,7 +266,7 @@ increaseHunger :: CellData s -> CellData s
 increaseHunger = onAgent (health -~ cHUNGER_RATE)
 
 increaseFatigue :: CellData s -> CellData s
-increaseFatigue = onAgent (fatigue +~ cFATIGUE_RESTORE)
+increaseFatigue = onAgent (stamina +~ cSTAMINA_RESTORE)
 
 -- Perceptions
 ------------------------------------------------------------------------------

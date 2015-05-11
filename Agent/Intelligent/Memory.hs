@@ -50,6 +50,6 @@ constructAgent :: Entity VisualAgent -> Entity (Agent DummyMind)
 constructAgent (Ag a) = Ag $ Agent (a ^. name)
                                    (a ^. direction)
                                    (a ^. health)
-                                   (a ^. fatigue)
+                                   (a ^. stamina)
                                    M.empty
                                    DummyMind

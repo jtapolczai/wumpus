@@ -42,7 +42,7 @@ data AgentMessage =
    | AMVisualAgent CellInd VisualAgent
    | AMVisualWumpus CellInd Wumpus
    | AMVisualEntityHealth CellInd Rational
-   | AMVisualEntityFatigue CellInd Rational
+   | AMVisualEntityStamina CellInd Rational
    | AMVisualFree CellInd
    | AMVisualPit CellInd
    | AMVisualGold CellInd Int
@@ -53,7 +53,7 @@ data AgentMessage =
    | AMLocalStench Rational
    | AMLocalBreeze Rational
    | AMMyHealth Rational
-   | AMMyFatigue Rational
+   | AMMyStamina Rational
    | AMLocalGold Int
    | AMLocalMeat Int
    | AMLocalFruit Int
