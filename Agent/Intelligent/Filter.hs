@@ -10,10 +10,10 @@ import Data.Maybe
 import Types
 
 -- |Evaluates a condition against a value.
-runCondition :: (Ord a) => NodeCondition a -> a -> Bool
-runCondition (NodeEQ x) y = x == y
-runCondition (NodeGT x) y = x <= y
-runCondition (NodeLT x) y = x >= y
+runCondition :: NodeCondition s -> s -> Bool
+runCondition (NodeEQ f x) y = maybe False (x==) (y ^? f)
+runCondition (NodeGT f x) y = maybe False (x<=) (y ^? f)
+runCondition (NodeLT f x) y = maybe False (x>=) (y ^? f)
 
 -- |Excites a node based on an input.
 exciteNode :: (Ord a) => a -> FilterNode a -> FilterNode a
