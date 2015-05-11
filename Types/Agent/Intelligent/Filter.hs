@@ -19,7 +19,12 @@ type NodeSignificance = Int
 --  A condition consists of a condition kind (the constructor; EQ, GT, LT),
 --  a getter, and a comparison value. The assumption is that NodeCondition
 --  will be used with some sum type, from which have have to extract a value.
---  The Getter encodes which constructor of the sum type is to be used.
+--  The Prism encodes which constructor of the sum type is to be used.
+--
+--  Example usage:
+--  >>> NodeEq _Left 3
+--  If this condition is run, it should match @Left 3@, but not @Left 4@ or
+--  @Right 3@.
 data NodeCondition s =
    -- |\"Equal to x\".
    forall a.Ord a => NodeEQ (Prism' s a) a
