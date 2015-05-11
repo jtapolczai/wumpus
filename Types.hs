@@ -49,6 +49,7 @@ makeFields ''WorldData
 makeFields ''World
 makePrisms ''Entity
 makeFields ''AgentState
+makePrisms ''AgentMessage
 
 -- |We give "health" and "fatigue" fields to Entity directly so as to
 --  avoid pointless case distinctions and code duplication when accessing
