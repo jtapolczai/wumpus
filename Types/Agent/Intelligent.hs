@@ -84,5 +84,5 @@ data AgentState = AS {
 --  Example usage:
 --  >>> extractOver (AMTime 3) _AMTime (+1) = Just 4
 --  >>> extractOver (AMEmotionAnger 0) _AMTime (+1) = Nothing
-extractOver :: s -> Getting (First a) s a -> (a -> b) -> Maybe b
-extractOver x lens f = (x ^? lens) & _Just %~ f
+extractOver :: Getting (First a) s a -> (a -> b) -> s -> Maybe b
+extractOver lens f x = (x ^? lens) & _Just %~ f

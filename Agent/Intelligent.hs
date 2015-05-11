@@ -33,10 +33,13 @@ instance AgentMind AgentState where
 --  Only messages with counter values greater or equal to the given one are
 --  fed into the emotional system. The message space is left unchanged.
 run_sjs :: AgentState -> Counter -> AgentState
-run_sjs = undefined
-
--- sjs_entity :: AgentState
-
+run_sjs as c = foldr (uncurry $ sjs_entity_emotion (aboveCounter as c)) as emotions
+   where
+      -- the cartesian product of nearby agents and emotions
+      emotions = [(a,e) | a <- agents, e <- [minBound..maxBound]]
+      -- nearby (visually perceivable) agents
+      agents = mapMaybe getName $ aboveCounter as c
+      getName = extractOver _AMVisualAgent (^. _2 . name)
 
 -- |Modulates an agent's social emotional state regarding another agent
 --  based on stimuli.
@@ -56,9 +59,7 @@ sjs_entity_emotion ms other emo as = as & sjs . ix other . ix emo .~ (new_lvl, f
 --  Only messages with counter values greater or equal to the given one are
 --  fed into the emotional system. The message space is left unchanged.
 run_psbc :: AgentState -> Counter -> AgentState
-run_psbc as c = foldr (psbc_emotion messages) as [minBound..maxBound]
-   where
-      messages = map snd $ filter ((c<=).fst) $ as ^. messageSpace
+run_psbc as c = foldr (psbc_emotion (aboveCounter as c)) as [minBound..maxBound]
 
 -- |Updates one emotion based on messages.
 psbc_emotion :: [AgentMessage]
@@ -80,6 +81,11 @@ emotion_value ms filt = fromIntegral (runFilter ms limit filt) % sig
    where
       limit = cAGENT_FILTER_ROUNDS
       sig = cAGENT_FILTER_MAX_SIGNIFICANCE
+
+-- |Filters the message space of an agent by counter (messages have to have
+--  a counter value >= the given one).
+aboveCounter :: AgentState -> Counter -> [AgentMessage]
+aboveCounter as c = map snd $ filter ((c<=).fst) $ as ^. messageSpace
 
 -- |Processes and breaks up messages from the outside world into smaller
 --  ones that the other sub-systems of the agent can process.
