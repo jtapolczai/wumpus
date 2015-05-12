@@ -37,3 +37,48 @@ firstWhere l = head'
 --  >>> extractOver (AMEmotionAnger 0) _AMTime (+1) = Nothing
 extractOver :: Getting (First a) s a -> (a -> b) -> s -> Maybe b
 extractOver lens f x = (x ^? lens) & _Just %~ f
+
+-- |Sieves out messages about global world data.
+sieveGlobalMessage :: AgentMessage -> Maybe AgentMessage
+sieveGlobalMessage x@AMTemperature{} = Just x
+sieveGlobalMessage x@AMTime{} = Just x
+sieveGlobalMessage _ = Nothing
+
+-- |Sieves out cell-related messages.
+cellMessage :: AgentMessage -> Maybe AgentMessage
+cellMessage x@AMVisualAgent{} = Just x
+cellMessage x@AMVisualWumpus{} = Just x
+cellMessage x@AMVisualHealth{} = Just x
+cellMessage x@AMVisualStamina{} = Just x
+cellMessage x@AMVisualFree{} = Just x
+cellMessage x@AMVisualPit{} = Just x
+cellMessage x@AMVisualGold{} = Just x
+cellMessage x@AMVisualMeat{} = Just x
+cellMessage x@AMVisualFruit{} = Just x
+cellMessage x@AMVisualPlant{} = Just x
+
+cellMessage x@AMLocalStench{} = Just x
+cellMessage x@AMLocalBreeze{} = Just x
+cellMessage x@AMMyHealth{} = Just x
+cellMessage x@AMMyStamina{} = Just x
+cellMessage x@AMLocalGold{} = Just x
+cellMessage x@AMLocalMeat{} = Just x
+cellMessage x@AMLocalFruit{} = Just x
+
+cellMessage _ = Nothing
+
+edgeMessage :: AgentMessage -> Maybe AgentMessage
+edgeMessage x@AMVisualEdgeDanger{} = Just x
+edgeMessage x@AMVisualEdgeFatigue{} = Just x
+edgeMessage _ = Nothing
+
+
+
+
+
+
+
+
+
+
+
