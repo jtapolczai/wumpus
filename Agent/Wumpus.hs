@@ -21,16 +21,6 @@ import World.Utils
 --  internal state, since Wumpuses always behave in the same way.
 data WumpusMind = WumpusMind World CellInd
 
--- |getPerceptions stores a "shallow" copy of the world; shallow in the sense
---  that all agents and Wumpuses are given dummy minds (the Wumpus doesn't need)
---  information about the internal states of agents anyway.
-instance PerceivingMind WumpusMind where
-   type Perceptions WumpusMind = (World, CellInd)
-   getPerceptions world i = (world & cellData %~ fmap deleteMinds, i)
-      where
-         deleteMinds :: CellData -> CellData
-         deleteMinds = entity %~ fmap deleteAllMinds
-
 -- |Deletes the minds of the agents, but gives 'WumpusMind's to the Wumpuses.
 --  The information that these wumpuses will have depends on the given world.
 deleteAgentMinds :: World -> CellInd -> Entity (Agent s) (Wumpus t) -> Entity'
@@ -42,14 +32,19 @@ deleteAllMinds :: Entity (Agent s) (Wumpus t) -> Entity'
 deleteAllMinds (Ag a) = Ag (a & _agentStateLens .~ SM dummyMind)
 deleteAllMinds (Wu a) = Wu (a & _wumpusStateLens .~ SM dummyMind)
 
---type instance Perceptions WumpusMind = (World DummyMind, CellInd)
 
 instance AgentMind WumpusMind where
-   -- |Wumpuses only care about position messages.
-   --insertMessage ()
+   type Perceptions WumpusMind = (World, CellInd)
 
-   -- (WumpusMind world _) = WumpusMind world i
-   --insertMessage _ mind = mind
+   -- |'insertMessage' stores a "shallow" copy of the world; shallow in the sense
+   --  that all agents and Wumpuses are given dummy minds (the Wumpus doesn't need)
+   --  information about the internal states of agents anyway.
+   insertMessage world i _ = WumpusMind world' i
+      where
+         world' = world & cellData %~ fmap deleteMinds
+
+         deleteMinds :: CellData -> CellData
+         deleteMinds = entity %~ fmap deleteAllMinds
 
    -- |Proced along the fixed paths:
    --  attack if there's an adjacent agents, move towards one if one's near,
