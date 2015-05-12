@@ -7,6 +7,7 @@ module Agent.Intelligent where
 
 import Control.Lens
 import Data.Default
+import Data.Maybe
 
 import Agent.Dummy
 import Agent.Intelligent.Affect
@@ -16,10 +17,15 @@ import Agent.Intelligent.Perception
 import Agent.Intelligent.Utils
 import Types
 import World.Constants
+import World.Perception
 import World.Utils
 
 instance AgentMind AgentState where
-   pullMessages w i m = todo "agentState/pullMessage"
+   pullMessages w i = receiveMessages msg
+      where
+         msg = getLocalPerceptions w i dir
+         me = w ^. cellData . ju (at i) . ju entity
+         dir = fromJust (me ^? _Ag . direction)
 
    receiveMessage msg a = a & messageSpace %~ (msg'++)
                             & messageCounter +~ length msg'
