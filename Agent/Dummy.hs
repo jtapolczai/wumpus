@@ -11,14 +11,17 @@ import Types
 import World.Perception
 
 instance AgentMind DummyMind where
-   type Perceptions DummyMind = [Message]
-   insertMessage w i d@DummyMind{_dummyMindStoreMessages=False} = d
-   insertMessage w i d = d & messageSpace %~ (perc++)
+   --type Perceptions DummyMind = [Message]
+   pullMessages w i d@DummyMind{_dummyMindStoreMessages=False} = d
+   pullMessages w i d = d & messageSpace %~ (perc++)
       where
          perc = getLocalPerceptions w i dir
          me = w ^. cellData . ju (at i) . ju entity
 
          dir = fromMaybe North (me ^? _Ag . direction)
+
+   receiveMessage m d@DummyMind{_dummyMindStoreMessages=False} = d
+   receiveMessage m d = d & messageSpace %~ (m:)
 
    getAction d = return (d ^. action, d)
 

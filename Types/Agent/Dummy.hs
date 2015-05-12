@@ -1,6 +1,5 @@
 module Types.Agent.Dummy where
 
-import Types.Agent.Message
 import Types.World
 
 -- |A mind that always does the same thing and can optionally storage messages

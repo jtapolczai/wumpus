@@ -8,7 +8,6 @@
 module Types (
    module Types.World,
    module Types.Agent.Dummy,
-   module Types.Agent.Message,
    module Types.Agent.Intelligent,
    module Types.Agent.Intelligent.Filter,
    module Types.Castable,
@@ -23,7 +22,6 @@ import Data.Monoid
 import Types.Castable
 import Types.World
 import Types.Agent.Dummy
-import Types.Agent.Message
 import Types.Agent.Intelligent
 import Types.Agent.Intelligent.Filter
 

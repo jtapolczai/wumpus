@@ -8,6 +8,7 @@
 module Types.World where
 
 import Data.Default
+import qualified Data.Foldable as F
 import qualified Data.Map as M
 import Math.Geometry.Grid.Square
 import Math.Geometry.Grid.SquareInternal (SquareDirection(..))
@@ -168,20 +169,46 @@ data World = World {
 -- Agent minds
 -------------------------------------------------------------------------------
 
+-- |A message.
+data Message =
+   VisualPerception CellInd VisualCellData
+   | LocalPerception CellData
+   | GlobalPerception WorldData
+   | PositionPerception CellInd
+   | GestureM EntityName GestureName
+
 -- |The class of agents.
 --  An agent is a object that can receive messages (percepts) from its
 --  its environment and produce an action that it wants to take in the
 --  world.
 class AgentMind a where
    -- |The sort of perception to which an agent is entitled.
-   type family Perceptions a :: *
-   -- |Gets the agent's perceptions from the World and the agent's current
-   --  position.
-   --getPerceptions :: World -> CellInd -> Perceptions a
-   -- |Pass a message/percept from the world simulator to the agent.
-   --insertMessage :: Perceptions a -> a -> a
+   --type family Perceptions a :: *
 
-   insertMessage :: World -> CellInd -> a -> a
+   -- |Takes whatever information it wants from the world and its current position.
+   --  As this method confers effective omniscience to an agent, agents ought
+   --  not to "cheat". In addition, they should not store the entire world
+   --  verbatim, as they'll be referring cyclically to themselves (or to a
+   --  past state of themselves).
+   --
+   --  It is, in general, not guaranteed that this method will ever be called
+   --  by a world simulator. Unless agents are sure that the world simulator
+   --  will call 'pullMessages', agents should rely on getting their percepts
+   --  via 'receiveMessage'.
+   pullMessages :: World -> CellInd -> a -> a
+
+   -- |Receives a single message.
+   receiveMessage :: Message -> a -> a
+
+   -- |Receives multiple messages. The default implementation is just
+   --  >>> flip (foldr receiveMessage)
+   --  and overriding implementations should satisfy
+   --
+   -- @
+   -- receiveMessages ms a = foldr receiveMessage a ms
+   -- @
+   receiveMessages :: F.Foldable f => f Message -> a -> a
+   receiveMessages = flip (F.foldr receiveMessage)
 
    -- |Get the agent's action, given its current state.
    getAction :: a -> IO (Action, a)
@@ -191,7 +218,8 @@ class AgentMind a where
 data SomeMind = forall m.AgentMind m => SM m
 
 instance AgentMind SomeMind where
-   insertMessage w i (SM m) = SM (insertMessage w i m)
+   pullMessages w i (SM m) = SM (pullMessages w i m)
+   receiveMessage x (SM m) = SM (receiveMessage x m)
    getAction (SM m) = do (a,m') <- getAction m
                          return (a, SM m')
 

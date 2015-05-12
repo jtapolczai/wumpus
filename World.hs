@@ -66,14 +66,8 @@ simulateStep world = (worldData %~ advanceGlobalData)
 giveEntityPerceptions :: World
                       -> (CellInd, Entity')
                       -> World
-giveEntityPerceptions world (i, ag) = world & cellData . ix i . entity .~ ag'
-   where
-      ag' = foldl' addPerc ag $ getAgentPerceptions world i (entityAt i agentDir world)
-
-      addPerc a m = a & _Ag . state %~ insertMessage m
-
-      agentDir (Ag agent) = agent ^. direction
-      agentDir (Wu _) = North
+giveEntityPerceptions world (i, ag) =
+   world & cellData . ix i . entity %~ (insertMessage world i)
 
 -- missing: insert messages/world (for wumpuses), update time, stench
 --          get actions
