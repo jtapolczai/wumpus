@@ -3,6 +3,8 @@
 module Agent.Dummy where
 
 import Control.Lens
+import Data.Maybe
+import Math.Geometry.Grid.SquareInternal(SquareDirection(..))
 
 import Types.Agent.Dummy
 import Types
@@ -14,7 +16,9 @@ instance AgentMind DummyMind where
    insertMessage w i d = d & messageSpace %~ (perc++)
       where
          perc = getLocalPerceptions w i dir
-         dir = w & cellData . ju (at i) . ju entity . _Ag . direction
+         me = w ^. cellData . ju (at i) . ju entity
+
+         dir = fromMaybe North (me ^? _Ag . direction)
 
    getAction d = return (d ^. action, d)
 
