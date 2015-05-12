@@ -88,6 +88,10 @@ instance (HasStamina s Rational, HasStamina t Rational)
    stamina f (Ag x) = fmap (\h -> Ag $ x & stamina .~ h) (f $ x ^. stamina)
    stamina f (Wu x) = fmap (\h -> Wu $ x & stamina .~ h) (f $ x ^. stamina)
 
+instance (HasState a SomeMind, HasState b SomeMind) => HasState (Entity a b) SomeMind where
+   state f (Ag x) = fmap (\h -> Ag $ x & state .~ h) (f $ x ^. state)
+   state f (Wu x) = fmap (\h -> Wu $ x & state .~ h) (f $ x ^. state)
+
 instance (Castable s t, Castable u v)
          => Castable (Entity s u) (Entity t v) where
    cast (Ag s) = Ag (cast s)
