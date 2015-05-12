@@ -1,6 +1,5 @@
 module Simulation where
 
-import Agent
 import World
 import Agent.Wumpus
 import Agent.Intelligent

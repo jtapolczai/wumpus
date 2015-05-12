@@ -8,7 +8,6 @@ module Agent.Intelligent where
 import Control.Lens
 import Data.Default
 
-import Agent
 import Agent.Dummy
 import Agent.Intelligent.Affect
 import Agent.Intelligent.BeliefGenerator
@@ -20,8 +19,10 @@ import World.Constants
 import World.Utils
 
 instance AgentMind AgentState where
-   insertMessage msg a = a & messageSpace %~ (msg'++)
-                           & messageCounter +~ length msg'
+   pullMessages w i m = todo "agentState/pullMessage"
+
+   receiveMessage msg a = a & messageSpace %~ (msg'++)
+                            & messageCounter +~ length msg'
       where msg' = zip [a ^. messageCounter ..] $ perception msg
 
    -- todo: agents should clear out their message space upon delivering an

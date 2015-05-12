@@ -16,8 +16,7 @@ import Data.Word
 import Math.Geometry.Grid.Square
 import System.Directory
 
-import Agent
-import Agent.Wumpus()
+import Agent.Wumpus
 import Types
 import World.Constants
 import World.Utils
@@ -49,7 +48,7 @@ is = (==)
 --                   blue channel being the agent's ID. The agent's mind can
 --                   can be stored in an @agent_ID.txt@ file.
 --                   @#646400@ represents a pit.
-readWorld :: forall s.String -> IO (World s)
+readWorld :: String -> IO World
 readWorld dir = do
    topography <- M.fromList . map (second def) . filter (is white.snd) <$> readBitmap (dir ++ "/topography.bmp")
    items <- M.fromList <$> readBitmap (dir ++ "/items.bmp")
@@ -58,7 +57,7 @@ readWorld dir = do
 
    let cd = M.foldrWithKey (\k v t -> t & ix k %~ addItem v) topography items
        cd' = fst $ M.foldrWithKey (addEntity' agents) (cd,[1..]) entities
-       cd'' = fmap (entity . _Wu . state %~ getPerception world) cd'
+       cd'' = M.mapWithKey (\i c -> c & entity . _Just . _Wu . state %~ pullMessages world i) cd'
 
        -- |Adds a bidirectional edge to m if its target @to@ is an existing cell.
        addEdge from to m = if M.member to topography then
@@ -86,10 +85,10 @@ readWorld dir = do
 
       addItem (r,g,b) c = c & meat +~ fromIntegral r & fruit +~ fromIntegral g & gold +~ fromIntegral b
 
-      addEntity :: M.Map Word8 (Agent s) -> Int -> CellInd -> Pixel -> CellData s -> CellData s
-      addEntity _ n i (255,0,0) c = c & entity .~ Wu (Wumpus (WumpusMind undefined i) (show n) cDEFAULT_WUMPUS_HEALTH cMAX_AGENT_STAMINA)
+      addEntity :: M.Map Word8 (Agent SomeMind) -> Int -> CellInd -> Pixel -> CellData -> CellData
+      addEntity _ n i (255,0,0) c = c & entity ?~ Wu (Wumpus (SM $ WumpusMind undefined i) (show n) cDEFAULT_WUMPUS_HEALTH cMAX_AGENT_STAMINA)
       addEntity _ _ _ (0,255,0) c = c & plant .~ Just cPLANT_MAX
-      addEntity a _ _ (0,0,v) c| v > 0 = c & entity .~ Ag (a M.! v)
+      addEntity a _ _ (0,0,v) c| v > 0 = c & entity ?~ Ag (a M.! v)
       addEntity _ _ _ _ c = c
 
 

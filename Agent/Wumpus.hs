@@ -34,17 +34,18 @@ deleteAllMinds (Wu a) = Wu (a & _wumpusStateLens .~ SM dummyMind)
 
 
 instance AgentMind WumpusMind where
-   type Perceptions WumpusMind = (World, CellInd)
-
    -- |'insertMessage' stores a "shallow" copy of the world; shallow in the sense
    --  that all agents and Wumpuses are given dummy minds (the Wumpus doesn't need)
    --  information about the internal states of agents anyway.
-   insertMessage world i _ = WumpusMind world' i
+   pullMessages world i _ = WumpusMind world' i
       where
          world' = world & cellData %~ fmap deleteMinds
 
          deleteMinds :: CellData -> CellData
          deleteMinds = entity %~ fmap deleteAllMinds
+
+   -- |Wumpuses don't care about messages.
+   receiveMessage _ = id
 
    -- |Proced along the fixed paths:
    --  attack if there's an adjacent agents, move towards one if one's near,

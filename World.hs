@@ -6,7 +6,6 @@
 module World where
 
 import Control.Applicative (liftA2)
-import Control.Arrow (second)
 import Control.Lens
 import Control.Monad ((>=>), foldM)
 import Data.Functor.Monadic
@@ -17,14 +16,9 @@ import Data.Monoid (Monoid(..))
 import Data.Ratio
 import Math.Geometry.Grid hiding (null)
 import Math.Geometry.Grid.Square
-import Math.Geometry.Grid.SquareInternal (SquareDirection(..))
 
 import Types
-import Agent
-import Types.Agent.Dummy
-import Agent.Wumpus()
 import World.Constants
-import World.Perception
 import World.Utils
 
 type IntensityMap = M.Map CellInd Rational
@@ -66,11 +60,8 @@ simulateStep world = (worldData %~ advanceGlobalData)
 giveEntityPerceptions :: World
                       -> (CellInd, Entity')
                       -> World
-giveEntityPerceptions world (i, ag) =
-   world & cellData . ix i . entity %~ (insertMessage world i)
-
--- missing: insert messages/world (for wumpuses), update time, stench
---          get actions
+giveEntityPerceptions world (i, _) =
+   world & cellData . ix i . entity %~ fmap (state %~ pullMessages world i)
 
 -- |Gets all agents and Wumpuses in the worlds.
 --  The Wumpuses will be in the front of the list.
@@ -94,11 +85,11 @@ doEntityAction world (i, ag) = if cellFree i world
    else case ag of
       Ag agent -> do (action, ag') <- getAction (agent ^. state)
                      let agent' = Ag (agent & state .~ ag')
-                         world' = world & cellData . ix i . entity .~ agent'
+                         world' = world & cellData . ix i . entity ?~ agent'
                      return $ doAction i action world'
       Wu wumpus -> do (action, ag') <- getAction (wumpus ^. state)
                       let wumpus' = Wu (wumpus & state .~ ag')
-                          world' = world & cellData . ix i . entity .~ wumpus'
+                          world' = world & cellData . ix i . entity ?~ wumpus'
                       return $ doAction i action world'
 
 -- |Performs a action by an agent.
@@ -117,7 +108,7 @@ doAction i (Attack dir) world = doIf (not . cellFree j) (attack i j) world
    where
       j = inDirection i dir
 -- Give one item to another agent.
-doAction i (Give item) world = doIf (cellHas (^. entity . to isAgent) j) give world
+doAction i (Give item) world = doIf (cellHas (^. entity . to (maybe False isAgent)) j) give world
    where
       j = inDirection i (me ^. direction)
       me = agentAt i world
@@ -150,7 +141,7 @@ doAction i (Drop item) world = onCell i drop world
 -- 0.5 health (+0.01 to compensate for this round's hunger).
 doAction i (Eat item) world = doIf hasItem (onCell i eatItem) world
    where
-      hasItem = cellHas (^. entity
+      hasItem = cellHas (^. ju entity
                           . _Ag
                           . inventory
                           . at item
@@ -161,7 +152,7 @@ doAction i (Eat item) world = doIf hasItem (onCell i eatItem) world
 doAction i (Gesture s) world = doIf (cellAgent j) send world
    where j = inDirection i (me ^. direction)
          me = agentAt i world
-         send = onCell j $ onAgent (state %~ insertMessage (GestureM (me^.name) s))
+         send = onCell j $ onAgent (state %~ receiveMessage (GestureM (me^.name) s))
 
 collect :: Item -> Lens' CellData Int -> CellData -> CellData
 collect item lens c = (lens .~ 0) $ onAgent (inventory . ix item +~ (c ^. lens)) c
@@ -181,7 +172,7 @@ hasStamina (i,dir) world = case (me, ef) of
    _                    -> False
    where
       me :: Maybe Rational
-      me = world ^. cellData . at i . to (fmap $ view $ entity . stamina)
+      me = world ^. cellData . at i . to (fmap $ view $ ju entity . stamina)
       ef :: Maybe Rational
       ef = world ^. edgeData . at (i,dir) . to (fmap $ view fatigue)
 
@@ -198,9 +189,10 @@ moveEntity i j world = world & cellData %~ move
    where
       fat = world ^. edgeData . at (i,getDirection i j) . to (maybe 0 $ view fatigue)
 
-      ent = world ^. cellData . at i . to fromJust . entity
+      ent = world ^. cellData . ju (at i) . ju entity
       ent' = ent & stamina -~ cEDGE_FATIGUE * fat
-      putEnt c = if c ^. pit then c else c & entity .~ ent'
+      putEnt :: CellData -> CellData
+      putEnt c = if c ^. pit then c else c & entity ?~ ent'
 
       move m = m & ix i %~ (entity .~ Nothing)
                  & ix j %~ putEnt
@@ -215,12 +207,13 @@ attack i j world = onCell j (die . fight other)
       me = agentAt i world
       other = agentAt j world
 
-      -- |Let the entity on cell x die. Dying means removing
+      -- |Let the entity on cell x die if its health is <= 0. Dying means removing
       --  the entity and dropping the contents of its inventory to
       --  the ground. In addition, one item of meat is dropped (the
       --  body of the agent/Wumpus).
+      die :: CellData -> CellData
       die x = let
-         x' = if x ^. entity . health <= 0 then x & entity .~ Nothing else x
+         x' = if x ^. ju entity . health <= 0 then x & entity .~ Nothing else x
          inv = x ^. entity ^. _Just . _Ag . inventory
          in
             x' & meat +~ (1 + inv ^. at Meat . to (fromMaybe 0))
@@ -244,7 +237,7 @@ initBreeze world = applyIntensityMap breeze (intensityMap $ filterCells (^.pit) 
 wumpusStench :: World -> World
 wumpusStench world = newStench $ clearStench world
    where
-      wumpuses = filterCells (^. entity . to isWumpus) world
+      wumpuses = filterCells (^. entity . to (maybe False isWumpus)) world
 
       newStench = applyIntensityMap stench (intensityMap wumpuses)
       clearStench = reduceIntensity stench
