@@ -45,6 +45,8 @@ data AgentMessage =
    | AMVisualMeat CellInd Int
    | AMVisualFruit CellInd Int
    | AMVisualPlant CellInd Rational
+   | AMVisualEdgeDanger EdgeInd Rational
+   | AMVisualEdgeFatigue EdgeInd Rational
    -- |Local perceptions
    | AMLocalStench Rational
    | AMLocalBreeze Rational
