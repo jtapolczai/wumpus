@@ -18,20 +18,20 @@ import Types
 
 -- |Returns True iff the given cell exists and has neither a Wumpus nor an
 --  agent on it.
-cellFree :: CellInd -> World s -> Bool
-cellFree = cellHas (^. entity . to isNone)
+cellFree :: CellInd -> World -> Bool
+cellFree = cellHas (^. entity . to isNothing)
 
 -- |Returns True iff the given cell has an agent.
-cellAgent :: CellInd -> World s -> Bool
-cellAgent = cellHas (^. entity . to isAgent)
+cellAgent :: CellInd -> World -> Bool
+cellAgent = cellHas (^. entity . to (maybe False isAgent))
 
 -- |Returns True iff a given cell exists and has an entity (an agent or a Wumpus)
 --  on it.
-cellEntity :: CellInd -> World s -> Bool
-cellEntity = cellHas (^. entity . to (not.isNone))
+cellEntity :: CellInd -> World -> Bool
+cellEntity = cellHas (^. entity . to isJust)
 
 -- |Returns True iff a given cell exists and if it satisfies a predicate.
-cellHas :: (CellData s -> Bool) -> CellInd -> World s -> Bool
+cellHas :: (CellData -> Bool) -> CellInd -> World -> Bool
 cellHas p i world = world ^. cellData . at i . to (maybe False p)
 
 -- |Gets a light value from 0 to 4, depending on the time.
@@ -56,7 +56,7 @@ light' = toEnum . light
 --  Note that termination/optimality is ensured by NEVER taking away a path
 --  in which the distance to target increases. If you want to consider all
 --  nodes at some distance, use 'searchPaths'.
-shortestPaths :: World s -> CellInd -> CellInd -> [[CellInd]]
+shortestPaths :: World -> CellInd -> CellInd -> [[CellInd]]
 shortestPaths world cur t =
    if cur == t then return [cur]
                else do next <- adjacentTilesToward (world ^. graph) cur t
@@ -68,8 +68,8 @@ shortestPaths world cur t =
 --  DFS in which the caller has to define the cost of node expansion. The initial
 --  cost is 'mempty'.
 searchPaths :: Monoid a
-            => World s
-            -> (a -> CellInd -> CellData s -> a) -- ^Cost function
+            => World
+            -> (a -> CellInd -> CellData -> a) -- ^Cost function
             -> (a -> Bool) -- ^Cost predicate. If a cell fails, it is not expanded.
             -> CellInd
             -> CellInd
@@ -142,8 +142,8 @@ doIf :: (a -> Bool) -> (a -> a) -> a -> a
 doIf pred act x = if pred x then act x else x
 
 -- |Applies a function on an agent.
-onAgent :: (Agent s -> Agent s) -> CellData s -> CellData s
-onAgent f cell = cell & entity %~ f'
+onAgent :: (Agent SomeMind -> Agent SomeMind) -> CellData -> CellData
+onAgent f cell = cell & entity . _Just %~ f'
    where
       f' (Ag s) = Ag (f s)
       f' s = s
@@ -154,20 +154,20 @@ onAgentMind f a = a & state %~ f
 
 -- |Gets the entity on a given cell. Fails if the cell does not exist or has
 --  has no entity.
-entityAt :: CellInd -> (Entity (Agent s) -> a) -> World s -> a
-entityAt i f world = world ^. cellData . at i . to fromJust . entity . to f
+entityAt :: CellInd -> (Entity (Agent SomeMind) (Wumpus SomeMind) -> a) -> World -> a
+entityAt i f world = world ^. cellData . at' i . entity . to fromJust . to f
 
 -- |Gets the agent on a given cell. Fails of the cell does not exist or has
 --  not agent.
-agentAt :: CellInd -> World s -> Agent s
+agentAt :: CellInd -> World -> Agent SomeMind
 agentAt i = entityAt i fromAgent
 
 -- |Gets the cell with a given index. Fails if the cell does not exist.
-cellAt :: CellInd -> World s -> CellData s
+cellAt :: CellInd -> World -> CellData
 cellAt i world = world ^. cellData . at i . to fromJust
 
 -- |Applies a function to a given cell.
-onCell :: CellInd -> (CellData s -> CellData s) -> World s -> World s
+onCell :: CellInd -> (CellData -> CellData) -> World -> World
 onCell i f world = world & cellData %~ M.adjust f i
 
 -- |Moves an index by 1 in a given direction.

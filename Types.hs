@@ -17,6 +17,7 @@ module Types (
 
 import Control.Applicative
 import Control.Lens
+import Data.Maybe
 import Data.Monoid
 
 import Types.Castable
@@ -28,6 +29,9 @@ import Types.Agent.Intelligent.Filter
 
 todo :: String -> a
 todo = error . (++) "TODO: implement "
+
+-- |Unsafe version of 'at'.
+at' x = at x . to fromJust
 
 -- |Returns the given element if the first argument is True and
 --  the monoid's neutral element otherwise.
@@ -44,6 +48,7 @@ makeFields ''Filter
 makeFields ''Agent
 makeFields ''VisualAgent
 makeFields ''Wumpus
+makeFields ''VisualWumpus
 makeFields ''CellData
 makeFields ''VisualCellData
 makeFields ''EdgeData
@@ -52,20 +57,41 @@ makeFields ''World
 makePrisms ''Entity
 makeFields ''AgentState
 makePrisms ''AgentMessage
+makeFields ''DummyMind
+
+-- |More general form of the overloaded 'state' that allows changing
+--  the type of an agent's state.
+--  'state' doesn't allow that, which means that we can't e.g. replace an
+--  'AgentState' with a 'DummyMind' via '.~'.
+_agentStateLens :: Lens (Agent a) (Agent b) a b
+_agentStateLens = lens _agentState (\a x -> a{_agentState = x})
+
+-- |See '_agentStateLens'.
+_wumpusStateLens :: Lens (Wumpus a) (Wumpus b) a b
+_wumpusStateLens = lens _wumpusState (\a x -> a{_wumpusState = x})
+
+-- |Applies 'fromJust' to a Getter that delivers a Maybe.
+ju :: (Contravariant f, Profunctor p)
+   => (p (Maybe a) (f (Maybe a)) -> c) -> p a (f a) -> c
+ju l = l . to fromJust
 
 -- |We give "health" and "fatigue" fields to Entity directly so as to
 --  avoid pointless case distinctions and code duplication when accessing
 --  fields that both agents share anyway.
-instance HasHealth s Rational => HasHealth (Entity s) Rational where
+instance (HasHealth s Rational, HasHealth t Rational)
+         => HasHealth (Entity s t) Rational where
    health f (Ag x) = fmap (\h -> Ag $ x & health .~ h) (f $ x ^. health)
    health f (Wu x) = fmap (\h -> Wu $ x & health .~ h) (f $ x ^. health)
-   health _ None = error "called HasHealth on entity-type \"None\"!"
 
-instance HasStamina s Rational => HasStamina (Entity s) Rational where
+instance (HasStamina s Rational, HasStamina t Rational)
+         => HasStamina (Entity s t) Rational where
    stamina f (Ag x) = fmap (\h -> Ag $ x & stamina .~ h) (f $ x ^. stamina)
    stamina f (Wu x) = fmap (\h -> Wu $ x & stamina .~ h) (f $ x ^. stamina)
-   stamina _ None = error "called HasFatigue on entity-type \"None\"!"
 
+instance (Castable s t, Castable u v)
+         => Castable (Entity s u) (Entity t v) where
+   cast (Ag s) = Ag (cast s)
+   cast (Wu s) = Wu (cast s)
 
 instance Castable (Agent s) VisualAgent where
    cast a = VisualAgent (a ^. name)
@@ -73,8 +99,13 @@ instance Castable (Agent s) VisualAgent where
                         (a ^. health)
                         (a ^. stamina)
 
-instance Castable (CellData s) VisualCellData where
-   cast a = VCD (cast $ a ^. entity)
+instance Castable (Wumpus s) VisualWumpus where
+   cast a = VisualWumpus (a ^. name)
+                         (a ^. health)
+                         (a ^. stamina)
+
+instance Castable CellData VisualCellData where
+   cast a = VCD (cast <$> a ^. entity)
                 (a ^. pit)
                 (a ^. gold)
                 (a ^. meat)

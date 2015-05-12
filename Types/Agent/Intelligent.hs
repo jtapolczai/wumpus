@@ -2,7 +2,6 @@ module Types.Agent.Intelligent where
 
 import qualified Data.Map as M
 
-import Types.Agent.Dummy
 import Types.World
 import Types.Agent.Intelligent.Filter
 
@@ -37,7 +36,7 @@ data AgentMessage =
    | AMPosition CellInd
    -- |Visual perceptions.
    | AMVisualAgent CellInd VisualAgent
-   | AMVisualWumpus CellInd Wumpus
+   | AMVisualWumpus CellInd VisualWumpus
    | AMVisualEntityHealth CellInd Rational
    | AMVisualEntityStamina CellInd Rational
    | AMVisualFree CellInd
@@ -65,12 +64,12 @@ type AgentMessage' = (AgentMessage, IsImaginary)
 
 type SocialStorage = M.Map SocialEmotionName (HormoneLevel, Filter AgentMessage)
 
-type Memory s = (M.Map CellInd (CellData s), M.Map EdgeInd EdgeData)
+type Memory = (M.Map CellInd CellData, M.Map EdgeInd EdgeData)
 
 data AgentState = AS {
    _agentStateMessageCounter :: Counter,
    _agentStatePsbc :: M.Map EmotionName (HormoneLevel, Filter AgentMessage),
    _agentStateSjs :: M.Map EntityName SocialStorage,
-   _agentStateMemory :: Memory DummyMind,
+   _agentStateMemory :: Memory,
    _agentStateMessageSpace :: [(Counter, AgentMessage)]
    }

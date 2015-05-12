@@ -1,6 +1,7 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE TupleSections #-}
 
 module World where
 
@@ -8,7 +9,7 @@ import Control.Applicative (liftA2)
 import Control.Arrow (second)
 import Control.Lens
 import Control.Monad ((>=>), foldM)
-import Data.Functor
+import Data.Functor.Monadic
 import Data.List (foldl', partition)
 import qualified Data.Map as M
 import Data.Maybe
@@ -20,6 +21,7 @@ import Math.Geometry.Grid.SquareInternal (SquareDirection(..))
 
 import Types
 import Agent
+import Types.Agent.Dummy
 import Agent.Wumpus()
 import World.Constants
 import World.Utils
@@ -32,9 +34,9 @@ instance Monoid Bool where
 
 -- |Creates a new world and initializes it (setting the time to the middle of
 --  the day and initializing the outwardly radiating breeze for the pits).
-makeWorld :: [(CellInd, CellData s)]
+makeWorld :: [(CellInd, CellData)]
           -> [(EdgeInd, EdgeData)]
-          -> World s
+          -> World
 makeWorld cells edges = initBreeze newWorld
    where
       newWorld = World (WD 25 Temperate)
@@ -44,7 +46,7 @@ makeWorld cells edges = initBreeze newWorld
 
 -- |Advances the world state by one time step. The actors perform their actions,
 --  the plants regrow, the stench is updated.
-simulateStep :: AgentMind s => World s -> IO (World s)
+simulateStep :: World -> IO World
 simulateStep world = (worldData %~ advanceGlobalData)
                      . (cellData %~ fmap advanceLocalData)
                      <$> foldM updateAgent world (worldAgents world)
@@ -60,13 +62,12 @@ simulateStep world = (worldData %~ advanceGlobalData)
 
 -- |Gives an entits its perceptions based on the current world, and updates
 --  the world accordingly.
-giveEntityPerceptions :: AgentMind s
-                      => World s
-                      -> (CellInd, (Entity (Agent s)))
-                      -> World s
+giveEntityPerceptions :: World
+                      -> (CellInd, Entity')
+                      -> World
 giveEntityPerceptions world (i, ag) = world & cellData . ix i . entity .~ ag'
    where
-      ag' = foldl' addPerc ag $ getPerceptions world i (entityAt i agentDir world)
+      ag' = foldl' addPerc ag $ getAgentPerceptions world i (entityAt i agentDir world)
 
       addPerc a m = a & _Ag . state %~ insertMessage m
 
@@ -78,11 +79,10 @@ giveEntityPerceptions world (i, ag) = world & cellData . ix i . entity .~ ag'
 
 -- |Gets all agents and Wumpuses in the worlds.
 --  The Wumpuses will be in the front of the list.
-worldAgents :: World s -> [(CellInd, Entity (Agent s))]
+worldAgents :: World -> [(CellInd, Entity')]
 worldAgents world = uncurry (++)
                     $ partition (^. to snd . to isWumpus)
-                    $ filter (^. to snd . to (not.isNone))
-                    $ map (second (^.entity))
+                    $ mapMaybe (\(i,c) -> (c ^. entity) >$> (i,))
                     $ cells
    where
       hasEntity = not . flip cellEntity world
@@ -93,8 +93,7 @@ worldAgents world = uncurry (++)
 --  This function can be used in a fold and will not perform any action if
 --  the given cell has no entity (i.e. if it was killed by the actions of
 --  another).
-doEntityAction :: forall s.AgentMind s
-                => World s -> (CellInd, Entity (Agent s)) -> IO (World s)
+doEntityAction :: World -> (CellInd, Entity') -> IO World
 doEntityAction world (i, ag) = if cellFree i world
    then return world
    else case ag of
@@ -108,11 +107,10 @@ doEntityAction world (i, ag) = if cellFree i world
                       return $ doAction i action world'
 
 -- |Performs a action by an agent.
-doAction :: forall s.AgentMind s
-         => CellInd    -- ^Agent's location.
+doAction :: CellInd    -- ^Agent's location.
          -> Action
-         -> World s
-         -> World s
+         -> World
+         -> World
 doAction _ NoOp world = world
 doAction i (Rotate dir) world = onCell i (onAgent (direction .~ dir)) world
 doAction i (Move dir) world = doIf (cellFree j) (moveEntity i j) world
@@ -127,14 +125,13 @@ doAction i (Attack dir) world = doIf (not . cellFree j) (attack i j) world
 doAction i (Give item) world = doIf (cellHas (^. entity . to isAgent) j) give world
    where
       j = inDirection i (me ^. direction)
-      me :: Agent s
       me = agentAt i world
       other = agentAt j world
 
       qty :: Int
       qty = me ^. inventory . at item . to (maybe 0 (min 1))
 
-      give :: World s -> World s
+      give :: World -> World
       give = onCell j (onAgent (inventory . ix item +~ qty))
              . onCell i (onAgent (inventory . ix item -~ qty))
 
@@ -171,11 +168,11 @@ doAction i (Gesture s) world = doIf (cellAgent j) send world
          me = agentAt i world
          send = onCell j $ onAgent (state %~ insertMessage (GestureM (me^.name) s))
 
-collect :: Item -> Lens' (CellData s) Int -> CellData s -> CellData s
+collect :: Item -> Lens' CellData Int -> CellData -> CellData
 collect item lens c = (lens .~ 0) $ onAgent (inventory . ix item +~ (c ^. lens)) c
 
 -- |Gets the lens associated with an item.
-itemLens :: Item -> Lens' (CellData s) Int
+itemLens :: Item -> Lens' CellData Int
 itemLens Meat = meat
 itemLens Gold = gold
 itemLens Fruit = fruit
@@ -183,7 +180,7 @@ itemLens Fruit = fruit
 -- |Returns True iff an edge @(i,dir)@ exists and if the agent on cell @i@
 --  has at least as much stamina as the edge requires. If the edge of the
 --  cell do not exist, False is returned.
-hasStamina :: EdgeInd -> World s -> Bool
+hasStamina :: EdgeInd -> World -> Bool
 hasStamina (i,dir) world = case (me, ef) of
    (Just me', Just ef') -> me' >= cEDGE_FATIGUE * ef'
    _                    -> False
@@ -200,8 +197,8 @@ hasStamina (i,dir) world = case (me, ef) of
 --  entity in the target cell is overwritten with @Nothing@.
 moveEntity :: CellInd
            -> CellInd
-           -> World s
-           -> World s
+           -> World
+           -> World
 moveEntity i j world = world & cellData %~ move
    where
       fat = world ^. edgeData . at (i,getDirection i j) . to (maybe 0 $ view fatigue)
@@ -210,13 +207,13 @@ moveEntity i j world = world & cellData %~ move
       ent' = ent & stamina -~ cEDGE_FATIGUE * fat
       putEnt c = if c ^. pit then c else c & entity .~ ent'
 
-      move m = m & ix i %~ (entity .~ None)
+      move m = m & ix i %~ (entity .~ Nothing)
                  & ix j %~ putEnt
 
 -- |Performs an attack of one entity on another.
 --  Each combatant has its health decreased by that of the other. Any entity
 --  whose health becomes <=0 dies. Upon death, entities drop their inventory.
-attack :: CellInd -> CellInd -> World s -> World s
+attack :: CellInd -> CellInd -> World -> World
 attack i j world = onCell j (die . fight other)
                    $ onCell i (die . fight me) world
    where
@@ -228,8 +225,8 @@ attack i j world = onCell j (die . fight other)
       --  the ground. In addition, one item of meat is dropped (the
       --  body of the agent/Wumpus).
       die x = let
-         x' = if x ^. entity . health <= 0 then x & entity .~ None else x
-         inv = x ^. entity ^. _Ag . inventory
+         x' = if x ^. entity . health <= 0 then x & entity .~ Nothing else x
+         inv = x ^. entity ^. _Just . _Ag . inventory
          in
             x' & meat +~ (1 + inv ^. at Meat . to (fromMaybe 0))
                & fruit +~ (inv ^. at Fruit . to (fromMaybe 0))
@@ -245,11 +242,11 @@ advanceGlobalData world = world & time .~ time'
       time' = (world ^. time + 1) `mod` cDAY_LENGTH
 
 -- |Initialize the breeze around the pits.
-initBreeze :: World s -> World s
+initBreeze :: World -> World
 initBreeze world = applyIntensityMap breeze (intensityMap $ filterCells (^.pit) world) world
 
 -- |Updates the stench induces by the Wumpuses.
-wumpusStench :: World s -> World s
+wumpusStench :: World -> World
 wumpusStench world = newStench $ clearStench world
    where
       wumpuses = filterCells (^. entity . to isWumpus) world
@@ -258,25 +255,25 @@ wumpusStench world = newStench $ clearStench world
       clearStench = reduceIntensity stench
 
 -- |Regenerates the plants.
-regrowPlants :: CellData s -> CellData s
+regrowPlants :: CellData -> CellData
 regrowPlants = plant %~ fmap (min 1 . (cPLANT_REGROWTH+))
 
 -- |Increases the hungar of an agent (reduces health by 0.01)
-increaseHunger :: CellData s -> CellData s
+increaseHunger :: CellData -> CellData
 increaseHunger = onAgent (health -~ cHUNGER_RATE)
 
-increaseFatigue :: CellData s -> CellData s
+increaseFatigue :: CellData -> CellData
 increaseFatigue = onAgent (stamina +~ cSTAMINA_RESTORE)
 
 -- Perceptions
 ------------------------------------------------------------------------------
 
 -- |Gets the perceptions to which a given agent is entitled.
-getPerceptions :: World s
-               -> CellInd -- ^The cell on which the agent is.
-               -> SquareDirection -- ^The direction in which the agent is facing.
-               -> [Message]
-getPerceptions world i d = local : global : location : visual
+getAgentPerceptions :: World
+                    -> CellInd -- ^The cell on which the agent is.
+                    -> SquareDirection -- ^The direction in which the agent is facing.
+                    -> [Message]
+getAgentPerceptions world i d = local : global : location : visual
    where
       local = LocalPerception $ cellAt i world
       global = GlobalPerception $ world ^. worldData
@@ -291,7 +288,7 @@ getPerceptions world i d = local : global : location : visual
 --  * it has to fall into the agent's POV (90° in the agent's direction), and
 --  * it has to be unobstructed, \"unobstructed" meaning that each cell along
 --    at least one path from the agent has to stay close to the direct line.
-verticesInSightCone :: World s
+verticesInSightCone :: World
                     -> CellInd
                     -> SquareDirection
                     -> [CellInd]
@@ -321,15 +318,15 @@ verticesInSightCone world i d =
 -------------------------------------------------------------------------------
 
 -- |Returns the indices of those cells which fulfil a given predicate.
-filterCells :: (CellData s -> Bool) -> World s -> [CellInd]
+filterCells :: (CellData -> Bool) -> World -> [CellInd]
 filterCells f = (^. cellData . to (map fst . M.toList . M.filter f))
 
 
 -- |Applies an intensity map to a world, overwriting the values in affected cells.
-applyIntensityMap :: Setter' (CellData s) Rational
+applyIntensityMap :: Setter' CellData Rational
                   -> IntensityMap
-                  -> World s
-                  -> World s
+                  -> World
+                  -> World
 applyIntensityMap set intM = cellData %~ M.intersectionWith set' intM
    where
       set' b c = c & set .~ b
@@ -357,9 +354,9 @@ getIntensity v = foldl' addCell M.empty $ neighbourhood v
 
 -- |Uniformly reduces the intensity of a sensation (stench) in the whole world
 --  by 1/3, to a minimum of 0.
-reduceIntensity :: Lens' (CellData s) Rational
-                -> World s
-                -> World s
+reduceIntensity :: Lens' CellData  Rational
+                -> World
+                -> World
 reduceIntensity lens = cellData %~ fmap (& lens %~ reduce)
    where
       reduce = pos . subtract (1%3)

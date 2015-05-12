@@ -17,6 +17,7 @@ import Types
 --  Note that these resultant messages shouldn't be inserted directly into
 --  the agent's message space, but should be marked as imaginary (unless you
 --  want the agent to be psychotic).
-simulateConsequences :: Action -> AgentState -> [AgentMessage]
+simulateConsequences :: Action -> AgentState -> IO [AgentMessage]
 simulateConsequences act as = todo "simulateConsequences"
    where
+      worldMessages = undefined

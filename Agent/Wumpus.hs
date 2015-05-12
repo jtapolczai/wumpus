@@ -2,6 +2,7 @@
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE TypeFamilies #-}
 
 module Agent.Wumpus where
 
@@ -12,27 +13,43 @@ import Data.Ord
 import Math.Geometry.Grid.SquareInternal (SquareDirection(..))
 import System.Random (randomRIO)
 
-import Agent
+import Agent.Dummy
 import Types
 import World.Utils
 
-instance AgentMind WumpusMind where
-   -- |Just store the entire world, sans the internal states of agents.
-   --
-   --  It is __important__ that the internal state of agents and Wumpuses
-   --  gets deleted, because otherwise, we'd be storing all the past states
-   --  of the world.
-   getPerception world (WumpusMind _ i) = WumpusMind world' i
-      where
-         world' = world & cellData %~ fmap deleteState
-         deleteState cd = cd & entity %~ deleteState'
-         deleteState' (Ag a) = Ag (a & state .~ undefined)
-         deleteState' (Wu a) = Wu (a & state .~ undefined)
-         deleteState' None = None
+-- |A mind for a Wumpus. It just contains the entire world and no further
+--  internal state, since Wumpuses always behave in the same way.
+data WumpusMind = WumpusMind World CellInd
 
+-- |getPerceptions stores a "shallow" copy of the world; shallow in the sense
+--  that all agents and Wumpuses are given dummy minds (the Wumpus doesn't need)
+--  information about the internal states of agents anyway.
+instance PerceivingMind WumpusMind where
+   type Perceptions WumpusMind = (World, CellInd)
+   getPerceptions world i = (world & cellData %~ fmap deleteMinds, i)
+      where
+         deleteMinds :: CellData -> CellData
+         deleteMinds = entity %~ fmap deleteAllMinds
+
+-- |Deletes the minds of the agents, but gives 'WumpusMind's to the Wumpuses.
+--  The information that these wumpuses will have depends on the given world.
+deleteAgentMinds :: World -> CellInd -> Entity (Agent s) (Wumpus t) -> Entity'
+deleteAgentMinds _ _ (Ag a) = deleteAllMinds (Ag a)
+deleteAgentMinds w i (Wu a) = Wu (a & _wumpusStateLens .~ SM (WumpusMind w i))
+
+-- |Deletes the minds of all agents and Wumpuses.
+deleteAllMinds :: Entity (Agent s) (Wumpus t) -> Entity'
+deleteAllMinds (Ag a) = Ag (a & _agentStateLens .~ SM dummyMind)
+deleteAllMinds (Wu a) = Wu (a & _wumpusStateLens .~ SM dummyMind)
+
+--type instance Perceptions WumpusMind = (World DummyMind, CellInd)
+
+instance AgentMind WumpusMind where
    -- |Wumpuses only care about position messages.
-   insertMessage (PositionPerception i) (WumpusMind world _) = WumpusMind world i
-   insertMessage _ mind = mind
+   --insertMessage ()
+
+   -- (WumpusMind world _) = WumpusMind world i
+   --insertMessage _ mind = mind
 
    -- |Proced along the fixed paths:
    --  attack if there's an adjacent agents, move towards one if one's near,

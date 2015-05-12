@@ -2,6 +2,7 @@
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE FlexibleContexts #-}
 
 module Agent.Intelligent.Perception where
 
@@ -19,19 +20,21 @@ perception (VisualPerception i d) =
     AMVisualFruit i (d ^. fruit)]
    ++ cond (d ^. pit) (AMVisualPit i)
    ++ cond (d ^. plant . to isJust) (AMVisualPlant i $ d ^. plant . to fromJust)
-   ++ cond (d ^. entity . to isAgent) (AMVisualAgent i $ d ^. entity . to fromAgent)
-   ++ cond (d ^. entity . to isWumpus) (AMVisualWumpus i $ d ^. entity . to fromWumpus)
-   ++ cond (d ^. entity . to isEntity) (AMVisualEntityHealth i $ d ^. entity . health)
-   ++ cond (d ^. entity . to isEntity) (AMVisualEntityStamina i $ d ^. entity . stamina)
-   ++ cond (d ^. entity . to isNone) (AMVisualFree i)
+   ++ cond (d ^. entity . is isAgent) (AMVisualAgent i $ d ^. ju entity . to fromAgent)
+   ++ cond (d ^. entity . is isWumpus) (AMVisualWumpus i $ d ^. ju entity . to fromWumpus)
+   ++ cond (d ^. entity . to isJust) (AMVisualEntityHealth i $ d ^. ju entity . health)
+   ++ cond (d ^. entity . to isJust) (AMVisualEntityStamina i $ d ^. ju entity . stamina)
+   ++ cond (d ^. entity . to isNothing) (AMVisualFree i)
+   where
+      is f = to (maybe False f)
 perception (LocalPerception d) =
    [AMLocalGold (d ^. gold),
     AMLocalMeat (d ^. meat),
     AMLocalFruit (d ^. fruit),
     AMLocalBreeze (d ^. breeze),
     AMLocalStench (d ^. stench),
-    AMMyHealth (d ^. entity . to fromAgent . health),
-    AMMyStamina (d ^. entity . to fromAgent . stamina)]
+    AMMyHealth (d ^. entity . to fromJust . health),
+    AMMyStamina (d ^. entity . to fromJust . stamina)]
 perception (GlobalPerception d) =
    [AMTemperature $ d ^. temperature,
     AMTime $ d ^. time]

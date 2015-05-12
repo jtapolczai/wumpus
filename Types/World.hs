@@ -2,6 +2,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE TypeFamilies #-}
 
 -- |General stuff on which other modules depend.
 module Types.World where
@@ -10,8 +11,6 @@ import Data.Default
 import qualified Data.Map as M
 import Math.Geometry.Grid.Square
 import Math.Geometry.Grid.SquareInternal (SquareDirection(..))
-
-import Types.Castable
 
 instance Ord SquareDirection where
    x <= y = ind x <= ind y
@@ -66,69 +65,53 @@ data VisualAgent = VisualAgent {
 -- Wumpus data
 -------------------------------------------------------------------------------
 
--- |A mind for a Wumpus. It just contains the entire world and no further
---  internal state.
-data WumpusMind = forall s.WumpusMind (World s) CellInd
-
-data Wumpus = Wumpus {
-   _wumpusState :: WumpusMind,
+data Wumpus s = Wumpus {
+   _wumpusState :: s,
    _wumpusName :: EntityName,
    _wumpusHealth :: Rational,
    _wumpusStamina :: Rational
    }
 
-instance Show Wumpus where
-   show w = _wumpusName w ++ " (health: " ++ show (_wumpusHealth w)
-            ++ ", stamina: " ++ show (_wumpusStamina w) ++ ")"
-instance Eq Wumpus where w1 == w2 = _wumpusName w1 == _wumpusName w2
-instance Ord Wumpus where
-   compare w1 w2 = compare (d w1) (d w2)
-      where d w = (_wumpusName w, _wumpusHealth w, _wumpusStamina w)
+data VisualWumpus = VisualWumpus {
+   _visualWumpusName :: EntityName,
+   _visualWumpusHealth :: Rational,
+   _visualWumpusStamina :: Rational
+   }
+   deriving (Show, Eq, Ord)
+
 
 -- Entities
 -------------------------------------------------------------------------------
 
-data Entity s = Ag s | Wu Wumpus | None
+data Entity s t = Ag s | Wu t
    deriving (Show, Eq, Ord)
 
-instance Castable s t => Castable (Entity s) (Entity t) where
-   cast (Ag s) = Ag (cast s)
-   cast (Wu s) = Wu s
-   cast None   = None
-
--- |Negation of 'isNone'.
-isEntity :: Entity s -> Bool
-isEntity = not . isNone
-
--- |Returns True iff @e == None@.
-isNone :: Entity s -> Bool
-isNone None = True
-isNone _    = False
+type Entity' = Entity (Agent SomeMind) (Wumpus SomeMind)
 
 -- |Returns True iff the entity is an agent.
-isAgent :: Entity s -> Bool
+isAgent :: Entity s t -> Bool
 isAgent (Ag _) = True
 isAgent _      = False
 
 -- |Returns True iff the entity is a Wumpus.
-isWumpus :: Entity s -> Bool
+isWumpus :: Entity s t -> Bool
 isWumpus (Wu _) = True
 isWumpus _      = False
 
-fromAgent :: Entity s -> s
+fromAgent :: Entity s t -> s
 fromAgent (Ag s) = s
 fromAgent _ = error "fromAgent called on non-Agent!"
 
-fromWumpus :: Entity s -> Wumpus
+fromWumpus :: Entity s t -> t
 fromWumpus (Wu s) = s
-fromWumpus _ = error "fromWumpus called on non-Agent!"
+fromWumpus _ = error "fromWumpus called on non-Wumpus!"
 
 -- World data
 -------------------------------------------------------------------------------
 
 -- |All data of a cell.
-data CellData s = CD {
-   _cellDataEntity :: Entity (Agent s),
+data CellData = CD {
+   _cellDataEntity :: Maybe Entity',
    _cellDataStench :: Rational,
    _cellDataBreeze :: Rational,
    _cellDataPit :: Bool,
@@ -138,11 +121,11 @@ data CellData s = CD {
    _cellDataPlant :: Maybe Rational
    }
 
-instance Default (CellData s) where
-   def = CD None 0 0 False 0 0 0 Nothing
+instance Default CellData where
+   def = CD Nothing 0 0 False 0 0 0 Nothing
 
 data VisualCellData = VCD {
-   _visualCellDataEntity :: Entity VisualAgent,
+   _visualCellDataEntity :: Maybe (Entity VisualAgent VisualWumpus),
    _visualCellDataPit :: Bool,
    _visualCellDataGold :: Int,
    _visualCellDataMeat :: Int,
@@ -151,7 +134,7 @@ data VisualCellData = VCD {
    }
    deriving (Show, Eq, Ord)
 
-type Cell s = Maybe (CellData s)
+type Cell = Maybe CellData
 
 type CellInd = (Int,Int)
 type EdgeInd = (CellInd, SquareDirection)
@@ -174,9 +157,41 @@ data WorldData = WD {
    _worldDataTemperature :: Temperature
 }
 
-data World s = World {
+data World = World {
    _worldWorldData :: WorldData,
    _worldGraph :: UnboundedSquareGrid,
    _worldEdgeData :: M.Map EdgeInd EdgeData,
-   _worldCellData :: M.Map CellInd (CellData s)
+   _worldCellData :: M.Map CellInd CellData
 }
+
+
+-- Agent minds
+-------------------------------------------------------------------------------
+
+-- |The class of agents.
+--  An agent is a object that can receive messages (percepts) from its
+--  its environment and produce an action that it wants to take in the
+--  world.
+class AgentMind a where
+   -- |The sort of perception to which an agent is entitled.
+   type family Perceptions a :: *
+   -- |Gets the agent's perceptions from the World and the agent's current
+   --  position.
+   --getPerceptions :: World -> CellInd -> Perceptions a
+   -- |Pass a message/percept from the world simulator to the agent.
+   --insertMessage :: Perceptions a -> a -> a
+
+   insertMessage :: World -> CellInd -> a -> a
+
+   -- |Get the agent's action, given its current state.
+   getAction :: a -> IO (Action, a)
+
+
+-- |Existentially quantifier mind.
+data SomeMind = forall m.AgentMind m => SM m
+
+instance AgentMind SomeMind where
+   insertMessage w i (SM m) = SM (insertMessage w i m)
+   getAction (SM m) = do (a,m') <- getAction m
+                         return (a, SM m')
+

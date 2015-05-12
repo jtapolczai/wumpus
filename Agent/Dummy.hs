@@ -1,10 +1,19 @@
+{-# LANGUAGE TypeFamilies #-}
+
 module Agent.Dummy where
 
-import Agent
+import Control.Lens
+
 import Types.Agent.Dummy
-import Types.World
+import Types
 
 instance AgentMind DummyMind where
-   getPerception _ = id
-   insertMessage _ = id
-   getAction _ = return (NoOp, DummyMind)
+   type Perceptions DummyMind = [Message]
+   insertMessage _ d@DummyMind{_dummyMindStoreMessages=False} = d
+   insertMessage m d = d & messageSpace %~ (m++)
+   getAction d = return (d ^. action, d)
+   getPerceptions = todo "dummyMind/getPerceptions"
+
+-- |A dummy mind that does nothing and does not store messages.
+dummyMind :: DummyMind
+dummyMind = DummyMind NoOp False []
