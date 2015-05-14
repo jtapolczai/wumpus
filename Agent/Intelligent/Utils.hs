@@ -48,8 +48,8 @@ sieveGlobalMessage _ = Nothing
 cellMessage :: AgentMessage -> Maybe AgentMessage
 cellMessage x@AMVisualAgent{} = Just x
 cellMessage x@AMVisualWumpus{} = Just x
-cellMessage x@AMVisualHealth{} = Just x
-cellMessage x@AMVisualStamina{} = Just x
+cellMessage x@AMVisualEntityHealth{} = Just x
+cellMessage x@AMVisualEntityStamina{} = Just x
 cellMessage x@AMVisualFree{} = Just x
 cellMessage x@AMVisualPit{} = Just x
 cellMessage x@AMVisualGold{} = Just x
