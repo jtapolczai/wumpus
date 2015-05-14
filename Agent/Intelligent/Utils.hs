@@ -3,11 +3,14 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE TupleSections #-}
 
 module Agent.Intelligent.Utils where
 
 import Control.Lens
+import Data.Functor.Monadic
 import Data.List
+import qualified Data.List.Safe as S
 import Data.Maybe
 import Data.Monoid (First(..))
 import Data.Ord
@@ -19,15 +22,21 @@ import Types
 aboveCounter :: AgentState -> Counter -> [AgentMessage]
 aboveCounter as c = map snd $ filter ((c<=).fst) $ as ^. messageSpace
 
--- |Returns the first message (the one with the lowest counter)
---  that has the correct constructor.
+-- |Returns the messages that have the correct constructor, sorted by counter
+--  value.
+msgWhere :: Prism' AgentMessage a
+         -> [(Counter, AgentMessage)]
+         -> [(Counter, a)]
+msgWhere l = mapMaybe (\(c,m) -> extractOver l id m >$> (c,))
+             . sortBy (comparing fst)
+
+-- |Returns the first message that has the correct consturctor.
 firstWhere :: Prism' AgentMessage a -> [(Counter, AgentMessage)] -> Maybe a
-firstWhere l = head'
-               . mapMaybe (\(_,m) -> extractOver l id m)
-               . sortBy (comparing fst)
-   where
-      head' [] = Nothing
-      head' (x:_) = Just x
+firstWhere p = S.head . map snd . msgWhere p
+
+-- |Returns the last message that has the correct consturctor.
+lastWhere :: Prism' AgentMessage a -> [(Counter, AgentMessage)] -> Maybe a
+lastWhere p = S.last . map snd . msgWhere p
 
 -- |A clumsy combinator that applies a function to a single constructor of
 --  a sum type and returns Nothing if the given constructor doesn't match.
