@@ -35,8 +35,9 @@ data AgentMessage =
    -- |The agent's position.
    | AMPosition CellInd
    -- |Visual perceptions.
-   | AMVisualAgent CellInd VisualAgent
-   | AMVisualWumpus CellInd VisualWumpus
+   | AMVisualEntityName CellInd EntityName
+   | AMVisualAgent CellInd
+   | AMVisualWumpus CellInd
    | AMVisualEntityHealth CellInd Rational
    | AMVisualEntityStamina CellInd Rational
    | AMVisualFree CellInd

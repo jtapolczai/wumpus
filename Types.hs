@@ -73,9 +73,14 @@ ju :: (Contravariant f, Profunctor p)
    => (p (Maybe a) (f (Maybe a)) -> c) -> p a (f a) -> c
 ju l = l . to fromJust
 
--- |We give "health" and "fatigue" fields to Entity directly so as to
+-- |We give "name", "health", and "stamina" fields to Entity directly so as to
 --  avoid pointless case distinctions and code duplication when accessing
 --  fields that both agents share anyway.
+instance (HasName s EntityName, HasName t EntityName)
+         => HasName (Entity s t) EntityName where
+   name f (Ag x) = fmap (\h -> Ag $ x & name .~ h) (f $ x ^. name)
+   name f (Wu x) = fmap (\h -> Wu $ x & name .~ h) (f $ x ^. name)
+
 instance (HasHealth s Rational, HasHealth t Rational)
          => HasHealth (Entity s t) Rational where
    health f (Ag x) = fmap (\h -> Ag $ x & health .~ h) (f $ x ^. health)

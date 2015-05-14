@@ -20,8 +20,9 @@ perception (VisualPerception i d) =
     AMVisualFruit i (d ^. fruit)]
    ++ cond (d ^. pit) (AMVisualPit i)
    ++ cond (d ^. plant . to isJust) (AMVisualPlant i $ d ^. plant . to fromJust)
-   ++ cond (d ^. entity . is isAgent) (AMVisualAgent i $ d ^. ju entity . to fromAgent)
-   ++ cond (d ^. entity . is isWumpus) (AMVisualWumpus i $ d ^. ju entity . to fromWumpus)
+   ++ cond (d ^. entity . is isAgent) (AMVisualAgent i)
+   ++ cond (d ^. entity . is isWumpus) (AMVisualWumpus i)
+   ++ cond (d ^. entity . to isJust) (AMVisualEntityName i $ d ^. ju entity . name)
    ++ cond (d ^. entity . to isJust) (AMVisualEntityHealth i $ d ^. ju entity . health)
    ++ cond (d ^. entity . to isJust) (AMVisualEntityStamina i $ d ^. ju entity . stamina)
    ++ cond (d ^. entity . to isNothing) (AMVisualFree i)
