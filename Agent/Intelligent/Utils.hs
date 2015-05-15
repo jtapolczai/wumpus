@@ -11,6 +11,7 @@ import Control.Lens
 import Data.Functor.Monadic
 import Data.List
 import qualified Data.List.Safe as S
+import qualified Data.Map as M
 import Data.Maybe
 import Data.Monoid (First(..))
 import Data.Ord
@@ -81,13 +82,46 @@ edgeMessage x@AMVisualEdgeDanger{} = Just x
 edgeMessage x@AMVisualEdgeFatigue{} = Just x
 edgeMessage _ = Nothing
 
+-- |Goes through a message space and groups messages by CellInd/EdgeInd, provided
+--  they have such fields.
+--
+--  This function is good for re-constructing complex facts about individual
+--  cells/edges from simple, atomic messages.
+sortByInd :: CellInd -- ^The agent's current position (for local messages).
+          -> [(Counter, AgentMessage)]
+          -> (M.Map CellInd [(Counter, AgentMessage)],
+              M.Map EdgeInd [(Counter, AgentMessage)])
+sortByInd i = foldl' collect (M.empty, M.empty)
+   where
+      collect (cs, es) (c,m) =
+         (maybe cs (const $ insert' (msgPos m) (c,m) cs) (cellMessage m),
+          maybe es (const $ insert' (msgEdg m) (c,m) es) (edgeMessage m))
 
+      insert' k x = M.alter (Just . maybe [x] (x:)) k
 
+      msgPos m = fromMaybe i (m ^. _agentMessageCellInd)
+      msgEdg m = fromJust (m ^. _agentMessageEdgeInd)
 
+-- |Does a full outer join of two maps, where one of the maps is
+--  assumed to be collection of updates.
+--
+--  >>> keys (fjoin d m n) = union (keys m) (keys n)
+--
+--  If a key exists in both maps, the update function will be applied to its
+--  value. If it only exists in the second one, its value is left unchanged.
+--  If it only exists in the right one, the update will be applied
+--  to a default value.
+fjoin :: Ord k
+      => a -- |Default value if a key doesn't exist in the second map.
+      -> M.Map k (a -> a) -- |Map of updates.
+      -> M.Map k a
+      -> M.Map k a
+fjoin x m n = M.mergeWithKey (\_ f x -> Just (f x)) (const M.empty) id m
+              $ M.union n (fmap (const x) m)
 
-
-
-
+-- |Gets the agent's latest position. Unsafe if there's no position message.
+myPosition :: [(Counter, AgentMessage)] -> CellInd
+myPosition = fromJust . lastWhere _AMPosition
 
 
 
