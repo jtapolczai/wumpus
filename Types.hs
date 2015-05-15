@@ -118,4 +118,6 @@ instance Castable CellData VisualCellData where
                 (a ^. meat)
                 (a ^. fruit)
                 (a ^. plant)
+                (Just $ a ^. breeze)
+                (Just $ a ^. stench)
 

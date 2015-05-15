@@ -131,7 +131,9 @@ data VisualCellData = VCD {
    _visualCellDataGold :: Int,
    _visualCellDataMeat :: Int,
    _visualCellDataFruit :: Int,
-   _visualCellDataPlant :: Maybe Rational
+   _visualCellDataPlant :: Maybe Rational,
+   _visualCellDataBreeze :: Maybe Rational,
+   _visualCellDataStench :: Maybe Rational
    }
    deriving (Show, Eq, Ord)
 

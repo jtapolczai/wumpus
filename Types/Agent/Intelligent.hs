@@ -67,7 +67,7 @@ type AgentMessage' = (AgentMessage, IsImaginary)
 
 type SocialStorage = M.Map SocialEmotionName (HormoneLevel, Filter AgentMessage)
 
-type Memory = (M.Map CellInd CellData, M.Map EdgeInd EdgeData)
+type Memory = (M.Map CellInd VisualCellData, M.Map EdgeInd EdgeData)
 
 data AgentState = AS {
    _agentStateMessageCounter :: Counter,
