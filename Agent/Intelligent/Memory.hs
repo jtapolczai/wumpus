@@ -40,7 +40,8 @@ constructWorldFromMemory as = World (WD time temperature)
 updateMemory :: AgentState -- ^Agent state. Its memory will only be written, no read.
              -> [(Counter, AgentMessage)]
              -> AgentState
-updateMemory xs as = as & memory %~ (M.union newCells *** M.union newEdges)
+updateMemory xs as =
+   as & memory %~ (fjoin CD{} cellUpdates *** fjoin ED{} edgeUpdates)
    where
       myPos = myPosition (as ^. messageSpace)
 
@@ -50,25 +51,49 @@ updateMemory xs as = as & memory %~ (M.union newCells *** M.union newEdges)
 
       -- put the edge- and cell-related messages into bags indexed by
       -- cell/edge index.
+      cellMsg :: M.Map CellInd [(Counter,AgentMessage)]
       (cellMsg, edgeMsg) = foldl' preSort (M.empty, M.empty) xs
 
-      preSort (cs,es) (_,m) =
-         (fromMaybe cs (\m' -> M.insert (msgPos m) m' cs) (cellMessage m),
-          fromMaybe cs (\m' -> M.insert (m' ^. _1) m' es) (edgeMessage m))
+      insert' x = M.alter (maybe [x] (x:))
 
-      newCells = M.mapWithKey
+      preSort :: (M.Map CellInd [(Counter,AgentMessage)], M.Map EdgeInd [(Counter,AgentMessage)])
+              -> (Counter, AgentMessage)
+              -> (M.Map CellInd [(Counter,AgentMessage)], M.Map EdgeInd [(Counter,AgentMessage)])
+      preSort (cs,es) (c,m) =
+         (fromMaybe cs (const $ insert' (msgPos m) (c,m) cs) (cellMessage m),
+          fromMaybe cs (const $ insert' (m ^. _1) (c,m), es) (edgeMessage m))
 
--- |Gets the agent's latest position.
+      cellUpdates = constructCell <$> cellMsg
+      edgeUpdates = constructEdge <$> edgeMsg
+
+-- |Does a full outer join of two maps, where one of the maps is
+--  assumed to be collection of updates.
+--
+--  >>> keys (fjoin d m n) = union (keys m) (keys n)
+--
+--  If a key exists in both maps, the update function will be applied to its
+--  value. If it only exists in the second one, its value is left unchanged.
+--  If it only exists in the right one, the update will be applied
+--  to a default value.
+fjoin :: Ord k
+      => a -- |Default value if a key doesn't exist in the second map.
+      -> M.Map k (a -> a) -- |Map of updates.
+      -> M.Map k a
+      -> M.Map k a
+fjoin x m n = M.mergeWithKey (\k f x -> Just (f x)) (const M.empty) id m
+              $ M.union n (fmap (const x) m)
+
+-- |Gets the agent's latest position. Unsafe if there's no position message.
 myPosition :: [(Counter, AgentMessage)] -> CellInd
-myPosition = lastWhere AMPosition ^. _Just
+myPosition = fromJust . lastWhere _AMPosition
 
 -- |Constructs a cell update function from agent messages.
-constructCell :: [AgentMessage]
-              -> (CellData -> CellData)
-constructCell i ms = foldl' addCellInfo cellEntity
+constructCell :: [(Counter, AgentMessage)]
+              -> (VisualCellData -> VisualCellData)
+constructCell ms = foldl' addCellInfo cellEntity (map snd ms)
    where
       -- First, set the agent to the appropriate type.
-      cellEntity = fromMaybe id (entity .~) $ constructAgent ms
+      cellEntity = constructEntity ms
 
       addCellInfo f (AMVisualEntityName _ n) = (entity . _Just . name .~ n) . f
       addCellInfo f (AMVisualEntityHealth _ n) = (entity . _Just . health .~ n) . f
@@ -84,7 +109,7 @@ constructCell i ms = foldl' addCellInfo cellEntity
       addCellInfo f (AMLocalStench n) = (stench .~ n) . f
       addCellInfo f (AMLocalBreeze n) = (breeze .~ n) . f
       addCellInfo f (AMMyHealth n) = (entity . _Just . health .~ n) . f
-      addCellInfo f (AMMyStamina n) = (stench . _Just . stamina .~ n) . f
+      addCellInfo f (AMMyStamina n) = (entity . _Just . stamina .~ n) . f
       addCellInfo f (AMLocalGold n) = (gold .~ n) . f
       addCellInfo f (AMLocalMeat n) = (meat .~ n) . f
       addCellInfo f (AMLocalFruit n) = (fruit .~ n) . f
@@ -92,16 +117,16 @@ constructCell i ms = foldl' addCellInfo cellEntity
 -- |Constructs an partial entity from agent messages.
 --  If there's a Wumpus/Agent-message in the given list, the cell's entity
 --  will be set appropriately. Note, however, that all of its fields will be
---  left undefined.
-constructEntity :: [AgentMessage]
-                -> (CellData -> CellData)
+--  left undefined. If there's no entity, @id@ is returned.
+constructEntity :: [(Counter, AgentMessage)]
+                -> (VisualCellData -> VisualCellData)
 constructEntity ms = (entity .~ agentKind)
    where
       agentKind = case (firstWhere _AMVisualAgent ms,
                         firstWhere _AMVisualWumpus ms) of
-                     (Just _,_) -> Just VisualAgent{}
-                     (_, Just _) -> Just VisualWumpus{}
-                     (_,_) -> Nothing
+                     (Just _,_) -> (entity .~ Just (Ag VisualAgent{}))
+                     (_, Just _) -> (entity .~ Just (Wu VisualWumpus{}))
+                     (_,_) -> id
 
 -- |Constructs an edge update from agent messages.
 constructEdge :: [AgentMessage] -> (EdgeData -> EdgeData)
@@ -110,7 +135,6 @@ constructEdge = foldl' addEdgeInfo id
       addEdgeInfo f (AMVisualEdgeDanger _ r) = (danger .~ r) . f
       addEdgeInfo f (AMVisualEdgeFatigue _ r) = (fatigue .~ r) . f
       addEdgeInfo f _ = f
-
 
 -- |Constructs a regular entity from a visual entity.
 --  The constructed agent's inventory will be assumed to be empty.
