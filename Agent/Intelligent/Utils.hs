@@ -20,8 +20,12 @@ import Types
 
 -- |Filters the message space of an agent by counter (messages have to have
 --  a counter value >= the given one).
+aboveCounter' :: AgentState -> Counter -> [(Counter, AgentMessage)]
+aboveCounter' as c = filter ((c<=).fst) $ as ^. messageSpace
+
+-- |Like 'aboveCounter'', but deletes the counter value.
 aboveCounter :: AgentState -> Counter -> [AgentMessage]
-aboveCounter as c = map snd $ filter ((c<=).fst) $ as ^. messageSpace
+aboveCounter as = map snd . aboveCounter' as
 
 -- |Returns the messages that have the correct constructor, sorted by counter
 --  value.

@@ -6,6 +6,8 @@
 module Agent.Intelligent.Affect where
 
 import Control.Lens
+import Data.List
+import qualified Data.Map as M
 import Data.Maybe
 import Data.Ratio
 
@@ -24,8 +26,23 @@ run_sjs as c = foldr (uncurry $ sjs_entity_emotion (aboveCounter as c)) as emoti
       -- the cartesian product of nearby agents and emotions
       emotions = [(a,e) | a <- agents, e <- [minBound..maxBound]]
       -- nearby (visually perceivable) agents
-      agents = mapMaybe getName $ aboveCounter as c
-      getName = extractOver _AMVisualAgent (^. _2 . name)
+      myPos = myPosition (as ^. messageSpace)
+
+      (cellMsg,_) = sortByInd myPos $ aboveCounter' as c
+      agents :: [EntityName]
+      agents = fmap snd
+               $ M.toList
+               $ fmap (fromJust . fst)
+               $ M.filter (\x -> isJust (x ^. _1) && x ^. _2)
+               $ fmap constructAgentName cellMsg
+
+constructAgentName :: [(Counter, AgentMessage)]
+                   -> (Maybe EntityName, Bool)
+constructAgentName = ($ (Nothing, False)) . foldl' addNameInfo id
+   where
+      addNameInfo f (_,(AMVisualEntityName _ n)) = (_1 ?~ n) . f
+      addNameInfo f (_,(AMVisualAgent _)) = (_2 .~ True) . f
+      addNameInfo f _ = f
 
 -- |Modulates an agent's social emotional state regarding another agent
 --  based on stimuli.
