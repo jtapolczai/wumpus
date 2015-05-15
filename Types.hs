@@ -73,6 +73,32 @@ ju :: (Contravariant f, Profunctor p)
    => (p (Maybe a) (f (Maybe a)) -> c) -> p a (f a) -> c
 ju l = l . to fromJust
 
+-- |Gets the CellInd of an AgentMessage, for all which have one.
+_agentMessageCellInd :: Getter AgentMessage (Maybe CellInd)
+_agentMessageCellInd = to go
+   where
+      go (AMPosition c) = Just c
+      go (AMVisualEntityName c _) = Just c
+      go (AMVisualAgent c) = Just c
+      go (AMVisualWumpus c) = Just c
+      go (AMVisualEntityHealth c _) = Just c
+      go (AMVisualEntityStamina c _) = Just c
+      go (AMVisualFree c) = Just c
+      go (AMVisualPit c) = Just c
+      go (AMVisualGold c _) = Just c
+      go (AMVisualMeat c _) = Just c
+      go (AMVisualFruit c _) = Just c
+      go (AMVisualPlant c _) = Just c
+      go _ = Nothing
+
+-- |Gets the EgdeInd of an AgentMessage, for all which have one.
+_agentMessageEdgeInd :: Getter AgentMessage (Maybe EdgeInd)
+_agentMessageEdgeInd = to go
+   where
+      go (AMVisualEdgeDanger e _) = Just e
+      go (AMVisualEdgeFatigue e _) = Just e
+      go _ = Nothing
+
 -- |We give "name", "health", and "stamina" fields to Entity directly so as to
 --  avoid pointless case distinctions and code duplication when accessing
 --  fields that both agents share anyway.
