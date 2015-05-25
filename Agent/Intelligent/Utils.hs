@@ -20,8 +20,8 @@ import Types
 
 -- |Filters the message space of an agent by counter (messages have to have
 --  a counter value >= the given one).
-aboveCounter' :: AgentState -> Counter -> [(Counter, AgentMessage)]
-aboveCounter' as c = filter ((c<=).fst) $ as ^. messageSpace
+aboveCounter' :: AgentState -> Counter -> [AgentMessage']
+aboveCounter' as c = filter ((c<=).fst.fst) $ as ^. messageSpace
 
 -- |Like 'aboveCounter'', but deletes the counter value.
 aboveCounter :: AgentState -> Counter -> [AgentMessage]
@@ -30,17 +30,17 @@ aboveCounter as = map snd . aboveCounter' as
 -- |Returns the messages that have the correct constructor, sorted by counter
 --  value.
 msgWhere :: Prism' AgentMessage a
-         -> [(Counter, AgentMessage)]
-         -> [(Counter, a)]
+         -> [AgentMessage']
+         -> [((Counter, IsImaginary), a)]
 msgWhere l = mapMaybe (\(c,m) -> extractOver l id m >$> (c,))
              . sortBy (comparing fst)
 
 -- |Returns the first message that has the correct consturctor.
-firstWhere :: Prism' AgentMessage a -> [(Counter, AgentMessage)] -> Maybe a
+firstWhere :: Prism' AgentMessage a -> [AgentMessage'] -> Maybe a
 firstWhere p = S.head . map snd . msgWhere p
 
 -- |Returns the last message that has the correct consturctor.
-lastWhere :: Prism' AgentMessage a -> [(Counter, AgentMessage)] -> Maybe a
+lastWhere :: Prism' AgentMessage a -> [AgentMessage'] -> Maybe a
 lastWhere p = S.last . map snd . msgWhere p
 
 -- |A clumsy combinator that applies a function to a single constructor of
@@ -92,9 +92,9 @@ edgeMessage _ = Nothing
 --  This function is good for re-constructing complex facts about individual
 --  cells/edges from simple, atomic messages.
 sortByInd :: CellInd -- ^The agent's current position (for local messages).
-          -> [(Counter, AgentMessage)]
-          -> (M.Map CellInd [(Counter, AgentMessage)],
-              M.Map EdgeInd [(Counter, AgentMessage)])
+          -> [AgentMessage']
+          -> (M.Map CellInd [AgentMessage'],
+              M.Map EdgeInd [AgentMessage'])
 sortByInd i = foldl' collect (M.empty, M.empty)
    where
       collect (cs, es) (c,m) =
@@ -124,7 +124,7 @@ fjoin x m n = M.mergeWithKey (\_ f x -> Just (f x)) (const M.empty) id m
               $ M.union n (fmap (const x) m)
 
 -- |Gets the agent's latest position. Unsafe if there's no position message.
-myPosition :: [(Counter, AgentMessage)] -> CellInd
+myPosition :: [AgentMessage'] -> CellInd
 myPosition = fromJust . lastWhere _AMPosition
 
 

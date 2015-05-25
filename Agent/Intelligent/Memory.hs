@@ -61,10 +61,19 @@ constructWorldFromMemory act as = constructWorldFromMemory' act (Just dummyWorld
 -- |Reads out relevant messages from a message space and writes information
 --  about the world into the agent state.
 updateMemory :: AgentState -- ^Agent state. Its memory will only be written, not read.
-             -> [(Counter, AgentMessage)]
+             -> [AgentMessage']
              -> AgentState
 updateMemory as xs =
-   as & memory %~ (fjoin VCD{} cellUpdates *** fjoin ED{} edgeUpdates)
+   as & memory %~ (fjoin VCD{} cu *** fjoin ED{} eu)
+   where
+      (cu, eu) = makeWorldUpdates xs
+
+-- |Takes a list of messages, sieves out those which are relevant to cells/edges
+--  and constructs a collection of cell/edge updates for the world from them.
+makeWorldUpdates :: [AgentMessage']
+                 -> (M.Map CellInd (VisualCellData -> VisualCellData),
+                     M.Map EdgeInd (EdgeData -> EdgeData))
+makeWorldUpdates xs = (cellUpdates, edgeUpdates)
    where
       myPos = myPosition xs
 
@@ -76,7 +85,7 @@ updateMemory as xs =
       edgeUpdates = constructEdge <$> edgeMsg
 
 -- |Constructs a cell update function from agent messages.
-constructCell :: [(Counter, AgentMessage)]
+constructCell :: [AgentMessage']
               -> (VisualCellData -> VisualCellData)
 constructCell ms = foldl' addCellInfo cellEntity (map snd ms)
    where
@@ -108,7 +117,7 @@ constructCell ms = foldl' addCellInfo cellEntity (map snd ms)
 --  If there's a Wumpus/Agent-message in the given list, the cell's entity
 --  will be set appropriately. Note, however, that all of its fields will be
 --  left undefined. If there's no entity, @id@ is returned.
-constructEntity :: [(Counter, AgentMessage)]
+constructEntity :: [AgentMessage']
                 -> (VisualCellData -> VisualCellData)
 constructEntity ms = agentKind
    where
@@ -119,7 +128,7 @@ constructEntity ms = agentKind
                      (_,_) -> id
 
 -- |Constructs an edge update from agent messages.
-constructEdge :: [(Counter, AgentMessage)] -> (EdgeData -> EdgeData)
+constructEdge :: [AgentMessage'] -> (EdgeData -> EdgeData)
 constructEdge = foldl' (\f (_,m) -> addEdgeInfo f m) id
    where
       addEdgeInfo f (AMVisualEdgeDanger _ r) = (danger .~ r) . f

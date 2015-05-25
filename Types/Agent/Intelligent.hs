@@ -63,7 +63,7 @@ data AgentMessage =
    | AMEmotionContentment Rational
    deriving (Show, Eq, Ord)
 
-type AgentMessage' = (AgentMessage, IsImaginary)
+type AgentMessage' = ((Counter, IsImaginary), AgentMessage)
 
 type SocialStorage = M.Map SocialEmotionName (HormoneLevel, Filter AgentMessage)
 
@@ -75,5 +75,5 @@ data AgentState = AS {
    _agentStatePsbc :: M.Map EmotionName (HormoneLevel, Filter AgentMessage),
    _agentStateSjs :: M.Map EntityName SocialStorage,
    _agentStateMemory :: Memory,
-   _agentStateMessageSpace :: [(Counter, AgentMessage)]
+   _agentStateMessageSpace :: [AgentMessage']
    }

@@ -36,7 +36,7 @@ run_sjs as c = foldr (uncurry $ sjs_entity_emotion (aboveCounter as c)) as emoti
                $ M.filter (\x -> isJust (x ^. _1) && x ^. _2)
                $ fmap constructAgentName cellMsg
 
-constructAgentName :: [(Counter, AgentMessage)]
+constructAgentName :: [AgentMessage']
                    -> (Maybe EntityName, Bool)
 constructAgentName = ($ (Nothing, False)) . foldl' addNameInfo id
    where
