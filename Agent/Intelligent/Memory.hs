@@ -26,8 +26,8 @@ import Types
 --
 --  For the global data (time, temperature), the messages with the lowest
 --  counter will be taken and @time = 0@ will be assumed if none are found.
-constructWorldFromMemory' :: Maybe World -> AgentState -> World
-constructWorldFromMemory' world as =
+constructWorldFromMemory' :: Action -> Maybe World -> AgentState -> World
+constructWorldFromMemory' myAct world as =
    World (WD time temperature)
          UnboundedSquareGrid
          (as ^. memory . _2)
@@ -38,9 +38,13 @@ constructWorldFromMemory' world as =
       --  entities. If the world-parameter is Nothing, Wumpuses get dummyMinds,
       --  if it is (Just w'), they get real WumpusMinds.
       mkCell :: CellInd -> VisualCellData -> CellData
-      mkCell i c = reconstructCell (reconstructAgent (agentDummyMind NoOp) wMind) c
-         where wMind = case world of Nothing -> wumpusDummyMind
-                                     Just w' -> wumpusRealMind w' i
+      mkCell i c = reconstructCell (reconstructAgent aMind wMind) c
+         where
+            aMind = if fromMaybe False (do ent <- c ^. entity
+                                           return $ as ^. name == ent ^. name)
+                    then agentDummyMind myAct else agentDummyMind NoOp
+            wMind = case world of Nothing -> wumpusDummyMind
+                                  Just w' -> wumpusRealMind w' i
 
       msg = as ^. messageSpace
 
@@ -49,10 +53,10 @@ constructWorldFromMemory' world as =
 
 -- |See 'constructWorldFromMemory''. All Wumpuses will get WumpusMinds in this
 --  function.
-constructWorldFromMemory :: AgentState -> World
-constructWorldFromMemory as = constructWorldFromMemory' (Just dummyWorld) as
+constructWorldFromMemory :: Action -> AgentState -> World
+constructWorldFromMemory act as = constructWorldFromMemory' act (Just dummyWorld) as
    where
-      dummyWorld = constructWorldFromMemory' Nothing as
+      dummyWorld = constructWorldFromMemory' NoOp Nothing as
 
 -- |Reads out relevant messages from a message space and writes information
 --  about the world into the agent state.

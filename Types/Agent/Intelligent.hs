@@ -70,6 +70,7 @@ type SocialStorage = M.Map SocialEmotionName (HormoneLevel, Filter AgentMessage)
 type Memory = (M.Map CellInd VisualCellData, M.Map EdgeInd EdgeData)
 
 data AgentState = AS {
+   _agentStateName :: EntityName,
    _agentStateMessageCounter :: Counter,
    _agentStatePsbc :: M.Map EmotionName (HormoneLevel, Filter AgentMessage),
    _agentStateSjs :: M.Map EntityName SocialStorage,
