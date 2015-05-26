@@ -7,7 +7,7 @@ module World where
 
 import Control.Applicative (liftA2)
 import Control.Lens
-import Control.Monad ((>=>), foldM)
+import Control.Monad ((>=>), foldM, join)
 import Data.Functor.Monadic
 import Data.List (foldl', partition)
 import qualified Data.Map as M
@@ -38,6 +38,7 @@ makeWorld cells edges = initBreeze newWorld
                        UnboundedSquareGrid
                        (M.fromList edges)
                        (M.fromList cells)
+                       (makeEntityIndex $ M.fromList cells)
 
 -- |Advances the world state by one time step. The actors perform their actions,
 --  the plants regrow, the stench is updated.
@@ -200,10 +201,10 @@ moveEntity i j world = world' & agents %~ updateIndex
       -- the world with agent moved, but the index of agents not yet updated
       world' = world & cellData %~ move
 
-      updateIndex ind = ind & at (world ^. cellData . at' i . ju entity . name) .~
-                              maybe id (const j) (world ?. cellData . at j . entity)
-
-
+      updateIndex :: M.Map EntityName CellInd -> M.Map EntityName CellInd
+      updateIndex = if isJust $ join (world ^? cellData . at j . _Just . entity) then
+                    ix (world ^. cellData . at' i . ju entity . name) .~ j
+                    else id
 
 -- |Performs an attack of one entity on another.
 --  Each combatant has its health decreased by that of the other. Any entity
