@@ -164,7 +164,8 @@ data World = World {
    _worldWorldData :: WorldData,
    _worldGraph :: UnboundedSquareGrid,
    _worldEdgeData :: M.Map EdgeInd EdgeData,
-   _worldCellData :: M.Map CellInd CellData
+   _worldCellData :: M.Map CellInd CellData,
+   _worldAgents :: M.Map EntityName CellInd
 }
 
 

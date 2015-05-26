@@ -10,7 +10,7 @@ import Control.Monad
 import qualified Data.ByteString as BS
 import Data.Default
 import qualified Data.Map as M
-import Data.Maybe (catMaybes)
+import Data.Maybe (catMaybes, isJust)
 import Data.Functor.Monadic
 import Data.Word
 import Math.Geometry.Grid.Square
@@ -55,9 +55,14 @@ readWorld dir = do
    entities <- M.fromList <$> readBitmap (dir ++ "/entities.bmp")
    agents <- M.fromList . catMaybes <$< mapM readAgent' [1..255]
 
-   let cd = M.foldrWithKey (\k v t -> t & ix k %~ addItem v) topography items
+   let -- create topography
+       cd = M.foldrWithKey (\k v t -> t & ix k %~ addItem v) topography items
+       -- add entities
        cd' = fst $ M.foldrWithKey (addEntity' agents) (cd,[1..]) entities
+       -- add minds to the wumpuses
        cd'' = M.mapWithKey (\i c -> c & entity . _Just . _Wu . state %~ pullMessages world i) cd'
+
+       --
 
        -- |Adds a bidirectional edge to m if its target @to@ is an existing cell.
        addEdge from to m = if M.member to topography then
@@ -73,7 +78,11 @@ readWorld dir = do
        --  cell directly to the left and the cell directly above.
        edges = M.foldrWithKey addEdges M.empty topography
 
-       world = World (WD cSTART_TIME $ light' cSTART_TIME) UnboundedSquareGrid edges cd'
+       world = World (WD cSTART_TIME $ light' cSTART_TIME)
+                     UnboundedSquareGrid
+                     edges
+                     cd'
+                     (indexEntities cd')
 
    return (world & cellData .~ cd'')
 
@@ -90,6 +99,12 @@ readWorld dir = do
       addEntity _ _ _ (0,255,0) c = c & plant .~ Just cPLANT_MAX
       addEntity a _ _ (0,0,v) c| v > 0 = c & entity ?~ Ag (a M.! v)
       addEntity _ _ _ _ c = c
+
+      indexEntities :: M.Map CellInd CellData -> M.Map EntityName CellInd
+      indexEntities = M.foldrWithKey
+         (\k cd -> if isJust (cd ^? entity)
+                   then M.insert (cd ^. ju entity . name) k
+                   else id) M.empty
 
 
 readAgent :: String -> IO (Maybe (Agent s))
