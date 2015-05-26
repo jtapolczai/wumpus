@@ -99,7 +99,7 @@ doAction :: CellInd    -- ^Agent's location.
          -> World
 doAction _ NoOp world = world
 doAction i (Rotate dir) world = onCell i (onAgent (direction .~ dir)) world
-doAction i (Move dir) world = doIf (cellFree j) (moveEntity i j) world
+doAction i (Move dir) world = doIf cond (moveEntity i j) world
    where
       cond = liftA2 (&&) (cellFree j) (hasStamina (i,dir))
       j = inDirection i dir
@@ -179,23 +179,31 @@ hasStamina (i,dir) world = case (me, ef) of
 -- |Removes an entity from one cell and puts it into another. The entity
 --  in the target cell is overwritten.
 --  If the target cell has a pit, the entity is deleted from the world.
---  If the source cell does not exist or if it contains no entity, the
---  entity in the target cell is overwritten with @Nothing@.
+--  If the source cell does not exist or if it contains no entity, the function
+--  fails.
 moveEntity :: CellInd
            -> CellInd
            -> World
            -> World
-moveEntity i j world = world & cellData %~ move
+moveEntity i j world = world' & agents %~ updateIndex
    where
       fat = world ^. edgeData . at (i,getDirection i j) . to (maybe 0 $ view fatigue)
 
-      ent = world ^. cellData . ju (at i) . ju entity
+      ent = world ^. cellData . at' i . ju entity
       ent' = ent & stamina -~ cEDGE_FATIGUE * fat
       putEnt :: CellData -> CellData
       putEnt c = if c ^. pit then c else c & entity ?~ ent'
 
       move m = m & ix i %~ (entity .~ Nothing)
                  & ix j %~ putEnt
+
+      -- the world with agent moved, but the index of agents not yet updated
+      world' = world & cellData %~ move
+
+      updateIndex ind = ind & at (world ^. cellData . at' i . ju entity . name) .~
+                              maybe id (const j) (world ?. cellData . at j . entity)
+
+
 
 -- |Performs an attack of one entity on another.
 --  Each combatant has its health decreased by that of the other. Any entity
