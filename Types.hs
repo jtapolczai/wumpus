@@ -3,6 +3,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE RankNTypes #-}
 
 -- |General stuff on which other modules depend.
 module Types (
@@ -18,6 +19,7 @@ import Control.Applicative
 import Control.Lens
 import Data.Maybe
 import Data.Monoid
+import qualified Data.Tree as T
 
 import Types.Castable
 import Types.World
@@ -56,6 +58,16 @@ makePrisms ''Entity
 makeFields ''AgentState
 makePrisms ''AgentMessage
 makeFields ''DummyMind
+
+memInd :: MemoryIndex -> Lens' (T.Tree a) a
+memInd i = lens (get i) (set i)
+   where
+      get (MemoryIndex []) (T.Node t _) = t
+      get (MemoryIndex (x:xs)) (T.Node _ ts) = get (MemoryIndex xs) (ts !! x)
+
+      set (MemoryIndex []) (T.Node t ts) t' = (T.Node t' ts)
+      set (MemoryIndex (x:xs)) (T.Node t ts) t' =
+         T.Node t (ts & ix x %~ flip (set (MemoryIndex xs)) t')
 
 -- |More general form of the overloaded 'state' that allows changing
 --  the type of an agent's state.

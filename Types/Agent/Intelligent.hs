@@ -1,6 +1,8 @@
 module Types.Agent.Intelligent where
 
 import qualified Data.Map as M
+import Data.Monoid
+import qualified Data.Tree as T
 
 import Types.World
 import Types.Agent.Intelligent.Filter
@@ -63,6 +65,12 @@ data AgentMessage =
    | AMEmotionContentment Rational
    deriving (Show, Eq, Ord)
 
+newtype MemoryIndex = MemoryIndex [Int]
+
+instance Monoid MemoryIndex where
+   mempty = MemoryIndex []
+   mappend (MemoryIndex i) (MemoryIndex j) = MemoryIndex (i ++ j)
+
 type AgentMessage' = ((Counter, IsImaginary), AgentMessage)
 
 type SocialStorage = M.Map SocialEmotionName (HormoneLevel, Filter AgentMessage)
@@ -74,6 +82,6 @@ data AgentState = AS {
    _agentStateMessageCounter :: Counter,
    _agentStatePsbc :: M.Map EmotionName (HormoneLevel, Filter AgentMessage),
    _agentStateSjs :: M.Map EntityName SocialStorage,
-   _agentStateMemory :: Memory,
+   _agentStateMemory :: T.Tree Memory,
    _agentStateMessageSpace :: [AgentMessage']
    }
