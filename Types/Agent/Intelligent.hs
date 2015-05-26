@@ -77,6 +77,12 @@ data AgentMessage =
    | AMPickedUpMeat EntityName
    | AMPickedUpFruit EntityName
    | AMPickedUpGold EntityName
+   | AMGaveMeat EntityName
+   | AMGaveFruit EntityName
+   | AMGaveGold EntityName
+   | AMLostMeat
+   | AMLostFruit
+   | AMLostGold
    deriving (Show, Eq, Ord)
 
 newtype MemoryIndex = MemoryIndex [Int]
