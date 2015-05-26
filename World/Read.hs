@@ -82,7 +82,7 @@ readWorld dir = do
                      UnboundedSquareGrid
                      edges
                      cd'
-                     (indexEntities cd')
+                     (makeEntityIndex cd')
 
    return (world & cellData .~ cd'')
 
@@ -99,12 +99,6 @@ readWorld dir = do
       addEntity _ _ _ (0,255,0) c = c & plant .~ Just cPLANT_MAX
       addEntity a _ _ (0,0,v) c| v > 0 = c & entity ?~ Ag (a M.! v)
       addEntity _ _ _ _ c = c
-
-      indexEntities :: M.Map CellInd CellData -> M.Map EntityName CellInd
-      indexEntities = M.foldrWithKey
-         (\k cd -> if isJust (cd ^? entity)
-                   then M.insert (cd ^. ju entity . name) k
-                   else id) M.empty
 
 
 readAgent :: String -> IO (Maybe (Agent s))

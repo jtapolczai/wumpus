@@ -1,6 +1,7 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE FlexibleContexts #-}
 
 module World.Utils where
 
@@ -181,3 +182,14 @@ getDirection i j = head $ directionTo UnboundedSquareGrid i j
 instance Monoid Int where
    mempty = 0
    mappend = (+)
+
+-- |Goes through a collection of cells and creates an index of the entities
+--  contained therein.
+makeEntityIndex :: (HasEntity c (Maybe (Entity s t)),
+                    HasName (Entity s t) EntityName)
+                => M.Map CellInd c
+                -> M.Map EntityName CellInd
+makeEntityIndex = M.foldrWithKey
+   (\k cd -> if isJust (cd ^? entity)
+             then M.insert (cd ^. ju entity . name) k
+             else id) M.empty

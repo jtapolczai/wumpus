@@ -19,6 +19,7 @@ import Agent.Dummy
 import Agent.Wumpus
 import Agent.Intelligent.Utils
 import Types
+import World.Utils
 
 -- |Takes the agent's memory (and current messages about global data) and
 --  constructs a world from it.
@@ -47,6 +48,7 @@ constructWorldFromMemory' myAct world mi as =
          UnboundedSquareGrid
          (as ^. memory . memInd mi . _2)
          (M.mapWithKey mkCell $ as ^. memory . memInd mi . _1)
+         (makeEntityIndex $ as ^. memory . memInd mi . _1)
    where
 
       -- |Reconstructs a CellData from a VisualCellData and gives minds to
@@ -63,8 +65,8 @@ constructWorldFromMemory' myAct world mi as =
 
       msg = as ^. messageSpace
 
-      time = fromMaybe 0 $ firstWhere _AMTime msg
-      temperature = fromMaybe Freezing $ firstWhere _AMTemperature msg
+      time = fromMaybe 0 $ lastWhere _AMTime msg
+      temperature = fromMaybe Freezing $ lastWhere _AMTemperature msg
 
 -- |See 'constructWorldFromMemory''. All Wumpuses will get WumpusMinds in this
 --  function.
