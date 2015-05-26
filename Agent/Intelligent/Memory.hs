@@ -11,6 +11,8 @@ import Data.Functor.Monadic
 import Data.List
 import qualified Data.Map as M
 import Data.Maybe
+import Data.Monoid
+import qualified Data.Tree as T
 import Math.Geometry.Grid.Square (UnboundedSquareGrid(..))
 
 import Agent.Dummy
@@ -26,12 +28,25 @@ import Types
 --
 --  For the global data (time, temperature), the messages with the lowest
 --  counter will be taken and @time = 0@ will be assumed if none are found.
-constructWorldFromMemory' :: Action -> Maybe World -> AgentState -> World
-constructWorldFromMemory' myAct world as =
+constructWorldFromMemory' ::
+   -- |The action which the current agent (identified by its name) should perform.
+   Action
+   -- |The world which should be given to Wumpuses for their internal state.
+   --  If Nothing, Wumpuses will be given a dummyMind and will be inactive.
+   -> Maybe World
+   -- |The memory from which to construct the world. Pass 'mempty' to use the
+   --  memory taken from external perception.
+   -> MemoryIndex
+   -- |The agent's current state. The function will need its memory, name,
+   --  and messages pertaining to time and temperature.
+   -> AgentState
+   -- |The resultant world induced by the agent's knowledge.
+   -> World
+constructWorldFromMemory' myAct world mi as =
    World (WD time temperature)
          UnboundedSquareGrid
-         (as ^. memory . _2)
-         (M.mapWithKey mkCell $ as ^. memory . _1)
+         (as ^. memory . memInd mi . _2)
+         (M.mapWithKey mkCell $ as ^. memory . memInd mi . _1)
    where
 
       -- |Reconstructs a CellData from a VisualCellData and gives minds to
@@ -53,19 +68,22 @@ constructWorldFromMemory' myAct world as =
 
 -- |See 'constructWorldFromMemory''. All Wumpuses will get WumpusMinds in this
 --  function.
-constructWorldFromMemory :: Action -> AgentState -> World
-constructWorldFromMemory act as = constructWorldFromMemory' act (Just dummyWorld) as
+constructWorldFromMemory :: Action -> MemoryIndex -> AgentState -> World
+constructWorldFromMemory act mi as = constructWorldFromMemory' act (Just dummyWorld) mi as
    where
-      dummyWorld = constructWorldFromMemory' NoOp Nothing as
+      dummyWorld = constructWorldFromMemory' NoOp Nothing mi as
 
 -- |Reads out relevant messages from a message space and writes information
---  about the world into the agent state.
+--  about the world into the agent state. This resets the agent's memory tree
+--  to a single node.
 updateMemory :: AgentState -- ^Agent state. Its memory will only be written, not read.
              -> [AgentMessage']
              -> AgentState
 updateMemory as xs =
-   as & memory %~ (fjoin VCD{} cu *** fjoin ED{} eu)
+   as & memory .~ T.Node updatedMem []
    where
+      updatedMem = (fjoin VCD{} cu c, fjoin ED{} eu e)
+      (c, e) = as ^. memory . memInd mempty
       (cu, eu) = makeWorldUpdates xs
 
 -- |Takes a list of messages, sieves out those which are relevant to cells/edges
