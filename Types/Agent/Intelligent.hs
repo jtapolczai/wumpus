@@ -63,6 +63,19 @@ data AgentMessage =
    | AMEmotionFear Rational
    | AMEmotionEnthusiasm Rational
    | AMEmotionContentment Rational
+   -- |Emotions related to the agent's body
+   | AMHealthDecreased Rational
+   | AMHealthIncreased Rational
+   | AMStaminaDecreased Rational
+   | AMStaminaIncreased Rational
+   | AMAttackedBy EntityName
+   | AMAttackedFrom EntityName
+   | AMReceivedMeat EntityName
+   | AMReceivedFruit EntityName
+   | AMReceivedGold EntityName
+   | AMPickedUpMeat EntityName
+   | AMPickedUpFruit EntityName
+   | AMPickedUpGold EntityName
    deriving (Show, Eq, Ord)
 
 newtype MemoryIndex = MemoryIndex [Int]
