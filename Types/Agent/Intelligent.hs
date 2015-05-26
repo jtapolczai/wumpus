@@ -19,6 +19,8 @@ data SocialEmotionName = Trust | Respect | Sympathy
 --  the physical world.
 type IsImaginary = Bool
 
+type Percentage = Rational
+
 -- |An internal message in an agent. External messages from the world are
 --  broken down into internal messages. Internal messages also contain
 --  constructors with which the world simulation need not concern itself.
@@ -64,10 +66,10 @@ data AgentMessage =
    | AMEmotionEnthusiasm Rational
    | AMEmotionContentment Rational
    -- |Emotions related to the agent's body
-   | AMHealthDecreased Rational
-   | AMHealthIncreased Rational
-   | AMStaminaDecreased Rational
-   | AMStaminaIncreased Rational
+   | AMHealthDecreased Percentage
+   | AMHealthIncreased Percentage
+   | AMStaminaDecreased Percentage
+   | AMStaminaIncreased Percentage
    | AMAttackedBy EntityName
    | AMAttackedFrom EntityName
    | AMReceivedMeat EntityName

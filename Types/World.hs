@@ -216,6 +216,13 @@ class AgentMind a where
    -- |Get the agent's action, given its current state.
    getAction :: a -> IO (Action, a)
 
+   -- |Gets the agent's internal message space. The agent is under no obligation
+   --  to provide anything. Default implementation:
+   --
+   -- >>> const []
+   readMessageSpace :: a -> [Message]
+   readMessageSpace = const []
+
 
 -- |Existentially quantifier mind.
 data SomeMind = forall m.AgentMind m => SM m
@@ -225,4 +232,5 @@ instance AgentMind SomeMind where
    receiveMessage x (SM m) = SM (receiveMessage x m)
    getAction (SM m) = do (a,m') <- getAction m
                          return (a, SM m')
+   readMessageSpace (SM m) = readMessageSpace m
 
