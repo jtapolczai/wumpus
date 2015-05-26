@@ -28,8 +28,7 @@ instance AgentMind AgentState where
          dir = fromJust (me ^? _Ag . direction)
 
    receiveMessage msg a = a & messageSpace %~ (msg'++)
-                            & messageCounter +~ length msg'
-      where msg' = zip (zip [a ^. messageCounter ..] $ repeat False) $ perception msg
+      where msg' = zip (repeat False) (perception msg)
 
    -- todo: agents should clear out their message space upon delivering an
    -- action (since we don't need messages from past time points)

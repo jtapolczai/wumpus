@@ -18,20 +18,15 @@ import Data.Ord
 
 import Types
 
--- |Filters the message space of an agent by counter (messages have to have
---  a counter value >= the given one).
-aboveCounter' :: AgentState -> Counter -> [AgentMessage']
-aboveCounter' as c = filter ((c<=).fst.fst) $ as ^. messageSpace
-
--- |Like 'aboveCounter'', but deletes the counter value.
-aboveCounter :: AgentState -> Counter -> [AgentMessage]
-aboveCounter as = map snd . aboveCounter' as
+-- |Inserts messages into an agent's message space.
+addMessages :: [AgentMessage'] -> AgentState -> AgentState
+addMessages ms = messageSpace %~ (++ms)
 
 -- |Returns the messages that have the correct constructor, sorted by counter
 --  value.
 msgWhere :: Prism' AgentMessage a
          -> [AgentMessage']
-         -> [((Counter, IsImaginary), a)]
+         -> [(IsImaginary, a)]
 msgWhere l = mapMaybe (\(c,m) -> extractOver l id m >$> (c,))
              . sortBy (comparing fst)
 

@@ -24,7 +24,7 @@ instance AgentMind DummyMind where
 
    getAction d = return (d ^. action, d)
 
-   readMessageSpace d@DummyMind{_dummyMindMessageSpace=ms} = ms
+   readMessageSpace DummyMind{_dummyMindMessageSpace=ms} = ms
 
 -- |A dummy mind that does nothing and does not store messages.
 dummyMind :: DummyMind

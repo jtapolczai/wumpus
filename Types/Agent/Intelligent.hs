@@ -7,7 +7,6 @@ import qualified Data.Tree as T
 import Types.World
 import Types.Agent.Intelligent.Filter
 
-type Counter = Int
 type HormoneLevel = Rational
 data EmotionName = Anger | Fear | Enthusiasm | Contentment
    deriving (Show, Eq, Ord, Read, Enum, Bounded)
@@ -86,7 +85,7 @@ instance Monoid MemoryIndex where
    mempty = MemoryIndex []
    mappend (MemoryIndex i) (MemoryIndex j) = MemoryIndex (i ++ j)
 
-type AgentMessage' = ((Counter, IsImaginary), AgentMessage)
+type AgentMessage' = (IsImaginary, AgentMessage)
 
 type SocialStorage = M.Map SocialEmotionName (HormoneLevel, Filter AgentMessage)
 
@@ -94,9 +93,9 @@ type Memory = (M.Map CellInd VisualCellData, M.Map EdgeInd EdgeData)
 
 data AgentState = AS {
    _agentStateName :: EntityName,
-   _agentStateMessageCounter :: Counter,
    _agentStatePsbc :: M.Map EmotionName (HormoneLevel, Filter AgentMessage),
    _agentStateSjs :: M.Map EntityName SocialStorage,
    _agentStateMemory :: T.Tree Memory,
-   _agentStateMessageSpace :: [AgentMessage']
+   _agentStateMessageSpace :: [AgentMessage'],
+   _agentStateNewMessages :: [AgentMessage']
    }

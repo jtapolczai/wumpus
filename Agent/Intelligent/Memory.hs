@@ -5,7 +5,6 @@
 
 module Agent.Intelligent.Memory where
 
-import Control.Arrow
 import Control.Lens
 import Data.Functor.Monadic
 import Data.List
