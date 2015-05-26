@@ -10,7 +10,7 @@ import Control.Monad
 import qualified Data.ByteString as BS
 import Data.Default
 import qualified Data.Map as M
-import Data.Maybe (catMaybes, isJust)
+import Data.Maybe (catMaybes)
 import Data.Functor.Monadic
 import Data.Word
 import Math.Geometry.Grid.Square

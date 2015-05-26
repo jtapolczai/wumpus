@@ -65,7 +65,7 @@ memInd i = lens (get i) (set i)
       get (MemoryIndex []) (T.Node t _) = t
       get (MemoryIndex (x:xs)) (T.Node _ ts) = get (MemoryIndex xs) (ts !! x)
 
-      set (MemoryIndex []) (T.Node t ts) t' = (T.Node t' ts)
+      set (MemoryIndex []) (T.Node _ ts) t' = (T.Node t' ts)
       set (MemoryIndex (x:xs)) (T.Node t ts) t' =
          T.Node t (ts & ix x %~ flip (set (MemoryIndex xs)) t')
 
