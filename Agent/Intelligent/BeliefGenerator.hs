@@ -2,17 +2,15 @@
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE TupleSections #-}
 
 module Agent.Intelligent.BeliefGenerator where
 
 import Control.Lens
-import qualified Data.Map as M
 import Data.Maybe
-import Math.Geometry.Grid.Square (UnboundedSquareGrid(..))
 
 import Agent.Intelligent.Memory
 import Agent.Intelligent.Perception
-import Agent.Intelligent.Utils
 import Types
 import World
 
@@ -26,7 +24,7 @@ simulateConsequences
    -> AgentState
    -> IO (World, [AgentMessage])
 simulateConsequences mi act as = do
-   let currentWorld = constructWorldFromMemory act mi as
+   let currentWorld = reconstructWorld act mi as
    nextWorld <- simulateStep currentWorld
    -- get the messages from the agent at its new position.
    -- the agent not being present means that it has died, so create an
@@ -47,5 +45,8 @@ generateBelief :: MemoryIndex
                -> AgentState
                -> IO AgentState
 generateBelief mi act as = do
-   (world, msg) <- simulateConsequences mi act as
-   todo "generateBelief"
+   (_, msg) <- simulateConsequences mi act as
+   let msg' = map (True,) msg
+       as' = as & newMessages .~ msg'
+                & addMemory msg' (leftMemIndex as)
+   return as'
