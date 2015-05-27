@@ -3,7 +3,27 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE LambdaCase #-}
 
-module Agent.Intelligent.Memory where
+module Agent.Intelligent.Memory (
+   -- * Turning messages into memories
+   resetMemory,
+   constructMemory,
+   addMemory,
+   -- ** Helpers for creating memories
+   makeWorldUpdates,
+   constructCell,
+   constructEntity,
+   -- * Turning memories back into worlds
+   reconstructWorld,
+   reconstructWorld',
+   reconstructAgent,
+   reconstructCell,
+   -- * Helpers
+   leftMemIndex,
+   -- ** Minds
+   wumpusDummyMind,
+   wumpusRealMind,
+   agentDummyMind,
+   ) where
 
 import Control.Lens
 import Data.Functor.Monadic
@@ -28,7 +48,7 @@ import World.Utils
 --
 --  For the global data (time, temperature), the messages with the lowest
 --  counter will be taken and @time = 0@ will be assumed if none are found.
-constructWorldFromMemory' ::
+reconstructWorld' ::
    -- |The action which the current agent (identified by its name) should perform.
    Action
    -- |The world which should be given to Wumpuses for their internal state.
@@ -42,7 +62,7 @@ constructWorldFromMemory' ::
    -> AgentState
    -- |The resultant world induced by the agent's knowledge.
    -> World
-constructWorldFromMemory' myAct world mi as =
+reconstructWorld' myAct world mi as =
    World (WD time temperature)
          UnboundedSquareGrid
          (as ^. memory . memInd mi . _2)
@@ -69,10 +89,10 @@ constructWorldFromMemory' myAct world mi as =
 
 -- |See 'constructWorldFromMemory''. All Wumpuses will get WumpusMinds in this
 --  function.
-constructWorldFromMemory :: Action -> MemoryIndex -> AgentState -> World
-constructWorldFromMemory act mi as = constructWorldFromMemory' act (Just dummyWorld) mi as
+reconstructWorld :: Action -> MemoryIndex -> AgentState -> World
+reconstructWorld act mi as = reconstructWorld' act (Just dummyWorld) mi as
    where
-      dummyWorld = constructWorldFromMemory' NoOp Nothing mi as
+      dummyWorld = reconstructWorld' NoOp Nothing mi as
 
 -- |Reads out relevant messages from a message space and writes information
 --  about the world into the agent state. This resets the agent's memory tree
@@ -207,3 +227,12 @@ reconstructCell agentF c = CD (agentF <$> c ^. entity)
                               (c ^. meat)
                               (c ^. fruit)
                               (c ^. plant)
+
+-- |Takes an AgentState and gets the index of the leftmost node in its memory
+--  tree. Use this in conjunction with 'addMemory' if you only want to create
+--  a linear sequence of memories with no branching.
+leftMemIndex :: AgentState -> MemoryIndex
+leftMemIndex = MemoryIndex . go mempty . (^. memory)
+   where
+      go ys (T.Node _ []) = ys
+      go ys (T.Node _ (x:_)) = go (0:ys) x
