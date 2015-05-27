@@ -77,15 +77,24 @@ constructWorldFromMemory act mi as = constructWorldFromMemory' act (Just dummyWo
 -- |Reads out relevant messages from a message space and writes information
 --  about the world into the agent state. This resets the agent's memory tree
 --  to a single node.
-updateMemory :: AgentState -- ^Agent state. Its memory will only be written, not read.
-             -> [AgentMessage']
-             -> AgentState
-updateMemory as xs =
-   as & memory .~ T.Node updatedMem []
+resetMemory :: AgentState -- ^The agent state. Has to have at least one memory.
+            -> [AgentMessage']
+            -> AgentState
+resetMemory as xs = as & memory .~ T.Node mem []
    where
-      updatedMem = (fjoin VCD{} cu c, fjoin ED{} eu e)
-      (c, e) = as ^. memory . memInd mempty
+      mem = constructMemory xs $ Just $ as ^. memory . memInd mempty
+
+-- |Constructs a memory from a list of messages.
+constructMemory :: [AgentMessage'] -> Maybe Memory -> Memory
+constructMemory xs mem = (fjoin VCD{} cu c, fjoin ED{} eu e)
+   where
+      (c, e) = fromMaybe (M.empty, M.empty) mem
       (cu, eu) = makeWorldUpdates xs
+
+-- |Adds a memory as a last child to an existent one. The memory given by the
+--  MemoryIndex has to exist.
+addMemory :: [AgentMessage'] -> MemoryIndex -> AgentState -> AgentState
+addMemory xs mi as = as & memory %~ \t -> addMemNode mi (t ^. memInd mi) t
 
 -- |Takes a list of messages, sieves out those which are relevant to cells/edges
 --  and constructs a collection of cell/edge updates for the world from them.
