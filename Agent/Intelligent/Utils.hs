@@ -15,6 +15,7 @@ import qualified Data.Map as M
 import Data.Maybe
 import Data.Monoid (First(..))
 import Data.Ord
+import qualified Data.Tree as T
 
 import Types
 
@@ -122,5 +123,9 @@ fjoin x m n = M.mergeWithKey (\_ f x -> Just (f x)) (const M.empty) id m
 myPosition :: [AgentMessage'] -> CellInd
 myPosition = fromJust . lastWhere _AMPosition
 
-
-
+-- |Adds a new node as the last child of node specified by the path.
+--  __NOTE__: Unsafe in case of non-existent paths.
+addMemNode :: MemoryIndex -> a -> T.Tree a -> T.Tree a
+addMemNode (MemoryIndex []) m (T.Node t ts) = T.Node t $ ts ++ [T.Node m []]
+addMemNode (MemoryIndex (x:xs)) m (T.Node t ts) =
+   T.Node t $ ts & ix x %~ addMemNode (MemoryIndex xs) m
