@@ -20,6 +20,9 @@ type IsImaginary = Bool
 
 type Percentage = Rational
 
+-- |A component of an agent that modifies the agent's state.
+type AgentComponent m = AgentState -> m AgentState
+
 -- |An internal message in an agent. External messages from the world are
 --  broken down into internal messages. Internal messages also contain
 --  constructors with which the world simulation need not concern itself.

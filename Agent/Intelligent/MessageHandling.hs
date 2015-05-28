@@ -9,22 +9,6 @@ import Data.Monoid
 
 import Types
 
-{-
-issue #17
-
-The message space quickly gets cluttered and necessitates kludges like the the
-counters.
-
-Instead, there should be two message spaces:
-
-current messages
-messages to be added
-New messages should be inserted via a dedicated function. In each "round",
-messages should be take from the current message space and be distributed to
-the individual components, which may sieve them. Afterwards, the message space
-is cleared, and the components begin adding their messages anew.
--}
-
 -- |Calls a list of components in succession. Each component receives the same
 --  messages. Components may modify the agent state, but they cannot
 --  communicate with each other via messages: any message they put into the
@@ -35,9 +19,9 @@ is cleared, and the components begin adding their messages anew.
 --  containing the list of all new messages that the components added. That is,
 --  the message space gets completely overwritten.
 callComponents :: (Functor m, Monad m)
-              => [AgentState -> m AgentState]
-              -> AgentState
-              -> m AgentState
+               => [AgentComponent m]
+               -> AgentState
+               -> m AgentState
 callComponents comps initAs = putMsg <$> foldM f (initAs, mempty) comps
    where
       putMsg (curAs,ms) = curAs & messageSpace .~ ms

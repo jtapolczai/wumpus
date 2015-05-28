@@ -7,6 +7,7 @@
 module Agent.Intelligent.BeliefGenerator where
 
 import Control.Lens
+import Control.Monad.IO.Class
 import Data.Maybe
 
 import Agent.Intelligent.Memory
@@ -40,11 +41,11 @@ simulateConsequences mi act as = do
 -- |Generates a new set of beliefs about the world, i.e. inserts a new memory
 --  as a child node of the given location. In addition, all messages are
 --  inserted into the agent's message space, marked as imaginary.
-generateBelief :: MemoryIndex
+generateBelief :: MonadIO m
+               => MemoryIndex
                -> Action
-               -> AgentState
-               -> IO AgentState
-generateBelief mi act as = do
+               -> AgentComponent m
+generateBelief mi act as = liftIO $ do
    (_, msg) <- simulateConsequences mi act as
    let msg' = map (True,) msg
        as' = as & newMessages .~ msg'

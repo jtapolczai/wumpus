@@ -20,8 +20,12 @@ import World.Utils
 -- |Modulates an agent's opinion about other agents based on stimuli.
 --  Only messages with counter values greater or equal to the given one are
 --  fed into the emotional system. The message space is left unchanged.
-run_sjs :: AgentState -> AgentState
-run_sjs as = foldr (uncurry $ sjs_entity_emotion $ map snd $ as ^. messageSpace) as emotions
+sjsComponent :: Monad m => AgentComponent m
+sjsComponent as = return $ foldr (uncurry
+                                  $ sjs_entity_emotion
+                                  $ map snd
+                                  $ as ^. messageSpace)
+                                 as emotions
    where
       -- the cartesian product of nearby agents and emotions
       emotions = [(a,e) | a <- agents, e <- [minBound..maxBound]]
@@ -64,8 +68,11 @@ sjs_entity_emotion ms other emo as = as & sjs . ix other . ix emo .~ (new_lvl, f
 
 -- |Modulates an agent's emotional state based on stimuli.
 --  No new messages are inserted.
-run_psbc :: AgentState -> AgentState
-run_psbc as = foldr (psbc_emotion $ map snd $ as ^. messageSpace) as [minBound..maxBound]
+psbcComponent :: Monad m => AgentState -> m AgentState
+psbcComponent as = return $ foldr (psbc_emotion
+                                   $ map snd
+                                   $ as ^. messageSpace)
+                                  as [minBound..maxBound]
 
 -- |Updates one emotion based on messages.
 psbc_emotion :: [AgentMessage]
