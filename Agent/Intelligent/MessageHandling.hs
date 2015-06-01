@@ -1,3 +1,5 @@
+{-# LANGUAGE FlexibleContexts #-}
+
 -- |Functionality pertaining to the inter-component communication inside an
 --  agent's mind.
 module Agent.Intelligent.MessageHandling where

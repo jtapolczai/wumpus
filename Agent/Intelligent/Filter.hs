@@ -1,3 +1,5 @@
+{-# LANGUAGE FlexibleContexts #-}
+
 module Agent.Intelligent.Filter where
 
 import Control.Lens
