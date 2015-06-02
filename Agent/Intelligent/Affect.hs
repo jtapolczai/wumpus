@@ -43,10 +43,10 @@ sjsComponent as = return $ foldr (uncurry
 
 -- |Tries to get an entity's name from a list of messages.
 constructAgentName :: [AgentMessage']
-                   -- |An occurrence of AMVisualEntityName sets the first part
+                   -> (Maybe EntityName, Bool)
+                   -- ^An occurrence of AMVisualEntityName sets the first part
                    --  to Just x. The occurrence of AMVisualAgent sets the second
                    --  to True.
-                   -> (Maybe EntityName, Bool)
 constructAgentName = ($ (Nothing, False)) . foldl' addNameInfo id
    where
       addNameInfo f (_,(AMVisualEntityName _ n)) = (_1 ?~ n) . f

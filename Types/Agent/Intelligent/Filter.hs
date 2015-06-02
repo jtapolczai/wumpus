@@ -37,9 +37,9 @@ data NodeCondition s =
    -- that each emotion should be "primitive" in the following sense:
    -- emotions should be triggered only by positive stimuli, not by negative
    -- ones, obviating the need for a NOT.
-   -- | NodeAnd (NodeCondition a) (NodeCondition a)
-   -- | NodeOr (NodeCondition a) (NodeCondition a)
-   -- | NodeNot (NodeCondition a)
+   -- -| NodeAnd (NodeCondition a) (NodeCondition a)
+   -- -| NodeOr (NodeCondition a) (NodeCondition a)
+   -- -| NodeNot (NodeCondition a)
 
 data FilterNode s = FN {
    _filterNodeCondition :: NodeCondition s,

@@ -112,8 +112,8 @@ sortByInd i = foldl' collect (M.empty, M.empty)
 --  If it only exists in the right one, the update will be applied
 --  to a default value.
 fjoin :: Ord k
-      => a -- |Default value if a key doesn't exist in the second map.
-      -> M.Map k (a -> a) -- |Map of updates.
+      => a -- ^Default value if a key doesn't exist in the second map.
+      -> M.Map k (a -> a) -- ^Map of updates.
       -> M.Map k a
       -> M.Map k a
 fjoin x m n = M.mergeWithKey (\_ f x -> Just (f x)) (const M.empty) id m

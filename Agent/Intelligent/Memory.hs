@@ -49,20 +49,19 @@ import World.Utils
 --
 --  For the global data (time, temperature), the messages with the lowest
 --  counter will be taken and @time = 0@ will be assumed if none are found.
-reconstructWorld' ::
-   -- |The action which the current agent (identified by its name) should perform.
-   Action
-   -- |The world which should be given to Wumpuses for their internal state.
-   --  If Nothing, Wumpuses will be given a dummyMind and will be inactive.
+reconstructWorld'
+   :: Action
+   -- ^The action which the current agent (identified by its name) should perform.
    -> Maybe World
-   -- |The memory from which to construct the world. Pass 'mempty' to use the
-   --  memory taken from external perception.
+   -- ^The world which should be given to Wumpuses for their internal state.
+   --  If Nothing, Wumpuses will be given a dummyMind and will be inactive.
    -> MemoryIndex
-   -- |The agent's current state. The function will need its memory, name,
-   --  and messages pertaining to time and temperature.
+   -- ^The memory from which to construct the world. Pass 'mempty' to use the
+   --  memory taken from external perception.
    -> AgentState
-   -- |The resultant world induced by the agent's knowledge.
-   -> World
+   -- ^The agent's current state. The function will need its memory, name,
+   --  and messages pertaining to time and temperature.
+   -> World -- ^The resultant world induced by the agent's knowledge.
 reconstructWorld' myAct world mi as =
    World (WD time temperature)
          UnboundedSquareGrid

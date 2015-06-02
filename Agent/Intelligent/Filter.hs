@@ -41,7 +41,7 @@ exciteNeighbors k f = foldr excite f neighbors'
       neighbors' = f ^. graph . at k . to fromJust . neighbors
 
 -- |Takes a list of nodes (presumably those who are newly activated) and
---  sends excitement to all their neighbors via 'excitNeighbors'
+--  sends excitement to all their neighbors via 'excitNeighbors'.
 sendExcitementFrom :: [G.Vertex]
                    -> Filter a
                    -> Filter a
