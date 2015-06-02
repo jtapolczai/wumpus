@@ -39,6 +39,7 @@ data Action =
    | Drop Item
    | Eat Item
    | Gesture String
+   deriving (Show, Eq, Ord)
 
 -- |A agent's entire state.
 data Agent s = Agent {

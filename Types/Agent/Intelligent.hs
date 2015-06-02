@@ -86,9 +86,12 @@ data AgentMessage =
    | AMLostMeat
    | AMLostFruit
    | AMLostGold
+   -- |Planning
+   | AMPlannedAction Action MemoryIndex
    deriving (Show, Eq, Ord)
 
 newtype MemoryIndex = MemoryIndex [Int]
+   deriving (Show, Eq, Ord)
 
 instance Monoid MemoryIndex where
    mempty = MemoryIndex []
