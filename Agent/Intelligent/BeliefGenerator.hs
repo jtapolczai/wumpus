@@ -65,8 +65,8 @@ generateBelief' mi act as = liftIO $ do
 --
 --  That is: if mi isn't in the tree, a new memory node will be created, as a child of
 --  (init mi).
-generateBelief :: AgentComponent IO
-generateBelief as = foldM f as acts
+generateBelief :: MonadIO m => AgentComponent m
+generateBelief as = liftIO $ foldM f as acts
    where
       f :: AgentState -> (Action, MemoryIndex) -> IO AgentState
       f as' (act, mi@(MemoryIndex mi')) =
