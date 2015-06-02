@@ -1,4 +1,4 @@
-module Simulation where
+module Wumpus where
 
 import World
 import Agent.Wumpus
