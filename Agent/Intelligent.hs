@@ -35,6 +35,6 @@ instance AgentMind AgentState where
    -- action (since we don't need messages from past time points)
    getAction a = todo "AgentState/getAction"
 
-instance Default AgentState where
-   def = todo "AgentState/def"
+--instance Default AgentState where
+--   def = todo "AgentState/def"
 

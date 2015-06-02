@@ -7,6 +7,7 @@
 module Agent.Intelligent.BeliefGenerator where
 
 import Control.Lens
+import Control.Monad
 import Control.Monad.IO.Class
 import Data.Maybe
 
@@ -53,10 +54,23 @@ generateBelief' mi act as = liftIO $ do
                 & addMemory msg' (leftMemIndex as)
    return as'
 
--- |Extracts the first 'AMPlannedAction' from the message space and
---  calls 'generateBelief\''. If no such message exists, nothing is done.
-generateBelief :: MonadIO m => AgentComponent m
-generateBelief as =
-   maybe (return as)
-         (\(act, mi) -> generateBelief' act mi as)
-         (firstWhere _AMPlannedAction $ as ^. messageSpace)
+-- |Extracts 'AMPlannedAction' messages from the message space and runs
+--  'generateBelief\'' with all whose 'MemoryIndex' does not yet exist in the
+--  agent's memory tree.
+--
+--  __Note:__
+--
+--  * The memory index of an 'AMPlannedMessage' has to refer to an __existing__ memory.
+--  * The last part of the memory index will be cut off when calling 'generateBelief\''.
+--
+--  That is: if mi isn't in the tree, a new memory node will be created, as a child of
+--  (init mi).
+generateBelief :: AgentComponent IO
+generateBelief as = foldM f as acts
+   where
+      f :: AgentState -> (Action, MemoryIndex) -> IO AgentState
+      f as' (act, mi@(MemoryIndex mi')) =
+         if hasMemNode mi (as ^. memory) then return as'
+         else generateBelief' act (MemoryIndex $ init mi') as'
+
+      acts = map snd $ msgWhere _AMPlannedAction $ as ^. messageSpace
