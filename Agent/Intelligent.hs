@@ -12,6 +12,7 @@ import Data.Maybe
 import Agent.Dummy
 import Agent.Intelligent.Affect
 import Agent.Intelligent.BeliefGenerator
+import Agent.Intelligent.DecisionMaker
 import Agent.Intelligent.Memory
 import Agent.Intelligent.MessageHandling
 import Agent.Intelligent.Perception
