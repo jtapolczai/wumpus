@@ -12,6 +12,7 @@ import Data.Maybe
 
 import Agent.Intelligent.Memory
 import Agent.Intelligent.Perception
+import Agent.Intelligent.Utils
 import Types
 import World
 
@@ -20,11 +21,11 @@ import World
 --  the agent's message space, but should be marked as imaginary (unless you
 --  want the agent to be psychotic).
 simulateConsequences
-   :: MemoryIndex
-   -> Action
+   :: Action
+   -> MemoryIndex
    -> AgentState
    -> IO (World, [AgentMessage])
-simulateConsequences mi act as = do
+simulateConsequences act mi as = do
    let currentWorld = reconstructWorld act mi as
    nextWorld <- simulateStep currentWorld
    -- get the messages from the agent at its new position.
@@ -41,13 +42,21 @@ simulateConsequences mi act as = do
 -- |Generates a new set of beliefs about the world, i.e. inserts a new memory
 --  as a child node of the given location. In addition, all messages are
 --  inserted into the agent's message space, marked as imaginary.
-generateBelief :: MonadIO m
-               => MemoryIndex
-               -> Action
-               -> AgentComponent m
-generateBelief mi act as = liftIO $ do
+generateBelief' :: MonadIO m
+                => Action
+                -> MemoryIndex
+                -> AgentComponent m
+generateBelief' mi act as = liftIO $ do
    (_, msg) <- simulateConsequences mi act as
    let msg' = map (True,) msg
        as' = as & newMessages .~ msg'
                 & addMemory msg' (leftMemIndex as)
    return as'
+
+-- |Extracts the first 'AMPlannedAction' from the message space and
+--  calls 'generateBelief\''. If no such message exists, nothing is done.
+generateBelief :: MonadIO m => AgentComponent m
+generateBelief as =
+   maybe (return as)
+         (\(act, mi) -> generateBelief' act mi as)
+         (firstWhere _AMPlannedAction $ as ^. messageSpace)
