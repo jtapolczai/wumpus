@@ -103,11 +103,17 @@ type SocialStorage = M.Map SocialEmotionName (HormoneLevel, Filter AgentMessage)
 
 type Memory = (M.Map CellInd VisualCellData, M.Map EdgeInd EdgeData)
 
+data Valence = Negative | Positive
+   deriving (Show, Eq, Ord, Read, Enum, Bounded)
+
+type GestureStorage = M.Map (SocialEmotionName, Valence) String
+
 data AgentState = AS {
    _agentStateName :: EntityName,
    _agentStatePsbc :: M.Map EmotionName (HormoneLevel, Filter AgentMessage),
    _agentStateSjs :: M.Map EntityName SocialStorage,
    _agentStateMemory :: T.Tree Memory,
    _agentStateMessageSpace :: [AgentMessage'],
-   _agentStateNewMessages :: [AgentMessage']
+   _agentStateNewMessages :: [AgentMessage'],
+   _agentStateGestures :: GestureStorage
    }
