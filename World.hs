@@ -111,9 +111,9 @@ doAction i (Attack dir) world = doIf (not . cellFree j) (attack i j) world
    where
       j = inDirection i dir
 -- Give one item to another agent.
-doAction i (Give item) world = doIf (cellHas (^. entity . to (maybe False isAgent)) j) give world
+doAction i (Give dir item) world = doIf (cellHas (^. entity . to (maybe False isAgent)) j) give world
    where
-      j = inDirection i (me ^. direction)
+      j = inDirection i dir
       me = agentAt i world
       other = agentAt j world
 
@@ -152,8 +152,8 @@ doAction i (Eat item) world = doIf hasItem (onCell i eatItem) world
       eatItem = onAgent (health %~ (min cMAX_AGENT_HEALTH . (cHEAL_FOOD + cHUNGER_RATE +)))
                 . onAgent (inventory . ix item -~ 1)
 
-doAction i (Gesture s) world = doIf (cellAgent j) send world
-   where j = inDirection i (me ^. direction)
+doAction i (Gesture dir s) world = doIf (cellAgent j) send world
+   where j = inDirection i dir
          me = agentAt i world
          send = onCell j $ onAgent (state %~ receiveMessage (GestureM (me^.name) s))
 

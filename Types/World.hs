@@ -14,8 +14,22 @@ import Math.Geometry.Grid.Square
 import Math.Geometry.Grid.SquareInternal (SquareDirection(..))
 
 instance Ord SquareDirection where
-   x <= y = ind x <= ind y
-      where {ind North = 0; ind East = 1; ind South = 2; ind West = 3}
+   x <= y = fromEnum x <= fromEnum y
+
+instance Enum SquareDirection where
+   toEnum 0 = North
+   toEnum 1 = East
+   toEnum 2 = South
+   toEnum 3 = West
+
+   fromEnum North = 0
+   fromEnum East = 1
+   fromEnum South = 2
+   fromEnum West = 3
+
+instance Bounded SquareDirection where
+   minBound = North
+   maxBound = West
 
 
 type EntityName = String
@@ -33,12 +47,12 @@ data Action =
    | Rotate SquareDirection
    | Move SquareDirection
    | Attack SquareDirection
-   | Give Item
+   | Give SquareDirection Item
    | Gather
    | Collect Item
    | Drop Item
    | Eat Item
-   | Gesture String
+   | Gesture SquareDirection String
    deriving (Show, Eq, Ord)
 
 -- |A agent's entire state.
