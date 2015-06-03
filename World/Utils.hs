@@ -2,6 +2,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module World.Utils where
 
@@ -91,10 +92,14 @@ searchPaths world costUpd costPred = go mempty
 
 -- |Gets the Euclidean distance between two cells.
 dist :: CellInd -> CellInd -> Rational
-dist (x,y) (x',y') = toRational $ sqrt $ fromIntegral $ (xd ^ 2) + (yd ^ 2)
+dist i j = toRational $ sqrt $ fromIntegral $ (xd ^ 2) + (yd ^ 2)
    where
-      xd = abs $ x - x'
-      yd = abs $ y - y'
+      (xd,yd) = coordDist i j
+
+-- |Gets the distance between to cells as deltaX and deltaY.
+--  Both values are absolute.
+coordDist :: CellInd -> CellInd -> (Int, Int)
+coordDist (x,y) (x',y') = (abs $ x - x', abs $ y - y')
 
 -- |Gets the shortest distance from point D to the infinite line passing
 --  through V and W.
@@ -120,17 +125,27 @@ angle i@(x1,y1) j@(x2,y2) = case (x1 <= x2, y1 <= y2) of
       angle' :: Float
       angle' = asin $ (fromIntegral $ abs (y1-y2)) / fromRational (dist i j)
 
--- |Rotates a SquareDirection counterclockwise (N-W-S-E).
-rotateCCW :: SquareDirection -> SquareDirection
-rotateCCW = prevMod
+-- |Returns the SquareDirection that corresponds most closely to an angle.
+angleToDirection :: Float -- ^he angle in radians.
+                 -> SquareDirection
+angleToDirection x | x `between` (pi*0.25, pi*0.75) = North
+                   | x `between` (pi*0.75, pi*1.25) = West
+                   | x `between` (pi*1.25, pi*1.75) = South
+                   | otherwise                      = East
+  where
+    between n (l,u) = l <= n && n < u
 
 -- |Rotates a SquareDirection clockwise (N-E-S-W).
 rotateCW :: SquareDirection -> SquareDirection
 rotateCW = succMod
 
+-- |Rotates a SquareDirection counterclockwise (N-W-S-E).
+rotateCCW :: SquareDirection -> SquareDirection
+rotateCCW = prevMod
+
 -- |Applies a function to the Int-value of an Enum. The result
 --  is returned mod (maxBound+1).
-changeMod :: (Enum a, Bounded a) => (Int -> Int) -> a
+changeMod :: forall a.(Enum a, Bounded a) => (Int -> Int) -> a -> a
 changeMod f = toEnum
               . (`mod` (fromEnum (maxBound :: a) + 1))
               . f
