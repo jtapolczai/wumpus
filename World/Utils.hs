@@ -120,6 +120,32 @@ angle i@(x1,y1) j@(x2,y2) = case (x1 <= x2, y1 <= y2) of
       angle' :: Float
       angle' = asin $ (fromIntegral $ abs (y1-y2)) / fromRational (dist i j)
 
+-- |Rotates a SquareDirection counterclockwise (N-W-S-E).
+rotateCCW :: SquareDirection -> SquareDirection
+rotateCCW = prevMod
+
+-- |Rotates a SquareDirection clockwise (N-E-S-W).
+rotateCW :: SquareDirection -> SquareDirection
+rotateCW = succMod
+
+-- |Applies a function to the Int-value of an Enum. The result
+--  is returned mod (maxBound+1).
+changeMod :: (Enum a, Bounded a) => (Int -> Int) -> a
+changeMod f = toEnum
+              . (`mod` (fromEnum (maxBound :: a) + 1))
+              . f
+              . fromEnum
+
+-- |Gets the next value of an Enum, returning the first value
+--  if the last was given.
+succMod :: (Enum a, Bounded a) => a -> a
+succMod = changeMod (+1)
+
+-- |Gets the previous value of an Enum, returning the last value
+--  if the first was given.
+prevMod :: (Enum a, Bounded a) => a -> a
+prevMod = changeMod (subtract 1)
+
 -- |Synonym for @max 0@, i.e. constrains a value to be at least 0.
 pos :: (Ord a, Num a) => a -> a
 pos = max 0
