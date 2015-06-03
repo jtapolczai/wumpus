@@ -14,7 +14,6 @@ import Data.Functor.Monadic
 import Data.List (foldl', partition)
 import qualified Data.Map as M
 import Data.Maybe
-import Data.Monoid (Monoid(..))
 import Data.Ratio
 import Math.Geometry.Grid hiding (null)
 import Math.Geometry.Grid.Square
