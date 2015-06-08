@@ -38,7 +38,13 @@ angerAction gestures i here j there =
       hostileGesture = gestures ^. at' (Sympathy, Negative)
 
 -- |Selects enthusiasm-actions for a given cell.
---  
+--  The selected action depends on the cell:
+-- 
+--  * If the other agent is distant and not within 45° of the agent's direction, the agent
+--    rotates towards it.
+--  * If the other agent is just distant (i.e. Euclidean distance > 1), the agent moves towards it.
+--  * If the other agent is adjacent (Euclidean distance = 1), the agent either sends
+--    its hostile gesture at (Sympathy, Positive), or it gives an item (fruit/meat/gold).
 enthusiasmActions :: ActionSelector [Action]
 enthusiasmActions gestures i here j there =
    fromMaybe (Gesture targetDir friendlyGesture : map (Give targetDir) items)
@@ -60,8 +66,14 @@ approachDistantActions gestures i here j there
       targetDir = angleToDirection (angle i j)
       distant = dist i j > 1
 
-fearActions :: [Action]
-fearActions = undefined
+-- |Selects fear-actions for a given cell.
+--
+--  Fear always induces flight, so the agent will always try to maximise the distance
+--  from the given cell.
+fearActions :: ActionSelector [Action]
+fearActions _ i here j there = [Move awayDir]
+   where
+      awayDir = changeMod (+2) $ angleToDirection (angle i j)
 
 -- |Actions associated with contentment.
 contentmentActions :: ActionSelector [Action]
