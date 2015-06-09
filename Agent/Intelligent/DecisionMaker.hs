@@ -18,8 +18,29 @@ type ActionSelector a =
    -> a
 
 -- |Makes a decision based on the affective evaluation of the world.
+--  Chooses a next planned step and inserts the corresponding memory and
+--  imaginary 'AMPlannedAction' into the message space.
 makeDecision :: AgentComponent IO
-makeDecision = undefined
+makeDecision = todo "makeDecision"
+   -- if any emotion goes beyond a certain level (probabilistically), execute its action
+   -- immediately (exists c : cell(s); sort by cell
+
+
+-- |Inspects the most recent memory affectively and does one three, depending on the
+--  results:
+--
+--  * if the most recent memory is deemed 'good enough' __TODO: what does 'good' mean?___,
+--    the agent approves of the plan, inserting a __real__ 'AMPlannedAction' into message
+--    space (the first step of the plan).
+--  * if the most recent memory is deemed 'too bad', the last memory and 'AMPlannedAction'
+--    are deleted.
+--  * otherwise, the agent state is left unchanged.
+evaluatePlan :: AgentComponent IO
+evaluatePlan = todo "evaluatePlan"
+   -- possible solution: AMPlanDirection EmotionName, so that 'good' means 'the planned emotion'
+   -- is strongle evoked' and 'bad' means 'an opposite emotion is evoked'?
+   -- what does 'opposite' mean? (/=)/'different axis'/'different valence'?
+
 
 -- |Selects anger-actions for a given cell.
 --  The selected action depends on the cell:
@@ -45,6 +66,8 @@ angerAction gestures i here j there =
 --  * If the other agent is just distant (i.e. Euclidean distance > 1), the agent moves towards it.
 --  * If the other agent is adjacent (Euclidean distance = 1), the agent either sends
 --    its hostile gesture at (Sympathy, Positive), or it gives an item (fruit/meat/gold).
+--  * If there's a plant on the target cell, harvest the fruit.
+--  * If there's an item on the target cell, pick it up.
 enthusiasmActions :: ActionSelector [Action]
 enthusiasmActions gestures i here j there =
    fromMaybe (Gesture targetDir friendlyGesture : map (Give targetDir) items)
