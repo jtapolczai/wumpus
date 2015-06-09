@@ -16,6 +16,7 @@ import Data.Maybe
 import Data.Monoid (First(..))
 import Data.Ord
 import qualified Data.Tree as T
+import System.Random (randomRIO)
 
 import Types
 
@@ -135,3 +136,8 @@ hasMemNode (MemoryIndex []) _ = True
 hasMemNode (MemoryIndex (x:xs)) (T.Node t ts)
   | length ts > x = hasMemNode (MemoryIndex xs) (ts !! x)
   | otherwise     = False
+
+
+-- |Randomly and uniformly chooses an element from a list.
+choose :: [a] -> IO a
+choose xs = randomRIO (0, length xs - 1) >$> (xs !!)
