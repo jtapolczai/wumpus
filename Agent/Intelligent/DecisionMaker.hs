@@ -5,6 +5,9 @@ import qualified Data.Map as M
 
 import Data.Maybe
 
+import Agent.Intelligent.Affect
+import Agent.Intelligent.Memory
+import Agent.Intelligent.Utils
 import Types
 import World.Utils
 
@@ -36,7 +39,18 @@ makeDecision = todo "makeDecision"
 --    are deleted.
 --  * otherwise, the agent state is left unchanged.
 evaluatePlan :: AgentComponent IO
-evaluatePlan = todo "evaluatePlan"
+evaluatePlan as = todo "evaluatePlan"
+   where
+      lastMemory = as ^. memory . memInd (leftMemIndex as)
+      planEmotion = firstWhere _AMPlanEmotion (as ^. messageSpace)
+
+
+      
+      -- bad : approach/avoidance mismatch
+      -- positive/negative is ok?
+
+
+
    -- possible solution: AMPlanDirection EmotionName, so that 'good' means 'the planned emotion'
    -- is strongle evoked' and 'bad' means 'an opposite emotion is evoked'?
    -- what does 'opposite' mean? (/=)/'different axis'/'different valence'?

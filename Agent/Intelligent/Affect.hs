@@ -23,7 +23,7 @@ import World.Utils
 --  fed into the emotional system. The message space is left unchanged.
 sjsComponent :: Monad m => AgentComponent m
 sjsComponent as = return $ foldr (uncurry
-                                  $ sjs_entity_emotion
+                                  $ sjsEntityEmotion
                                   $ map snd
                                   $ as ^. messageSpace)
                                  as emotions
@@ -55,43 +55,69 @@ constructAgentName = ($ (Nothing, False)) . foldl' addNameInfo id
 
 -- |Modulates an agent's social emotional state regarding another agent
 --  based on stimuli.
-sjs_entity_emotion :: [AgentMessage]
-                   -> EntityName
-                   -> SocialEmotionName
-                   -> AgentState
-                   -> AgentState
-sjs_entity_emotion ms other emo as = as & sjs . ix other . ix emo .~ (new_lvl, filt)
+sjsEntityEmotion :: [AgentMessage]
+                 -> EntityName
+                 -> SocialEmotionName
+                 -> AgentState
+                 -> AgentState
+sjsEntityEmotion ms other emo as = as & sjs . ix other . ix emo .~ (new_lvl, filt)
    where
       (lvl, filt) = as ^. sjs . at other . to fromJust . at emo . to fromJust
-      val = emotion_value ms filt
+      val = emotionValue ms filt
 
       new_lvl = avg [lvl, val]
 
 -- |Modulates an agent's emotional state based on stimuli.
 --  No new messages are inserted.
 psbcComponent :: Monad m => AgentState -> m AgentState
-psbcComponent as = return $ foldr (psbc_emotion
+psbcComponent as = return $ foldr (psbcEmotion
                                    $ map snd
                                    $ as ^. messageSpace)
                                   as [minBound..maxBound]
 
 -- |Updates one emotion based on messages.
-psbc_emotion :: [AgentMessage]
-             -> EmotionName
-             -> AgentState
-             -> AgentState
-psbc_emotion ms emo as = as & psbc . ix emo .~ (new_lvl , filt)
+psbcEmotion :: [AgentMessage]
+            -> EmotionName
+            -> AgentState
+            -> AgentState
+psbcEmotion ms emo as = as & psbc . ix emo .~ (new_lvl , filt)
    where
       (lvl, filt) = as ^. psbc . at emo . to fromJust
-      val = emotion_value ms filt
+      val = emotionValue ms filt
 
       new_lvl = avg [lvl, val]
 
 -- |Runs a stimulus through a filter and gets the resultant emotional response.
-emotion_value :: [AgentMessage]
-              -> Filter AgentMessage
-              -> Rational -- ^The strength of the emotional response (-1 to 1).
-emotion_value ms filt = fromIntegral (runFilter ms limit filt) % sig
+emotionValue :: [AgentMessage]
+             -> Filter AgentMessage
+             -> Rational -- ^The strength of the emotional response (-1 to 1).
+emotionValue ms filt = fromIntegral (runFilter ms limit filt) % sig
    where
       limit = cAGENT_FILTER_ROUNDS
       sig = cAGENT_FILTER_MAX_SIGNIFICANCE
+
+-- |Returns whether the second emotion is stronger, provided that the two
+--  conflict along the approach/avoidance, axis. If they don't conflict, the returns False.
+isEmotionOverruled :: EmotionName -> Rational -> EmotionName -> Rational -> Bool
+isEmotionOverruled this thisV that thatV
+   | isApproachRelated this == isApproachRelated that = False
+   | otherwise = thatV > thisV
+
+-- |Returns True iff the emotion is Anger or Enthusiasm.
+isApproachRelated :: EmotionName -> Bool
+isApproachRelated Anger = True
+isApproachRelated Enthusiasm = True
+isApproachRelated _ = False
+
+-- |Opposite of 'isApproachRelated'.
+isAvoidanceRelated :: EmotionName -> Bool
+isAvoidanceRelated = not . isApproachRelated
+
+-- |Returns True iff the emotion is Enthusiasm or Contentment.
+isPositive :: EmotionName -> Bool
+isPositive Enthusiasm = True
+isPositive Contentment = True
+
+-- |Opposite of 'isNegative'
+isNegative :: EmotionName -> Bool
+isNegative = not . isPositive
