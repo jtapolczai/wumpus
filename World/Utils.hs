@@ -234,3 +234,9 @@ makeEntityIndex = M.foldrWithKey
    (\k cd -> if isJust (cd ^? entity)
              then M.insert (cd ^. ju entity . name) k
              else id) M.empty
+
+-- |Gets a given entity's name and location, if it exists. Partial.
+getEntity :: EntityName -> World -> (CellInd, CellData)
+getEntity en = head . M.toList . M.filter f . (^. cellData)
+  where
+    f c = maybe False (en ==) (c ^? entity . _Just . name)
