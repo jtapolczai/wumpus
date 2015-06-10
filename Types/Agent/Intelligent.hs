@@ -86,8 +86,10 @@ data AgentMessage =
    | AMLostMeat
    | AMLostFruit
    | AMLostGold
-   -- |Planning
+   -- |A planned action.
    | AMPlannedAction Action MemoryIndex
+   -- |The emotion that dominates the current plan.
+   | AMPlanEmotion EmotionName
    deriving (Show, Eq, Ord)
 
 newtype MemoryIndex = MemoryIndex [Int]
