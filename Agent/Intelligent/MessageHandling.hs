@@ -37,3 +37,10 @@ callComponents comps initAs = putMsg <$> foldM f (initAs, mempty) comps
                  newAs ^. newMessages ++ ms)
 
 
+-- |Prepends a message to the new messages of an agent.
+addMessage :: AgentMessage' -> AgentState -> AgentState
+addMessage m = newMessages %~ (m:)
+
+-- |Prepends (by concatenation) a list of messages to the new messages of an agent.
+addMessages :: [AgentMessage'] -> AgentState -> AgentState
+addMessages ms = newMessages %~ (ms++)
