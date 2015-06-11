@@ -12,6 +12,7 @@ module Types (
    module Types.Agent.Dummy,
    module Types.Agent.Intelligent,
    module Types.Agent.Intelligent.Filter,
+   module Types.Agent.Omni,
    module Types.Castable,
    module Types,
    ) where
@@ -27,6 +28,7 @@ import Types.World
 import Types.Agent.Dummy
 import Types.Agent.Intelligent
 import Types.Agent.Intelligent.Filter
+import Types.Agent.Omni
 
 todo :: String -> a
 todo = error . (++) "TODO: implement "
@@ -59,6 +61,7 @@ makePrisms ''Entity
 makeFields ''AgentState
 makePrisms ''AgentMessage
 makeFields ''DummyMind
+makeFields ''OmniMind
 
 memInd :: MemoryIndex -> Lens' (T.Tree a) a
 memInd i = lens (get i) (set i)

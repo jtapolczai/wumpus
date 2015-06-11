@@ -38,6 +38,7 @@ import Math.Geometry.Grid.Square (UnboundedSquareGrid(..))
 import Agent.Dummy
 import Agent.Wumpus
 import Agent.Intelligent.Utils
+import Agent.Omni
 import Types
 import World
 import World.Utils
@@ -77,9 +78,10 @@ reconstructWorld' myAct world mi as =
       mkCell :: CellInd -> VisualCellData -> CellData
       mkCell i c = reconstructCell (reconstructAgent aMind wMind) c
          where
+            -- to ourselves, we give an OmniMind, to all others DummyMinds.
             aMind = if fromMaybe False (do ent <- c ^. entity
                                            return $ as ^. name == ent ^. name)
-                    then agentDummyMind myAct else agentDummyMind NoOp
+                    then SM $ OmniMind myAct [] else agentDummyMind NoOp
             wMind = case world of Nothing -> wumpusDummyMind
                                   Just w' -> wumpusRealMind w' i
 
