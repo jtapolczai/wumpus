@@ -1,7 +1,6 @@
 module Types.Agent.Intelligent where
 
 import qualified Data.Map as M
-import Data.Monoid
 import qualified Data.Tree as T
 
 import Types.World

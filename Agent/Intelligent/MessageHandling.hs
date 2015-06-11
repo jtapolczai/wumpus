@@ -6,8 +6,6 @@ module Agent.Intelligent.MessageHandling where
 
 import Control.Lens
 import Control.Monad
-import Data.Functor
-import Data.Monoid
 
 import Types
 

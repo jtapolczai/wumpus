@@ -119,6 +119,7 @@ isAvoidanceRelated = not . isApproachRelated
 isPositive :: EmotionName -> Bool
 isPositive Enthusiasm = True
 isPositive Contentment = True
+isPositive _ = False
 
 -- |Opposite of 'isNegative'
 isNegative :: EmotionName -> Bool

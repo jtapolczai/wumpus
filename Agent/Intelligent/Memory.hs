@@ -18,6 +18,8 @@ module Agent.Intelligent.Memory (
    reconstructWorld',
    reconstructAgent,
    reconstructCell,
+   -- * Getting perceptions from the reconstructed world
+   getMyPerceptions,
    -- * Helpers
    leftMemIndex,
    -- ** Minds
@@ -27,18 +29,16 @@ module Agent.Intelligent.Memory (
    ) where
 
 import Control.Lens
-import Data.Functor.Monadic
 import Data.List
 import qualified Data.Map as M
 import Data.Maybe
-import Data.Monoid
 import qualified Data.Tree as T
 import Math.Geometry.Grid.Square (UnboundedSquareGrid(..))
 
 import Agent.Dummy
 import Agent.Wumpus
 import Agent.Intelligent.Utils
-import Agent.Omni
+import Agent.Omni()
 import Types
 import World
 import World.Utils

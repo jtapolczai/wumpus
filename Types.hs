@@ -17,10 +17,8 @@ module Types (
    module Types,
    ) where
 
-import Control.Applicative
 import Control.Lens
 import Data.Maybe
-import Data.Monoid
 import qualified Data.Tree as T
 
 import Types.Castable

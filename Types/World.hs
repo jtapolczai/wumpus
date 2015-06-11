@@ -21,6 +21,7 @@ instance Enum SquareDirection where
    toEnum 1 = East
    toEnum 2 = South
    toEnum 3 = West
+   toEnum n = error $ "toEnum (SquareDirection) with invalid value " ++ show n
 
    fromEnum North = 0
    fromEnum East = 1

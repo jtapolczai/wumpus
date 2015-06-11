@@ -89,6 +89,7 @@ readWorld dir = do
 
    where
       addEntity' a k v (t, (n:ns)) = (t & ix k %~ addEntity a n k v, ns)
+      addEntity' _ _ _ _ = error "addEntity' called with empty list!"
 
       readAgent' :: Show a => a -> IO (Maybe (a, Agent s))
       readAgent' i = readAgent (dir ++ "/agent" ++ show i ++ ".txt") >$> (>$> (i,))
@@ -113,14 +114,7 @@ readBitmap :: String -> IO [((Int,Int),Pixel)]
 readBitmap = readBMP >=> (return.toArr.fromRight)
    where
       fromRight (Right r) = r
-
-      height (InfoV5 i) = dib3Height $ dib4InfoV3 $ dib5InfoV4 i
-      height (InfoV4 i) = dib3Height $ dib4InfoV3 i
-      height (InfoV3 i) = dib3Height i
-
-      width (InfoV5 i) = dib3Width $ dib4InfoV3 $ dib5InfoV4 i
-      width (InfoV4 i) = dib3Width $ dib4InfoV3 i
-      width (InfoV3 i) = dib3Width i
+      fromRight _ = error "readBitmap.fromRight called with Left!"
 
       toArr b = pixels 0 (w*h) (unpackBMPToRGBA32 b)
          where

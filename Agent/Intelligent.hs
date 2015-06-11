@@ -6,10 +6,8 @@
 module Agent.Intelligent where
 
 import Control.Lens
-import Data.Default
 import Data.Maybe
 
-import Agent.Dummy
 import Agent.Intelligent.Affect
 import Agent.Intelligent.BeliefGenerator
 import Agent.Intelligent.DecisionMaker

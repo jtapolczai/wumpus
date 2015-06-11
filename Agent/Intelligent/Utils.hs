@@ -129,7 +129,7 @@ addMemNode (MemoryIndex (x:xs)) m (T.Node t ts) =
 
 hasMemNode :: MemoryIndex -> T.Tree a -> Bool
 hasMemNode (MemoryIndex []) _ = True
-hasMemNode (MemoryIndex (x:xs)) (T.Node t ts)
+hasMemNode (MemoryIndex (x:xs)) (T.Node _ ts)
   | length ts > x = hasMemNode (MemoryIndex xs) (ts !! x)
   | otherwise     = False
 

@@ -71,10 +71,7 @@ worldAgents :: World -> [(CellInd, Entity')]
 worldAgents world = uncurry (++)
                     $ partition (^. to snd . to isWumpus)
                     $ mapMaybe (\(i,c) -> (c ^. entity) >$> (i,))
-                    $ cells
-   where
-      hasEntity = not . flip cellEntity world
-      cells = world ^. cellData . to M.assocs
+                    $ world ^. cellData . to M.assocs
 
 
 -- |Gets the actopm am entity wishes to perform and does it in the world.
@@ -114,7 +111,6 @@ doAction i (Give dir item) world = doIf (cellHas (^. entity . to (maybe False is
    where
       j = inDirection i dir
       me = agentAt i world
-      other = agentAt j world
 
       qty :: Int
       qty = me ^. inventory . at item . to (maybe 0 (min 1))

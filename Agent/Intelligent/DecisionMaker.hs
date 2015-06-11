@@ -1,7 +1,6 @@
 module Agent.Intelligent.DecisionMaker where
 
 import Control.Lens
-import qualified Data.Map as M
 
 import Data.Maybe
 
@@ -41,8 +40,9 @@ makeDecision = todo "makeDecision"
 evaluatePlan :: AgentComponent IO
 evaluatePlan as = todo "evaluatePlan"
    where
-      lastMemory = as ^. memory . memInd (leftMemIndex as)
       planEmotion = firstWhere _AMPlanEmotion (as ^. messageSpace)
+
+      world = reconstructWorld NoOp (leftMemIndex as) as
 
 
       

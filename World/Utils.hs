@@ -10,7 +10,6 @@ import Control.Lens
 import Control.Monad (guard)
 import qualified Data.Map as M
 import Data.Maybe
-import Data.Monoid (Monoid(..))
 import Data.Ratio
 import Math.Geometry.Grid hiding (null)
 import Math.Geometry.Grid.Square
@@ -38,13 +37,13 @@ cellHas p i world = world ^. cellData . at i . to (maybe False p)
 
 -- |Gets a light value from 0 to 4, depending on the time.
 light :: Int -> Int
-light t | 20 <= t'         = 0
-        | between t' 15 20 = 1
-        | between t' 10 15 = 2
-        | between t'  5 10 = 3
-        | t' < 5           = 4
+light t | 20 <= t'             = 0
+        | t' `between` (15,20) = 1
+        | t' `between` (10,15) = 2
+        | t' `between` (5,10)  = 3
+        | otherwise            = 4
    where t' = abs (t - 25)
-         between n l u = l <= n && n < u
+         between n (l, u) = l <= n && n < u
 
 -- |Converts a time into a temperature.
 light' :: Int -> Temperature
