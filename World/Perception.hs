@@ -2,6 +2,7 @@ module World.Perception where
 
 import Control.Lens
 import Math.Geometry.Grid.SquareInternal(SquareDirection(..))
+import qualified Data.Map as M
 import Data.Ratio
 
 import Types
@@ -22,6 +23,25 @@ getLocalPerceptions world i d = local : global : location : visual
       location = PositionPerception i
       visual = map visualData $ verticesInSightCone world i d
       visualData j = VisualPerception j $ cast $ cellAt j world
+
+-- |Gets the perceptions to which an all-seeing agent is entitled (i.e. if an agent
+--  had a 360° degree sight cone of infinite extent that went through walls and could
+--  perceive stench/breeze everywhere.
+getGlobalPerceptions :: World
+                     -> CellInd
+                     -> [Message]
+getGlobalPerceptions world i = global : location : cells
+  where
+    cells = map cellPerception $ world ^. cellData . to M.keys
+    cellPerception j = VisualPerception j $ cast' $ cellAt j world
+    global = GlobalPerception $ world ^. worldData
+    location = PositionPerception i
+
+    -- standard cast, but stench and breeze are also set.
+    cast' :: CellData -> VisualCellData
+    cast' c = (cast c) & breeze ?~ (c ^. breeze)
+                       & stench ?~ (c ^. stench)
+
 
 -- |Returns all the cells in an agent's sight cone.
 --  To be in an agent's sight cone, a cell has to fulfil three criteria:
