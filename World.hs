@@ -52,17 +52,17 @@ simulateStep world = (worldData %~ advanceGlobalData)
       -- its action. We also update the wumpus stench to have accurate stench
       -- information.
       updateAgent world ent = wumpusStench <$> doEntityAction world' ent
-         where world' = giveEntityPerceptions world ent
+         where world' = giveEntityPerceptions world (fst ent)
 
       -- perform local changes to agents/plants
       advanceLocalData = increaseFatigue . increaseHunger . regrowPlants
 
--- |Gives an entits its perceptions based on the current world, and updates
+-- |Gives an entity its perceptions based on the current world, and updates
 --  the world accordingly.
 giveEntityPerceptions :: World
-                      -> (CellInd, Entity')
+                      -> CellInd
                       -> World
-giveEntityPerceptions world (i, _) =
+giveEntityPerceptions world i =
    world & cellData . ix i . entity %~ fmap (state %~ pullMessages world i)
 
 -- |Gets all agents and Wumpuses in the worlds.

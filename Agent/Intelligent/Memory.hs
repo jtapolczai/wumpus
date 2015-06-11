@@ -39,6 +39,7 @@ import Agent.Dummy
 import Agent.Wumpus
 import Agent.Intelligent.Utils
 import Types
+import World
 import World.Utils
 
 -- |Takes the agent's memory (and current messages about global data) and
@@ -93,6 +94,12 @@ reconstructWorld :: Action -> MemoryIndex -> AgentState -> World
 reconstructWorld act mi as = reconstructWorld' act (Just dummyWorld) mi as
    where
       dummyWorld = reconstructWorld' NoOp Nothing mi as
+
+-- |Takes the perceptions given to a specific entity.
+getMyPerceptions :: EntityName -> World -> [Message]
+getMyPerceptions en w = cd ^. ju entity . state . to readMessageSpace
+  where
+    (_, cd) = getEntity en $ giveEntityPerceptions w (fst $ getEntity en w)
 
 -- |Reads out relevant messages from a message space and writes information
 --  about the world into the agent state. This resets the agent's memory tree

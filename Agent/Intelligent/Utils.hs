@@ -20,10 +20,6 @@ import System.Random (randomRIO)
 
 import Types
 
--- |Inserts messages into an agent's message space.
-addMessages :: [AgentMessage'] -> AgentState -> AgentState
-addMessages ms = messageSpace %~ (++ms)
-
 -- |Returns the messages that have the correct constructor, sorted by counter
 --  value.
 msgWhere :: Prism' AgentMessage a

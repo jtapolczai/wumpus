@@ -13,6 +13,7 @@ import Data.Maybe
 import Data.Ratio
 
 import Agent.Intelligent.Filter
+import Agent.Intelligent.MessageHandling
 import Agent.Intelligent.Utils
 import Types
 import World.Constants
@@ -68,12 +69,13 @@ sjsEntityEmotion ms other emo as = as & sjs . ix other . ix emo .~ (new_lvl, fil
       new_lvl = avg [lvl, val]
 
 -- |Modulates an agent's emotional state based on stimuli.
---  No new messages are inserted.
+--  Messages about the four new emotional states are inserted.
 psbcComponent :: Monad m => AgentState -> m AgentState
-psbcComponent as = return $ foldr (psbcEmotion
-                                   $ map snd
-                                   $ as ^. messageSpace)
-                                  as [minBound..maxBound]
+psbcComponent as = return $
+   foldr (\en as' -> addEmotionMessage en $ psbcEmotion msg en as') as [minBound..maxBound]
+   where
+      msg = map snd $ as ^. messageSpace
+      addEmotionMessage en as' = addMessage (False, emotionMessage en (as' ^. psbc . at' en . _1)) as'
 
 -- |Updates one emotion based on messages.
 psbcEmotion :: [AgentMessage]
@@ -121,3 +123,10 @@ isPositive Contentment = True
 -- |Opposite of 'isNegative'
 isNegative :: EmotionName -> Bool
 isNegative = not . isPositive
+
+-- |Gets the AgentMessage corresponding to an emotion.
+emotionMessage :: EmotionName -> Rational -> AgentMessage
+emotionMessage Anger = AMEmotionAnger
+emotionMessage Fear = AMEmotionFear
+emotionMessage Enthusiasm = AMEmotionEnthusiasm
+emotionMessage Contentment = AMEmotionContentment
