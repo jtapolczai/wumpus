@@ -24,6 +24,12 @@ type ActionSelector a =
 --  imaginary 'AMPlannedAction' into the message space.
 makeDecision :: AgentComponent IO
 makeDecision = todo "makeDecision"
+   --if there's no planned action => choose an initial one based on the strongest
+   --emotion (global?)
+
+   --if there's one => evaluate plan and abort/continue/OK
+
+
    -- if any emotion goes beyond a certain level (probabilistically), execute its action
    -- immediately (exists c : cell(s); sort by cell
 
@@ -44,11 +50,24 @@ evaluatePlan as = todo "evaluatePlan"
 
       world = reconstructWorld NoOp (leftMemIndex as) as
 
+      cellMessages = ...
+
+      cellEmtoions c = mkMap (\e -> ) [minBound..maxBound]
+
+      cellEmotions ::
+      cellEmotions = mkMap (\c -> mkMap [minBound...maxBound])
 
       
       -- bad : approach/avoidance mismatch
       -- positive/negative is ok?
 
+-- |Performs affective evaluation separately on every cell.
+evaluateCells :: AgentState -> M.Map CellInd (M.Map EmotionName Rational)
+evaluateCells as =
+   where
+      cells = ...
+
+ 
 
 
    -- possible solution: AMPlanDirection EmotionName, so that 'good' means 'the planned emotion'
