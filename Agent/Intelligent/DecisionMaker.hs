@@ -27,21 +27,30 @@ type ActionSelector a =
 --  Chooses a next planned step and inserts the corresponding memory and
 --  imaginary 'AMPlannedAction' into the message space.
 
-{-
-makeDecision :: AgentComponent IO
-makeDecision as = if null plannActions then
-      do act <- emotionAction dominantEmotion (as ^. gestures)
-                                              (as ^. ???here???)
-                                              (as ^. ???hereData???)
-                                              (as ^. ???there???) <- need evaluateCells
-                                              (as ^. ???thereData???)
 
-      as ^. newMessages +
+makeDecision :: AgentComponent IO
+makeDecision as =
+   -- if there's no plan, start one.
+   if null plannedActions then
+         -- randomly choose an emotion-appropriate action
+      do act <- choose $ emotionAction dominantEmotion
+                                       (as ^. gestures)
+                                       (myPosition $ as ^. messageSpace)
+                                       (strongestEmotionCell dominantEmotion as)
+         -- insert it as a planned action
+         let newMsg = isImag [AMPlannedAction act (MemoryIndex [0,0]),
+                              AMPlanEmotion dominantEmotion]
+
+         return $ as & newMessages %~ (newMsg++)
+   -- if there is one, continue/abandon/OK the plan
    else
       todo "makeDecision"
+
+
    where
       dominantEmotion :: EmotionName
-      (dominantEmotion, _) = head . sortBy (flip $ comparing $ fst . snd) . M.toList $ as ^. psbc
+      (dominantEmotion, (dominantEmotionLevel,_)) =
+         head . sortBy (flip $ comparing $ fst . snd) . M.toList $ as ^. psbc
 
       plannedActions = as ^. messageSpace . to (msgWhere _AMPlannedAction)
 
@@ -50,10 +59,15 @@ makeDecision as = if null plannActions then
       strongEnough :: Rational -> Bool
       strongEnough = (>0.5)
 
-      isImaginary = if strongEnough dominantEmotion then True else False
--}
+      isImag = map $ if strongEnough dominantEmotionLevel then (True,) else (False,)
 
 
+
+-- |Gets the cell that evokes the highest value for a given emotion.
+strongestEmotionCell :: EmotionName -> AgentState-> CellInd
+strongestEmotionCell en = fst . head . sortBy (flip $ comparing f) . M.toList . evaluateCells
+   where
+      f = view (at' en) . snd
 
    --if there's no planned action => choose an initial one based on the strongest
    --emotion (global?)
