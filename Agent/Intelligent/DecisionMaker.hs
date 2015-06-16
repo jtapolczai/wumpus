@@ -20,14 +20,13 @@ import World.Utils
 type ActionSelector a =
    GestureStorage -- ^The agent's gesture storage.
    -> CellInd -- ^The agent's current position.
-   -> CellData -- ^The agent's cell data.
    -> CellInd -- ^The target cell's position
-   -> CellData -- ^The target cell's data.
    -> a
 
 -- |Makes a decision based on the affective evaluation of the world.
 --  Chooses a next planned step and inserts the corresponding memory and
 --  imaginary 'AMPlannedAction' into the message space.
+
 {-
 makeDecision :: AgentComponent IO
 makeDecision as = if null plannActions then
@@ -53,6 +52,8 @@ makeDecision as = if null plannActions then
 
       isImaginary = if strongEnough dominantEmotion then True else False
 -}
+
+
 
    --if there's no planned action => choose an initial one based on the strongest
    --emotion (global?)
@@ -131,9 +132,9 @@ emotionAction Contentment = contentmentActions
 --  * If the other agent is adjacent (Euclidean distance = 1), the agent either sends
 --    its hostile gesture at (Sympathy, Negative), or it attacks.
 angerActions :: ActionSelector [Action]
-angerActions gestures i here j there =
+angerActions gestures i j =
    fromMaybe [Gesture targetDir hostileGesture, Attack targetDir]
-             (approachDistantActions gestures i here j there)
+             (approachDistantActions gestures i j)
    where
       targetDir = angleToDirection (angle i j)
       hostileGesture = gestures ^. at' (Sympathy, Negative)
@@ -149,9 +150,9 @@ angerActions gestures i here j there =
 --  * If there's a plant on the target cell, harvest the fruit.
 --  * If there's an item on the target cell, pick it up.
 enthusiasmActions :: ActionSelector [Action]
-enthusiasmActions gestures i here j there =
+enthusiasmActions gestures i j =
    fromMaybe (Gesture targetDir friendlyGesture : map (Give targetDir) items)
-             (approachDistantActions gestures i here j there)
+             (approachDistantActions gestures i j)
    where
       targetDir = angleToDirection (angle i j)
       friendlyGesture = gestures ^. at' (Sympathy, Positive)
@@ -160,7 +161,7 @@ enthusiasmActions gestures i here j there =
 -- |Generic approach-related actions for distant targets.
 --  If the target is still distant a 'Just' will be returned, otherwise Nothing.
 approachDistantActions :: ActionSelector (Maybe [Action])
-approachDistantActions gestures i here j there
+approachDistantActions gestures i j
       | not withinView && distant = Just [Rotate targetDir]
       | distant                   = Just [Move targetDir]
       | otherwise                 = Nothing
@@ -174,10 +175,10 @@ approachDistantActions gestures i here j there
 --  Fear always induces flight, so the agent will always try to maximise the distance
 --  from the given cell.
 fearActions :: ActionSelector [Action]
-fearActions _ i here j there = [Move awayDir]
+fearActions _ i j = [Move awayDir]
    where
       awayDir = changeMod (+2) $ angleToDirection (angle i j)
 
 -- |Actions associated with contentment.
 contentmentActions :: ActionSelector [Action]
-contentmentActions _ _ _ _ _ = [NoOp]
+contentmentActions _ _ _ = [NoOp]
