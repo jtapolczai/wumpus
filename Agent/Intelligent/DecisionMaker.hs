@@ -1,8 +1,14 @@
+{-# LANGUAGE TupleSections #-}
+
 module Agent.Intelligent.DecisionMaker where
 
 import Control.Lens
 
+import Data.Functor.Monadic
+import Data.List
+import qualified Data.Map as M
 import Data.Maybe
+import Data.Ord
 
 import Agent.Intelligent.Affect
 import Agent.Intelligent.Memory
@@ -22,8 +28,32 @@ type ActionSelector a =
 -- |Makes a decision based on the affective evaluation of the world.
 --  Chooses a next planned step and inserts the corresponding memory and
 --  imaginary 'AMPlannedAction' into the message space.
+{-
 makeDecision :: AgentComponent IO
-makeDecision = todo "makeDecision"
+makeDecision as = if null plannActions then
+      do act <- emotionAction dominantEmotion (as ^. gestures)
+                                              (as ^. ???here???)
+                                              (as ^. ???hereData???)
+                                              (as ^. ???there???) <- need evaluateCells
+                                              (as ^. ???thereData???)
+
+      as ^. newMessages +
+   else
+      todo "makeDecision"
+   where
+      dominantEmotion :: EmotionName
+      (dominantEmotion, _) = head . sortBy (flip $ comparing $ fst . snd) . M.toList $ as ^. psbc
+
+      plannedActions = as ^. messageSpace . to (msgWhere _AMPlannedAction)
+
+      -- |Returns whether an emotion is strong enough to lead to an immediate choice
+      --  (instead of planning).
+      strongEnough :: Rational -> Bool
+      strongEnough = (>0.5)
+
+      isImaginary = if strongEnough dominantEmotion then True else False
+-}
+
    --if there's no planned action => choose an initial one based on the strongest
    --emotion (global?)
 
@@ -46,16 +76,16 @@ makeDecision = todo "makeDecision"
 evaluatePlan :: AgentComponent IO
 evaluatePlan as = todo "evaluatePlan"
    where
-      planEmotion = firstWhere _AMPlanEmotion (as ^. messageSpace)
+      --planEmotion = firstWhere _AMPlanEmotion (as ^. messageSpace)
 
-      world = reconstructWorld NoOp (leftMemIndex as) as
+      --world = reconstructWorld NoOp (leftMemIndex as) as
 
-      cellMessages = ...
+      --cellMessages = ...
 
-      cellEmtoions c = mkMap (\e -> ) [minBound..maxBound]
+      --cellEmtoions c = mkMap (\e -> ) [minBound..maxBound]
 
-      cellEmotions ::
-      cellEmotions = mkMap (\c -> mkMap [minBound...maxBound])
+      --cellEmotions ::
+      --cellEmotions = mkMap (\c -> mkMap [minBound...maxBound])
 
       
       -- bad : approach/avoidance mismatch
@@ -63,16 +93,33 @@ evaluatePlan as = todo "evaluatePlan"
 
 -- |Performs affective evaluation separately on every cell.
 evaluateCells :: AgentState -> M.Map CellInd (M.Map EmotionName Rational)
-evaluateCells as =
+evaluateCells as = fmap evaluateCell cells
    where
-      cells = ...
+      ms = as ^. messageSpace
 
- 
+      myPos = myPosition ms
+
+      -- |Messages relating to given cells (plus global data which applies everywhere).
+      cells :: M.Map CellInd [AgentMessage']
+      cells = fmap (++globalData) $ fst $ sortByInd myPos ms
+
+      globalData :: [AgentMessage']
+      globalData = mapMaybe (\(i,m) -> sieveGlobalMessage m >$> (i,)) ms
+
+      evaluateCell :: [AgentMessage'] -> M.Map EmotionName Rational
+      evaluateCell ms' = fmap (emotionValue (map snd ms')) $ as ^. psbc . to (fmap snd)
 
 
    -- possible solution: AMPlanDirection EmotionName, so that 'good' means 'the planned emotion'
    -- is strongle evoked' and 'bad' means 'an opposite emotion is evoked'?
    -- what does 'opposite' mean? (/=)/'different axis'/'different valence'?
+
+-- |Gets an ActionSelector associated with an emotion.
+emotionAction :: EmotionName -> ActionSelector [Action]
+emotionAction Anger = angerActions
+emotionAction Fear = fearActions
+emotionAction Enthusiasm = enthusiasmActions
+emotionAction Contentment = contentmentActions
 
 
 -- |Selects anger-actions for a given cell.
@@ -83,8 +130,8 @@ evaluateCells as =
 --  * If the other agent is just distant (i.e. Euclidean distance > 1), the agent moves towards it.
 --  * If the other agent is adjacent (Euclidean distance = 1), the agent either sends
 --    its hostile gesture at (Sympathy, Negative), or it attacks.
-angerAction :: ActionSelector [Action]
-angerAction gestures i here j there =
+angerActions :: ActionSelector [Action]
+angerActions gestures i here j there =
    fromMaybe [Gesture targetDir hostileGesture, Attack targetDir]
              (approachDistantActions gestures i here j there)
    where
