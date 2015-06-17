@@ -28,8 +28,8 @@ type ActionSelector a =
 --  imaginary 'AMPlannedAction' into the message space.
 
 
-makeDecision :: AgentComponent IO
-makeDecision as =
+decisionMakerComponent :: AgentComponent IO
+decisionMakerComponent as =
    -- if there's no plan, start one.
    if null plannedActions then
          -- randomly choose an emotion-appropriate action
