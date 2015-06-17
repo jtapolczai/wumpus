@@ -6,6 +6,7 @@
 module Agent.Intelligent where
 
 import Control.Lens
+import qualified Data.List.Safe as LS
 import Data.Maybe
 
 import Agent.Intelligent.Affect
@@ -30,10 +31,23 @@ instance AgentMind AgentState where
    receiveMessage msg a = a & messageSpace %~ (msg'++)
       where msg' = zip (repeat False) (perception msg)
 
-   -- todo: agents should clear out their message space upon delivering an
-   -- action (since we don't need messages from past time points)
-   getAction a = todo "AgentState/getAction"
+   getAction = getAction'
+
+getAction' :: AgentState -> IO (Action, AgentState)
+getAction' as = do action <- loop action (callComponents components) as
+                   return (action, as & messageSpace .~ [])
+   where
+      loop :: Monad m => (a -> Maybe b) -> (a -> m a) -> a -> m b
+      loop test f x = maybe (f x >>= loop test f) return (test x)
+
+      action :: AgentState -> Maybe Action
+      action = fmap (fst.snd) . LS.head . filter fst . msgWhere _AMPlannedAction . view messageSpace
+
+      components = [psbcComponent,
+                    sjsComponent, 
+                    memoryComponent,
+                    decisionMakerComponent,
+                    beliefGeneratorComponent]
 
 --instance Default AgentState where
 --   def = todo "AgentState/def"
-
