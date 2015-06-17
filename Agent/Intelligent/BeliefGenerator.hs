@@ -17,6 +17,8 @@ import Agent.Intelligent.Utils
 import Types
 import World
 
+beliefGeneratorComponent = todo "beliefGeneratorComponent"
+
 -- |Performs a hypothetical action and gets the consequences, in message-form.
 --  Note that these resultant messages shouldn't be inserted directly into
 --  the agent's message space, but should be marked as imaginary (unless you

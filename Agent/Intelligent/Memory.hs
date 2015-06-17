@@ -5,6 +5,8 @@
 {-# LANGUAGE LambdaCase #-}
 
 module Agent.Intelligent.Memory (
+   -- * Main component
+   memoryComponent,
    -- * Turning messages into memories
    resetMemory,
    constructMemory,
@@ -42,6 +44,11 @@ import Agent.Omni()
 import Types
 import World
 import World.Utils
+
+-- |Resets the memory tree of an agent and constructs a new root
+--  node from the agent's message space.
+memoryComponent :: Monad m => AgentComponent m
+memoryComponent as = return $ resetMemory as (as ^. messageSpace)
 
 -- |Takes the agent's memory (and current messages about global data) and
 --  constructs a world from it.
