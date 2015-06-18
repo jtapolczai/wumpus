@@ -2,6 +2,8 @@
 --  agent's personality.
 module Agent.Intelligent.Affect.Fragments where
 
+import Types
+
 -- |Returns the personality fragment belonging to an emotion and
 --  a type (currently supported: weak/strong).
 personalityFragment :: EmotionName -> String -> Filter AgentMessage
@@ -18,6 +20,10 @@ personalityFragment Contentment "weak" = weakContentment
 personalityFragment Contentment "strong" = strongContentment
 
 personalityFragment _ x = error $ "personalityFragment called with unsupported type "++x
+
+sympathyFragment Sympathy "weak" = hostileSocial
+sympathyFragment Sympathy "strong" = friendlySocial
+sympathyFragment _ x = error $ "sympathyFragment called with unsupported type "++x
 
 weakAnger :: Filter AgentMessage
 weakAnger = todo "affectFragments"

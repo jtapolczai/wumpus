@@ -7,6 +7,7 @@
 module Agent.Intelligent.Affect where
 
 import Control.Lens
+import Control.Monad (join)
 import Data.List
 import qualified Data.Map as M
 import Data.Maybe
@@ -54,6 +55,10 @@ constructAgentName = ($ (Nothing, False)) . foldl' addNameInfo id
       addNameInfo f (_,(AMVisualAgent _)) = (_2 .~ True) . f
       addNameInfo f _ = f
 
+-- |A social storage that has 0 for all three social emotions.
+defSocialStorage :: M.Map SocialEmotionName HormoneLevel
+defSocialStorage = M.fromList [(Sympathy, 0), (Respect, 0), (Trust, 0)]
+
 -- |Modulates an agent's social emotional state regarding another agent
 --  based on stimuli.
 sjsEntityEmotion :: [AgentMessage]
@@ -61,12 +66,16 @@ sjsEntityEmotion :: [AgentMessage]
                  -> SocialEmotionName
                  -> AgentState
                  -> AgentState
-sjsEntityEmotion ms other emo as = as & sjs . ix other . ix emo .~ (new_lvl, filt)
+sjsEntityEmotion ms other emo as = as & sjs . _1 . at other %~ changeLvl
    where
-      (lvl, filt) = as ^. sjs . at other . to fromJust . at emo . to fromJust
-      val = emotionValue ms filt
+      changeLvl Nothing = Just (defSocialStorage & ix emo .~ avg [lvl, new_lvl])
+      changeLvl (Just emotions) = Just (emotions & ix emo .~ avg [lvl, new_lvl])
 
-      new_lvl = avg [lvl, val]
+      filt = as ^. sjs . _2 . at' emo
+
+      lvl = fromMaybe 0 $ join $ (as ^. sjs . _1 . at other) ^? _Just . at emo
+
+      new_lvl = emotionValue ms filt
 
 -- |Modulates an agent's emotional state based on stimuli.
 --  Messages about the four new emotional states are inserted.

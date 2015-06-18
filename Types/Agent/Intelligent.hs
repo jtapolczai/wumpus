@@ -100,7 +100,9 @@ instance Monoid MemoryIndex where
 
 type AgentMessage' = (IsImaginary, AgentMessage)
 
-type SocialStorage = M.Map SocialEmotionName (HormoneLevel, Filter AgentMessage)
+type PSBCFilters = M.Map EmotionName (HormoneLevel, Filter AgentMessage)
+type SocialStorage = M.Map EntityName (M.Map SocialEmotionName HormoneLevel)
+type SJSFilters = (SocialStorage, M.Map SocialEmotionName (Filter AgentMessage))
 
 type Memory = (M.Map CellInd VisualCellData, M.Map EdgeInd EdgeData)
 
@@ -111,8 +113,8 @@ type GestureStorage = M.Map (SocialEmotionName, Valence) String
 
 data AgentState = AS {
    _agentStateName :: EntityName,
-   _agentStatePsbc :: M.Map EmotionName (HormoneLevel, Filter AgentMessage),
-   _agentStateSjs :: M.Map EntityName SocialStorage,
+   _agentStatePsbc :: PSBCFilters,
+   _agentStateSjs :: SJSFilters,
    _agentStateMemory :: T.Tree Memory,
    _agentStateMessageSpace :: [AgentMessage'],
    _agentStateNewMessages :: [AgentMessage'],

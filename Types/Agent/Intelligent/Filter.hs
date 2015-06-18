@@ -55,6 +55,3 @@ data Filter s = FI {
    _filterGraph :: HM.HashMap Vertex (FilterNode s),
    _filterOutputNodes :: HS.HashSet Vertex
 }
-
-
-
