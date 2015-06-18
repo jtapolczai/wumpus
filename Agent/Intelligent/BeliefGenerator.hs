@@ -17,7 +17,14 @@ import Agent.Intelligent.Utils
 import Types
 import World
 
-beliefGeneratorComponent = todo "beliefGeneratorComponent"
+-- generate a new belief based on the the plannedactions with non-existent memoryIndex
+beliefGeneratorComponent :: MonadIO m => AgentComponent m
+beliefGeneratorComponent as = foldM mkBelief as plannedActions
+  where
+    plannedActions = map snd $ filter fst $ msgWhere _AMPlannedAction (as ^. messageSpace)
+    
+    mkBelief :: MonadIO m => AgentState -> (Action, MemoryIndex) -> m AgentState
+    mkBelief as' (act, mi) = generateBelief' act mi as'
 
 -- |Performs a hypothetical action and gets the consequences, in message-form.
 --  Note that these resultant messages shouldn't be inserted directly into
@@ -43,7 +50,7 @@ simulateConsequences act mi as = do
 
 
 -- |Generates a new set of beliefs about the world, i.e. inserts a new memory
---  as a child node of the given location. In addition, all messages are
+--  at the given location. In addition, all messages are
 --  inserted into the agent's message space, marked as imaginary.
 generateBelief' :: MonadIO m
                 => Action
