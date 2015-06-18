@@ -3,6 +3,7 @@
 module Agent.Intelligent.Filter where
 
 import Control.Lens
+import Data.Default
 import qualified Data.Foldable as F
 import qualified Data.Graph as G
 import qualified Data.HashMap.Strict as HM
@@ -10,6 +11,10 @@ import qualified Data.HashSet as HS
 import Data.Maybe
 
 import Types
+
+-- |Creates an empty filter.
+instance Default (Filter s) where
+   def = FI (HM.empty) (HS.empty)
 
 -- |Evaluates a condition against a value.
 runCondition :: NodeCondition s -> s -> Bool
