@@ -13,16 +13,14 @@ import Data.Char (isSpace)
 import Data.Default
 import Data.List.Split (splitOn)
 import qualified Data.Map as M
-import Data.Maybe (catMaybes)
 import Data.Functor.Monadic
 import qualified Data.Tree as T
 import Data.Word
 import Math.Geometry.Grid.Square
 import Math.Geometry.Grid.SquareInternal (SquareDirection(..))
-import System.Directory
 
 import Agent.Intelligent.Affect.Fragments
-import Agent.Intelligent
+import Agent.Intelligent()
 import Agent.Wumpus
 import Types
 import World.Constants
@@ -57,7 +55,7 @@ readWorld dir = do
    topography <- M.fromList . map (second def) . filter ((==) white.snd) <$> readBitmap (dir ++ "/topography.bmp")
    items <- M.fromList <$> readBitmap (dir ++ "/items.bmp")
    entities <- M.fromList <$> readBitmap (dir ++ "/entities.bmp")
-   agents <- M.fromList . catMaybes <$< mapM readAgent' [1..255]
+   agents <- readAgents dir
 
    let -- create topography
        cd = M.foldrWithKey (\k v t -> t & ix k %~ addItem v) topography items
@@ -94,9 +92,6 @@ readWorld dir = do
       addEntity' a k v (t, (n:ns)) = (t & ix k %~ addEntity a n k v, ns)
       addEntity' _ _ _ _ = error "addEntity' called with empty list!"
 
-      readAgent' :: Show a => a -> IO (Maybe (a, Agent s))
-      readAgent' i = readAgent (dir ++ "/agent" ++ show i ++ ".txt") >$> (>$> (i,))
-
       addItem (r,g,b) c = c & meat +~ fromIntegral r & fruit +~ fromIntegral g & gold +~ fromIntegral b
 
       addEntity :: M.Map Word8 (Agent SomeMind) -> Int -> CellInd -> Pixel -> CellData -> CellData
@@ -106,38 +101,34 @@ readWorld dir = do
       addEntity _ _ _ _ c = c
 
 
-readAgent :: String -> IO (Maybe (Agent s))
-readAgent file = do
-   ok <- doesFileExist file
-   if ok then todo "readAgent mind"
-   else return Nothing
-
-readAgents :: String -> IO (M.Map Int (Agent SomeMind))
+readAgents :: String -> IO (M.Map Word8 (Agent SomeMind))
 readAgents dir = readFile (dir ++ "/agents.txt")
                  >$> lines
                  >$> map (mkAgent . map trim . splitOn ";")
                  >$> M.fromList
-  where
-    mkAgent :: [String] -> (Int, Agent (SomeMind))
-    mkAgent [num,a,f,e,c,s,symG,antG] = (read num, go)
-      where
-        go = defaultAgent $ AS
-                num
-                (M.fromList [(Anger, (0, personalityFragment Anger a)),
-                             (Fear, (0, personalityFragment Fear f)),
-                             (Enthusiasm, (0, personalityFragment Enthusiasm e)),
-                             (Contentment, (0, personalityFragment Contentment c))])
-                (M.empty, M.fromList [(Sympathy, sympathyFragment Sympathy s),
-                                      (Trust, def),
-                                      (Respect, def)])
-                (T.Node (M.empty, M.empty) [])
-                []
-                []
-                (M.fromList [])
+   where
+      mkAgent :: [String] -> (Word8, Agent (SomeMind))
+      mkAgent [num,a,f,e,c,s,symG,antG] = (read num, go)
+         where
+            go = defaultAgent $ AS
+                    num
+                    (M.fromList [(Anger, (0, personalityFragment Anger a)),
+                                 (Fear, (0, personalityFragment Fear f)),
+                                 (Enthusiasm, (0, personalityFragment Enthusiasm e)),
+                                 (Contentment, (0, personalityFragment Contentment c))])
+                    (M.empty, M.fromList [(Sympathy, sympathyFragment Sympathy s),
+                                          (Trust, def),
+                                          (Respect, def)])
+                    (T.Node (M.empty, M.empty) [])
+                    []
+                    []
+                    (M.fromList [((Sympathy, Positive), symG),
+                                 ((Sympathy, Negative), antG)])
+      mkAgent _ = error "mkAgent: incorrect number of fields!"
 
 
-    trim :: String -> String
-    trim = takeWhile (not.isSpace) . dropWhile isSpace
+trim :: String -> String
+trim = takeWhile (not.isSpace) . dropWhile isSpace
 
 
 -- |Creates a default Agent body from an agent
