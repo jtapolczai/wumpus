@@ -9,14 +9,20 @@ import Control.Arrow (second)
 import Control.Lens
 import Control.Monad
 import qualified Data.ByteString as BS
+import Data.Char (isSpace)
 import Data.Default
+import Data.List.Split (splitOn)
 import qualified Data.Map as M
 import Data.Maybe (catMaybes)
 import Data.Functor.Monadic
+import qualified Data.Tree as T
 import Data.Word
 import Math.Geometry.Grid.Square
+import Math.Geometry.Grid.SquareInternal (SquareDirection(..))
 import System.Directory
 
+import Agent.Intelligent.Affect.Fragments
+import Agent.Intelligent
 import Agent.Wumpus
 import Types
 import World.Constants
@@ -33,9 +39,6 @@ green = (0,255,0)
 getRed :: Pixel -> Word8
 getRed (r,_,_) = r
 
-is :: Eq a => a -> a -> Bool
-is = (==)
-
 -- |Takes a world bitmap with bitmaps and reads a world.
 --
 --  The following files have to be present:
@@ -51,7 +54,7 @@ is = (==)
 --                   @#646400@ represents a pit.
 readWorld :: String -> IO World
 readWorld dir = do
-   topography <- M.fromList . map (second def) . filter (is white.snd) <$> readBitmap (dir ++ "/topography.bmp")
+   topography <- M.fromList . map (second def) . filter ((==) white.snd) <$> readBitmap (dir ++ "/topography.bmp")
    items <- M.fromList <$> readBitmap (dir ++ "/items.bmp")
    entities <- M.fromList <$> readBitmap (dir ++ "/entities.bmp")
    agents <- M.fromList . catMaybes <$< mapM readAgent' [1..255]
@@ -108,6 +111,38 @@ readAgent file = do
    ok <- doesFileExist file
    if ok then todo "readAgent mind"
    else return Nothing
+
+readAgents :: String -> IO (M.Map Int (Agent SomeMind))
+readAgents dir = readFile (dir ++ "/agents.txt")
+                 >$> lines
+                 >$> map (mkAgent . map trim . splitOn ";")
+                 >$> M.fromList
+  where
+    mkAgent :: [String] -> (Int, Agent (SomeMind))
+    mkAgent [num,a,f,e,c,s,symG,antG] = (read num, go)
+      where
+        go = defaultAgent $ AS
+                num
+                (M.fromList [(Anger, (0, personalityFragment Anger a)),
+                             (Fear, (0, personalityFragment Fear f)),
+                             (Enthusiasm, (0, personalityFragment Enthusiasm e)),
+                             (Contentment, (0, personalityFragment Contentment c))])
+                (M.empty, M.fromList [(Sympathy, sympathyFragment Sympathy s),
+                                      (Trust, def),
+                                      (Respect, def)])
+                (T.Node (M.empty, M.empty) [])
+                []
+                []
+                (M.fromList [])
+
+
+    trim :: String -> String
+    trim = takeWhile (not.isSpace) . dropWhile isSpace
+
+
+-- |Creates a default Agent body from an agent
+defaultAgent :: AgentState -> Agent SomeMind
+defaultAgent as = Agent (as ^. name) North 1 1 (M.fromList [(Fruit,0), (Meat,0), (Gold,0)]) (SM as)
 
 -- |Reads a bitmap from file. The array's coordinates will be x,y.
 readBitmap :: String -> IO [((Int,Int),Pixel)]
