@@ -9,4 +9,6 @@ import Types
 main :: IO ()
 main = do
    world <- readWorld "world1"
+   putStrLn "WumpusWorld!"
+   todo "put agents in"
    return ()

@@ -44,6 +44,7 @@ decisionMakerComponent as =
          return $ as & newMessages %~ (newMsg++)
    -- if there is one, continue/abandon/OK the plan
    else
+      -- evaluate plan...
       todo "makeDecision"
 
 
@@ -62,6 +63,15 @@ decisionMakerComponent as =
       isImag = map $ if strongEnough dominantEmotionLevel then (True,) else (False,)
 
 
+-- |Returns the list of emotions that conflict with a given one.
+--  The conflicting emotions are given by the relation
+--
+--  >>> {(a,b) | a in {anger, enthusiasm}, b in {fear, contentment}}
+conflictingEmotions :: EmotionName -> [EmotionName]
+conflictingEmotions Anger = [Fear, Contentment]
+conflictingEmotions Fear = [Anger, Enthusiasm]
+conflictingEmotions Enthusiasm = conflictingEmotions Anger
+conflictingEmotions Contentment = conflictingEmotions Fear
 
 -- |Gets the cell that evokes the highest value for a given emotion.
 strongestEmotionCell :: EmotionName -> AgentState-> CellInd
