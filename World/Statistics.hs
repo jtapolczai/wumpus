@@ -1,23 +1,23 @@
 module World.Statistics where
 
-import qualified Data.Map as M
+import Control.Lens
 
 import Types
 
--- |A high-level description of an agent based on its personality fragments for
---  anger, fear, enthusiasm, contentment, and sympathy.
-type AgentIndex = (PSBCFragmentType,
-                   PSBCFragmentType,
-                   PSBCFragmentType,
-                   PSBCFragmentType,
-                   SJSFragmentType)
+agentDied :: AgentIndex -> WorldStats -> WorldStats
+agentDied i = numAlive . ix i -~ 1
 
--- |A single piece of statistical data.
-data WorldStats = WS {
-   _worldStatsNumAlive :: M.Map AgentIndex Int,
-   _worldStatsNumWumpuses :: Int,
-   _worldStatsNumHarvests :: Int,
-   _worldStatsNumFriendlyInteractions :: Int,
-   _worldStatsNumHostileInteractions :: Int
-}
+wumpusDied :: WorldStats -> WorldStats
+wumpusDied = numWumpuses -~ 1
 
+plantHarvested :: WorldStats -> WorldStats
+plantHarvested = numHarvests +~ 1
+
+itemGiven :: WorldStats -> WorldStats
+itemGiven = numItemsGiven +~ 1
+
+gestureSent :: WorldStats -> WorldStats
+gestureSent = numGesturesSent +~ 1
+
+attackPerformed :: WorldStats -> WorldStats
+attackPerformed = numAttacksPerformed +~ 1

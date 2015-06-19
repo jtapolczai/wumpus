@@ -8,13 +8,14 @@
 
 -- |General stuff on which other modules depend.
 module Types (
-   module Types.World,
    module Types.Agent.Dummy,
    module Types.Agent.Intelligent,
    module Types.Agent.Intelligent.Filter,
    module Types.Agent.Intelligent.Affect.Fragments,
    module Types.Agent.Omni,
    module Types.Castable,
+   module Types.World,
+   module Types.World.Statistics,
    module Types,
    ) where
 
@@ -22,13 +23,14 @@ import Control.Lens
 import Data.Maybe
 import qualified Data.Tree as T
 
-import Types.Castable
-import Types.World
 import Types.Agent.Dummy
 import Types.Agent.Intelligent
 import Types.Agent.Intelligent.Filter
 import Types.Agent.Intelligent.Affect.Fragments
 import Types.Agent.Omni
+import Types.Castable
+import Types.World
+import Types.World.Statistics
 
 todo :: String -> a
 todo = error . (++) "TODO: implement "
@@ -62,6 +64,7 @@ makeFields ''AgentState
 makePrisms ''AgentMessage
 makeFields ''DummyMind
 makeFields ''OmniMind
+makeFields ''WorldStats
 
 memInd :: MemoryIndex -> Lens' (T.Tree a) a
 memInd i = lens (get i) (set i)
