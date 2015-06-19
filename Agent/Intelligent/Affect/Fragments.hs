@@ -21,8 +21,8 @@ personalityFragment Contentment "strong" = strongContentment
 
 personalityFragment _ x = error $ "personalityFragment called with unsupported type "++x
 
-sympathyFragment Sympathy "weak" = hostileSocial
-sympathyFragment Sympathy "strong" = friendlySocial
+sympathyFragment Sympathy "hostile" = hostileSocial
+sympathyFragment Sympathy "friendly" = friendlySocial
 sympathyFragment _ x = error $ "sympathyFragment called with unsupported type "++x
 
 weakAnger :: Filter AgentMessage
