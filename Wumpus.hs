@@ -4,6 +4,7 @@ import World
 import Agent.Wumpus
 import Agent.Intelligent
 import World.Read
+import World.Statistics
 import Types
 
 main :: IO ()
