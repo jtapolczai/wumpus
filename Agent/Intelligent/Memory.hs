@@ -121,16 +121,27 @@ resetMemory as xs = as & memory .~ T.Node mem []
       mem = constructMemory xs $ Just $ as ^. memory . memInd mempty
 
 -- |Constructs a memory from a list of messages.
+--  If the second parameter is given, a pre-existing memory will be modified. If not,
+--  an entirely new one will be created.
 constructMemory :: [AgentMessage'] -> Maybe Memory -> Memory
-constructMemory xs mem = (fjoin VCD{} cu c, fjoin ED{} eu e)
+constructMemory xs mem = (fjoin vcd cu c, fjoin ed eu e)
    where
+      vcd = VCD (vcdErr "entity") (vcdErr "pit") (vcdErr "gold") (vcdErr "meat")
+                (vcdErr "fruit") (vcdErr "plant") Nothing Nothing
+      ed = ED (edErr "danger") (edErr "fatigue")
+
       (c, e) = fromMaybe (M.empty, M.empty) mem
       (cu, eu) = makeWorldUpdates xs
+
+      vcdErr x = error $ "Uninitialized field " ++ x ++ "in VCD (Memory.hs)"
+      edErr x = error $ "Uninitialized field " ++ x ++ "in ED (Memory.hs)"
 
 -- |Adds a memory as a last child to an existent one. The memory given by the
 --  MemoryIndex has to exist.
 addMemory :: [AgentMessage'] -> MemoryIndex -> AgentState -> AgentState
-addMemory xs mi as = as & memory %~ \t -> addMemNode mi (t ^. memInd mi) t
+addMemory xs mi as = as & memory %~ addMemNode mi newMem
+  where
+    newMem = constructMemory xs $ Just (as ^. memory . memInd mi)
 
 -- |Takes a list of messages, sieves out those which are relevant to cells/edges
 --  and constructs a collection of cell/edge updates for the world from them.
@@ -187,9 +198,15 @@ constructEntity ms = agentKind
    where
       agentKind = case (firstWhere _AMVisualAgent ms,
                         firstWhere _AMVisualWumpus ms) of
-                     (Just _,_) -> (entity .~ Just (Ag VisualAgent{}))
-                     (_, Just _) -> (entity .~ Just (Wu VisualWumpus{}))
+                     (Just _,_) -> (entity .~ Just (Ag va))
+                     (_, Just _) -> (entity .~ Just (Wu vw))
                      (_,_) -> id
+
+      va = VisualAgent (vaErr "name") (vaErr "direction") (vaErr "health") (vaErr "stamina")
+      vw = VisualWumpus (vwErr "name") (vwErr "health") (vwErr "stamina")
+
+      vaErr x = error $ "Uninitialized field " ++ x ++ "in VisualAgent (Memory.hs)"
+      vwErr x = error $ "Uninitialized field " ++ x ++ "in VisualWumpus (Memory.hs)"
 
 -- |Constructs an edge update from agent messages.
 constructEdge :: [AgentMessage'] -> (EdgeData -> EdgeData)
