@@ -19,6 +19,8 @@ type IsImaginary = Bool
 
 type Percentage = Rational
 
+type Discharged = Bool
+
 -- |A component of an agent that modifies the agent's state.
 type AgentComponent m = AgentState -> m AgentState
 
@@ -86,7 +88,7 @@ data AgentMessage =
    | AMLostFruit
    | AMLostGold
    -- |A planned action.
-   | AMPlannedAction Action MemoryIndex
+   | AMPlannedAction Action MemoryIndex Discharged
    -- |The emotion that dominates the current plan.
    | AMPlanEmotion EmotionName
    deriving (Show, Eq, Ord)

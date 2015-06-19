@@ -38,8 +38,9 @@ getAction' as = do action <- loop action (callComponents components) as
       loop :: Monad m => (a -> Maybe b) -> (a -> m a) -> a -> m b
       loop test f x = maybe (f x >>= loop test f) return (test x)
 
+      -- gets the first non-imaginary action, if it exists.
       action :: AgentState -> Maybe Action
-      action = fmap (fst.snd) . LS.head . filter fst . msgWhere _AMPlannedAction . view messageSpace
+      action = fmap (view (_2._1)) . LS.head . filter (not.fst) . msgWhere _AMPlannedAction . view messageSpace
 
       components = [psbcComponent,
                     sjsComponent, 

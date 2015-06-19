@@ -17,14 +17,19 @@ import Agent.Intelligent.Utils
 import Types
 import World
 
--- generate a new belief based on the the plannedactions with non-existent memoryIndex
+-- |Extracts 'AMPlannedAction' messages from the message space and runs
+--  'generateBelief\'' with all imaginary 'AMPlannedAction' messages whose 'Discharged' field is 'False'.
+--  The MemoryIndex in 'AMPlannedAction' has to exist in the memory tree. The new memory will
+--  be generated as its last child.
 beliefGeneratorComponent :: MonadIO m => AgentComponent m
-beliefGeneratorComponent as = foldM mkBelief as plannedActions
-  where
-    plannedActions = map snd $ filter fst $ msgWhere _AMPlannedAction (as ^. messageSpace)
-    
-    mkBelief :: MonadIO m => AgentState -> (Action, MemoryIndex) -> m AgentState
-    mkBelief as' (act, mi) = generateBelief' act mi as'
+beliefGeneratorComponent as = liftIO $ foldM f as acts
+   where
+      f :: AgentState -> (Action, MemoryIndex, Discharged) -> IO AgentState
+      f as' (act, mi, _) = generateBelief act mi as'
+
+      -- all imaginary, non-discharged planned actions
+      acts = map snd $ filter ((&&) <$> fst <*> view (_2._3)) $ msgWhere _AMPlannedAction $ as ^. messageSpace
+
 
 -- |Performs a hypothetical action and gets the consequences, in message-form.
 --  Note that these resultant messages shouldn't be inserted directly into
@@ -52,34 +57,13 @@ simulateConsequences act mi as = do
 -- |Generates a new set of beliefs about the world, i.e. inserts a new memory
 --  at the given location. In addition, all messages are
 --  inserted into the agent's message space, marked as imaginary.
-generateBelief' :: MonadIO m
-                => Action
-                -> MemoryIndex
-                -> AgentComponent m
-generateBelief' mi act as = liftIO $ do
-   (_, msg) <- simulateConsequences mi act as
+generateBelief :: MonadIO m
+               => Action
+               -> MemoryIndex
+               -> AgentComponent m
+generateBelief act mi as = liftIO $ do
+   (_, msg) <- simulateConsequences act mi as
    let msg' = map (True,) msg
        as' = as & newMessages .~ msg'
-                & addMemory msg' (leftMemIndex as)
+                & addMemory msg' mi
    return as'
-
--- |Extracts 'AMPlannedAction' messages from the message space and runs
---  'generateBelief\'' with all whose 'MemoryIndex' does not yet exist in the
---  agent's memory tree.
---
---  __Note:__
---
---  * The memory index of an 'AMPlannedMessage' has to refer to an __existing__ memory.
---  * The last part of the memory index will be cut off when calling 'generateBelief\''.
---
---  That is: if mi isn't in the tree, a new memory node will be created, as a child of
---  (init mi).
-generateBelief :: MonadIO m => AgentComponent m
-generateBelief as = liftIO $ foldM f as acts
-   where
-      f :: AgentState -> (Action, MemoryIndex) -> IO AgentState
-      f as' (act, mi@(MemoryIndex mi')) =
-         if hasMemNode mi (as ^. memory) then return as'
-         else generateBelief' act (MemoryIndex $ init mi') as'
-
-      acts = map snd $ msgWhere _AMPlannedAction $ as ^. messageSpace

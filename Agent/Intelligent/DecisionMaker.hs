@@ -38,7 +38,7 @@ decisionMakerComponent as =
                                        (myPosition $ as ^. messageSpace)
                                        (strongestEmotionCell dominantEmotion as)
          -- insert it as a planned action
-         let newMsg = isImag [AMPlannedAction act (MemoryIndex [0]),
+         let newMsg = isImag [AMPlannedAction act (MemoryIndex []) False,
                               AMPlanEmotion dominantEmotion]
 
          return $ as & newMessages %~ (newMsg++)

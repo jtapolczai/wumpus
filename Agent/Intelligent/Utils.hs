@@ -121,6 +121,7 @@ myPosition :: [AgentMessage'] -> CellInd
 myPosition = fromJust . lastWhere _AMPosition
 
 -- |Adds a new node as the last child of node specified by the path.
+--  
 --  __NOTE__: Unsafe in case of non-existent paths.
 addMemNode :: MemoryIndex -> a -> T.Tree a -> T.Tree a
 addMemNode (MemoryIndex []) m (T.Node t ts) = T.Node t $ ts ++ [T.Node m []]
