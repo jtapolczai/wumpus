@@ -12,6 +12,7 @@ module Types (
    module Types.Agent.Dummy,
    module Types.Agent.Intelligent,
    module Types.Agent.Intelligent.Filter,
+   module Types.Agent.Intelligent.Affect.Fragments,
    module Types.Agent.Omni,
    module Types.Castable,
    module Types,
@@ -26,6 +27,7 @@ import Types.World
 import Types.Agent.Dummy
 import Types.Agent.Intelligent
 import Types.Agent.Intelligent.Filter
+import Types.Agent.Intelligent.Affect.Fragments
 import Types.Agent.Omni
 
 todo :: String -> a
