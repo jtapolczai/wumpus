@@ -10,6 +10,7 @@ module World where
 import Control.Applicative (liftA2)
 import Control.Lens
 import Control.Monad ((>=>), foldM, join)
+import Control.Monad.Writer
 import Data.Functor.Monadic
 import Data.List (foldl', partition)
 import qualified Data.Map as M
@@ -20,6 +21,7 @@ import Math.Geometry.Grid.Square
 
 import Types
 import World.Constants
+import World.Statistics
 import World.Utils
 
 type IntensityMap = M.Map CellInd Rational
@@ -44,9 +46,17 @@ makeWorld cells edges = initBreeze newWorld
 -- |Advances the world state by one time step. The actors perform their actions,
 --  the plants regrow, the stench is updated.
 simulateStep :: World -> IO World
-simulateStep world = (worldData %~ advanceGlobalData)
-                     . (cellData %~ fmap advanceLocalData)
-                     <$> foldM updateAgent world (worldAgents world)
+simulateStep = fmap fst . runWriterT . simulateStepReader
+
+-- |Advances the world state by one time step. The actors perform their actions,
+--  the plants regrow, the stench is updated.
+--
+--  In addition, statistical data is written out.
+simulateStepReader :: (MonadWriter [WorldStats] m, MonadIO m) => World -> m World
+simulateStepReader world =
+   (worldData %~ advanceGlobalData)
+   . (cellData %~ fmap advanceLocalData)
+   <$> foldM updateAgent world (worldAgents world)
    where
       -- "updating an agent" means giving it its perceptions and performing
       -- its action. We also update the wumpus stench to have accurate stench
@@ -78,15 +88,16 @@ worldAgents world = uncurry (++)
 --  This function can be used in a fold and will not perform any action if
 --  the given cell has no entity (i.e. if it was killed by the actions of
 --  another).
-doEntityAction :: World -> (CellInd, Entity') -> IO World
+doEntityAction :: (MonadWriter [WorldStats] m, MonadIO m)
+               => World -> (CellInd, Entity') -> m World
 doEntityAction world (i, ag) = if cellFree i world
    then return world
    else case ag of
-      Ag agent -> do (action, ag') <- getAction (agent ^. state)
+      Ag agent -> do (action, ag') <- liftIO $ getAction (agent ^. state)
                      let agent' = Ag (agent & state .~ ag')
                          world' = world & cellData . ix i . entity ?~ agent'
                      return $ doAction i action world'
-      Wu wumpus -> do (action, ag') <- getAction (wumpus ^. state)
+      Wu wumpus -> do (action, ag') <- liftIO $ getAction (wumpus ^. state)
                       let wumpus' = Wu (wumpus & state .~ ag')
                           world' = world & cellData . ix i . entity ?~ wumpus'
                       return $ doAction i action world'
