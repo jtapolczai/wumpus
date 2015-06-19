@@ -17,9 +17,7 @@ import Agent.Intelligent.MessageHandling
 import Agent.Intelligent.Perception
 import Agent.Intelligent.Utils
 import Types
-import World.Constants
 import World.Perception
-import World.Utils
 
 instance AgentMind AgentState where
    pullMessages w i = receiveMessages msg
@@ -48,6 +46,3 @@ getAction' as = do action <- loop action (callComponents components) as
                     memoryComponent,
                     decisionMakerComponent,
                     beliefGeneratorComponent]
-
---instance Default AgentState where
---   def = todo "AgentState/def"
