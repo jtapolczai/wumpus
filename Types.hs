@@ -65,6 +65,7 @@ makePrisms ''AgentMessage
 makeFields ''DummyMind
 makeFields ''OmniMind
 makeFields ''WorldStats
+makeFields ''WorldMetaInfo
 
 memInd :: MemoryIndex -> Lens' (T.Tree a) a
 memInd i = lens (get i) (set i)

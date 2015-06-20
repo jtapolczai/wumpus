@@ -187,12 +187,16 @@ doIf pred act x = if pred x then act x else x
 doIfM :: Monad m => (a -> Bool) -> (a -> m a) -> a -> m a
 doIfM pred act x = if pred x then act x else return x
 
--- |Applies a function on an agent.
+-- |Applies a function on an agent. Non-agent entities are left unchanged.
 onAgent :: (Agent SomeMind -> Agent SomeMind) -> CellData -> CellData
 onAgent f cell = cell & entity . _Just %~ f'
    where
       f' (Ag s) = Ag (f s)
       f' s = s
+
+-- |Applies a function on an entity.
+onEntity :: (Entity' -> Entity') -> CellData -> CellData
+onEntity f cell = cell & entity . _Just %~ f
 
 -- |Applies a function on a agent's state.
 onAgentMind :: (s -> s) -> Agent s -> Agent s
@@ -200,13 +204,13 @@ onAgentMind f a = a & state %~ f
 
 -- |Gets the entity on a given cell. Fails if the cell does not exist or has
 --  has no entity.
-entityAt :: CellInd -> (Entity (Agent SomeMind) (Wumpus SomeMind) -> a) -> World -> a
-entityAt i f world = world ^. cellData . at' i . entity . to fromJust . to f
+entityAt :: CellInd -> World -> Entity'
+entityAt i world = world ^. cellData . at' i . ju entity
 
 -- |Gets the agent on a given cell. Fails of the cell does not exist or has
 --  not agent.
 agentAt :: CellInd -> World -> Agent SomeMind
-agentAt i = entityAt i fromAgent
+agentAt i = fromAgent . entityAt i
 
 -- |Gets the cell with a given index. Fails if the cell does not exist.
 cellAt :: CellInd -> World -> CellData

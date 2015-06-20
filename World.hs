@@ -9,7 +9,8 @@ module World where
 
 import Control.Applicative (liftA2)
 import Control.Lens
-import Control.Monad ((>=>), foldM, join)
+import Control.Monad.Reader
+import qualified Control.Monad.RWS as RWS
 import Control.Monad.Writer
 import Data.Functor.Monadic
 import Data.List (foldl', partition)
@@ -46,13 +47,16 @@ makeWorld cells edges = initBreeze newWorld
 -- |Advances the world state by one time step. The actors perform their actions,
 --  the plants regrow, the stench is updated.
 simulateStep :: World -> IO World
-simulateStep = fmap fst . runWriterT . simulateStepReader
+simulateStep = rwsBracket . simulateStepReader
+   where
+      rwsBracket f = fmap (view _1) (RWS.runRWST f (WMI M.empty) ())
 
 -- |Advances the world state by one time step. The actors perform their actions,
 --  the plants regrow, the stench is updated.
 --
 --  In addition, statistical data is written out.
-simulateStepReader :: (MonadWriter [WorldStats] m, MonadIO m) => World -> m World
+simulateStepReader :: (MonadReader WorldMetaInfo m, MonadWriter (WorldStats -> WorldStats) m, MonadIO m)
+                   => World -> m World
 simulateStepReader world =
    (worldData %~ advanceGlobalData)
    . (cellData %~ fmap advanceLocalData)
@@ -88,7 +92,7 @@ worldAgents world = uncurry (++)
 --  This function can be used in a fold and will not perform any action if
 --  the given cell has no entity (i.e. if it was killed by the actions of
 --  another).
-doEntityAction :: (MonadWriter [WorldStats] m, MonadIO m)
+doEntityAction :: (MonadReader WorldMetaInfo m, MonadWriter (WorldStats -> WorldStats) m, MonadIO m)
                => World -> (CellInd, Entity') -> m World
 doEntityAction world (i, ag) = if cellFree i world
    then return world
@@ -96,29 +100,31 @@ doEntityAction world (i, ag) = if cellFree i world
       Ag agent -> do (action, ag') <- liftIO $ getAction (agent ^. state)
                      let agent' = Ag (agent & state .~ ag')
                          world' = world & cellData . ix i . entity ?~ agent'
-                     return $ doAction i action world'
+                     doAction i action world'
       Wu wumpus -> do (action, ag') <- liftIO $ getAction (wumpus ^. state)
                       let wumpus' = Wu (wumpus & state .~ ag')
                           world' = world & cellData . ix i . entity ?~ wumpus'
-                      return $ doAction i action world'
+                      doAction i action world'
 
 -- |Performs a action by an agent.
-doAction :: CellInd    -- ^Agent's location.
+doAction :: (MonadReader WorldMetaInfo m, MonadWriter (WorldStats -> WorldStats) m)
+         => CellInd    -- ^Agent's location.
          -> Action
          -> World
-         -> World
-doAction _ NoOp world = world
-doAction i (Rotate dir) world = onCell i (onAgent (direction .~ dir)) world
-doAction i (Move dir) world = doIf cond (moveEntity i j) world
+         -> m World
+doAction _ NoOp world = return world
+doAction i (Rotate dir) world = return $ onCell i (onAgent (direction .~ dir)) world
+doAction i (Move dir) world = doIfM cond (moveEntity i j) world
    where
       cond = liftA2 (&&) (cellFree j) (hasStamina (i,dir))
       j = inDirection i dir
 -- Attack another entity.
-doAction i (Attack dir) world = doIf (not . cellFree j) (attack i j) world
+doAction i (Attack dir) world = doIfM (not . cellFree j) (attack i j) world
    where
       j = inDirection i dir
 -- Give one item to another agent.
-doAction i (Give dir item) world = doIf (cellHas (^. entity . to (maybe False isAgent)) j) give world
+doAction i (Give dir item) world =
+   doIfM (cellAgent j) (\w -> do{tell (itemGiven item); return $ give w}) world
    where
       j = inDirection i dir
       me = agentAt i world
@@ -131,16 +137,17 @@ doAction i (Give dir item) world = doIf (cellHas (^. entity . to (maybe False is
              . onCell i (onAgent (inventory . ix item -~ qty))
 
 -- Gather fruit from plant on the cell.
-doAction i Gather world = doIf (cellHas (^.plant . to (fromMaybe 0) . to (cPLANT_HARVEST>=)) i)
-                               harvest
-                               world
+doAction i Gather world =
+   doIfM (cellHas ripePlant i) (\w -> do{tell plantHarvested; return $ harvest w}) world
    where
+      ripePlant = (cPLANT_HARVEST >=) . fromMaybe 0 . view plant
+
       harvest = onCell i (onAgent (inventory . ix Fruit +~ 1))
                 . onCell i (plant . _Just -~ cPLANT_HARVEST)
 -- Collect something on the cell.
-doAction i (Collect item) world = onCell i (collect item $ itemLens item) world
+doAction i (Collect item) world = return $ onCell i (collect item $ itemLens item) world
 -- Drop one piece of an item from the agent's inventory on the floor.
-doAction i (Drop item) world = onCell i drop world
+doAction i (Drop item) world = return $ onCell i drop world
    where
       me = agentAt i world
       qty = me ^. inventory . at item . to (fromMaybe 0) .  to (min 1)
@@ -148,7 +155,7 @@ doAction i (Drop item) world = onCell i drop world
       drop = (itemLens item +~ qty) . onAgent (inventory . ix item %~ decr)
 -- Eat fruit or meat. Remove the item from the agent's inventory and regain
 -- 0.5 health (+0.01 to compensate for this round's hunger).
-doAction i (Eat item) world = doIf hasItem (onCell i eatItem) world
+doAction i (Eat item) world = return $ doIf hasItem (onCell i eatItem) world
    where
       hasItem = cellHas (^. ju entity
                           . _Ag
@@ -158,7 +165,8 @@ doAction i (Eat item) world = doIf hasItem (onCell i eatItem) world
       eatItem = onAgent (health %~ (min cMAX_AGENT_HEALTH . (cHEAL_FOOD + cHUNGER_RATE +)))
                 . onAgent (inventory . ix item -~ 1)
 
-doAction i (Gesture dir s) world = doIf (cellAgent j) send world
+doAction i (Gesture dir s) world =
+   doIfM (cellAgent j) (\w -> do {tell gestureSent; return $ send w}) world
    where j = inDirection i dir
          me = agentAt i world
          send = onCell j $ onAgent (state %~ receiveMessage (GestureM (me^.name) s))
@@ -190,11 +198,14 @@ hasStamina (i,dir) world = case (me, ef) of
 --  If the target cell has a pit, the entity is deleted from the world.
 --  If the source cell does not exist or if it contains no entity, the function
 --  fails.
-moveEntity :: CellInd
+moveEntity :: (MonadReader WorldMetaInfo m, MonadWriter (WorldStats -> WorldStats) m)
+           => CellInd
            -> CellInd
            -> World
-           -> World
-moveEntity i j world = world' & agents %~ updateIndex
+           -> m World
+moveEntity i j world = do
+   maybe (return ()) entityDied . join $ world' ^? cellData . at j . _Just . entity
+   return world'
    where
       fat = world ^. edgeData . at (i,getDirection i j) . to (maybe 0 $ view fatigue)
 
@@ -206,38 +217,50 @@ moveEntity i j world = world' & agents %~ updateIndex
       move m = m & ix i %~ (entity .~ Nothing)
                  & ix j %~ putEnt
 
-      -- the world with agent moved, but the index of agents not yet updated
-      world' = world & cellData %~ move
-
       updateIndex :: M.Map EntityName CellInd -> M.Map EntityName CellInd
-      updateIndex = if isJust $ join (world ^? cellData . at j . _Just . entity) then
-                    ix (world ^. cellData . at' i . ju entity . name) .~ j
+      updateIndex = if isJust $ join (world ^? cellData . at j . _Just . entity)
+                    then ix (world ^. cellData . at' i . ju entity . name) .~ j
                     else id
+
+      -- the updated world
+      world' = world & cellData %~ move
+                     & agents %~ updateIndex
+
 
 -- |Performs an attack of one entity on another.
 --  Each combatant has its health decreased by that of the other. Any entity
 --  whose health becomes <=0 dies. Upon death, entities drop their inventory.
-attack :: CellInd -> CellInd -> World -> World
-attack i j world = onCell j (die . fight other)
-                   $ onCell i (die . fight me) world
+attack :: (MonadReader WorldMetaInfo m, MonadWriter (WorldStats -> WorldStats) m)
+       => CellInd
+       -> CellInd
+       -> World
+       -> m World
+attack i j world = tell attackPerformed
+                   >> onCellM i (die . fight me) world
+                   >>= onCellM j (die . fight other) 
    where
-      me = agentAt i world
-      other = agentAt j world
+      me = entityAt i world
+      other = entityAt j world
 
-      -- |Let the entity on cell x die if its health is <= 0. Dying means removing
-      --  the entity and dropping the contents of its inventory to
-      --  the ground. In addition, one item of meat is dropped (the
-      --  body of the agent/Wumpus).
-      die :: CellData -> CellData
-      die x = let
-         x' = if x ^. ju entity . health <= 0 then x & entity .~ Nothing else x
-         inv = x ^. entity ^. _Just . _Ag . inventory
-         in
-            x' & meat +~ (1 + inv ^. at Meat . to (fromMaybe 0))
-               & fruit +~ (inv ^. at Fruit . to (fromMaybe 0))
-               & gold +~ (inv ^. at Gold . to (fromMaybe 0))
+fight :: Entity' -> CellData -> CellData
+fight enemy = onEntity (health -~ (enemy ^. health))
 
-      fight enemy = onAgent (health -~ (enemy ^. health))
+-- |Let the entity on cell x die if its health is <= 0. Dying means removing
+--  the entity and dropping the contents of its inventory to
+--  the ground. In addition, one item of meat is dropped (the
+--  body of the agent/Wumpus).
+die :: (MonadReader WorldMetaInfo m, MonadWriter (WorldStats -> WorldStats) m) => CellData -> m CellData
+die x = let
+   x' = if x ^. ju entity . health <= 0 then x & entity .~ Nothing else x
+   inv = x ^. entity . _Just . _Ag . inventory
+   in
+      when (x ^. ju entity . health <= 0) (entityDied $ view (ju entity) x)
+      >> return (x' & meat +~ (1 + inv ^. at Meat . to (fromMaybe 0))
+                    & fruit +~ (inv ^. at Fruit . to (fromMaybe 0))
+                    & gold +~ (inv ^. at Gold . to (fromMaybe 0)))
+
+-- Natural processes that don't involve agent choice
+-------------------------------------------------------------------------------
 
 -- |Advances the time and temperature.
 advanceGlobalData :: WorldData -> WorldData
@@ -317,3 +340,14 @@ reduceIntensity :: Lens' CellData  Rational
 reduceIntensity lens = cellData %~ fmap (& lens %~ reduce)
    where
       reduce = pos . subtract (1%3)
+
+-- Statistical stuff
+-------------------------------------------------------------------------------
+
+-- Record an entity's death.
+entityDied :: (MonadReader WorldMetaInfo m, MonadWriter (WorldStats -> WorldStats) m)
+           => Entity'
+           -> m ()
+entityDied (Ag a) =
+   ask >>= (maybe (return ()) (tell . agentDied) . view (agentPersonalities . at (a ^. name)))
+entityDied (Wu _) = tell wumpusDied
