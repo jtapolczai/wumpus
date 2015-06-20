@@ -21,3 +21,4 @@ data WorldStats = WS {
    _worldStatsNumGesturesSent :: Int,
    _worldStatsNumAttacksPerformed :: Int
    }
+   deriving (Show, Eq, Ord)
