@@ -1,4 +1,6 @@
 {-# LANGUAGE TupleSections #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE GADTs #-}
 
 module World.Statistics where
 
@@ -19,7 +21,7 @@ instance Monoid WorldStats where
 
 
 agentDied :: AgentIndex -> WorldStats -> WorldStats
-agentDied i = numAlive . ix i -~ 1
+agentDied i = numAgents . ix i -~ 1
 
 wumpusDied :: WorldStats -> WorldStats
 wumpusDied = numWumpuses -~ 1
@@ -35,3 +37,13 @@ gestureSent = numGesturesSent +~ 1
 
 attackPerformed :: WorldStats -> WorldStats
 attackPerformed = numAttacksPerformed +~ 1
+
+-- |Creates statistics from a world. The number of living agents and Wumpuses will
+--  be filled in. Everything else will be 0.
+mkStats :: WorldMetaInfo -> World -> WorldStats
+mkStats wmi w = M.foldr recordEntity mempty $ w ^. cellData
+   where
+      recordEntity CD{_cellDataEntity=Nothing} w = w
+      recordEntity CD{_cellDataEntity=Just (Wu _)} w = w & numWumpuses +~ 1
+      recordEntity CD{_cellDataEntity=Just (Ag a)} w = w & numAgents . ix ind +~ 1
+         where ind = wmi ^. agentPersonalities . at' (a ^. name)

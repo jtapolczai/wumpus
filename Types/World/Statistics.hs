@@ -15,11 +15,11 @@ type AgentIndex = (PSBCFragmentType,
 
 -- |A single piece of statistical data.
 data WorldStats = WS {
-   _worldStatsNumAlive :: M.Map AgentIndex Int,
+   _worldStatsNumAgents :: M.Map AgentIndex Int,
    _worldStatsNumWumpuses :: Int,
-   _worldStatsNumHarvests :: Int, --
-   _worldStatsNumItemsGiven :: M.Map Item Int, --
-   _worldStatsNumGesturesSent :: Int,  --
+   _worldStatsNumHarvests :: Int,
+   _worldStatsNumItemsGiven :: M.Map Item Int,
+   _worldStatsNumGesturesSent :: Int, 
    _worldStatsNumAttacksPerformed :: Int
    }
    deriving (Show, Eq, Ord)

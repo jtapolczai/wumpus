@@ -25,6 +25,8 @@ import World.Constants
 import World.Statistics
 import World.Utils
 
+import Data.MList
+
 type IntensityMap = M.Map CellInd Rational
 
 instance Monoid Bool where
@@ -43,6 +45,13 @@ makeWorld cells edges = initBreeze newWorld
                        (M.fromList edges)
                        (M.fromList cells)
                        (makeEntityIndex $ M.fromList cells)
+
+-- |Simulates a world over several iterations.
+runWorld :: WorldMetaInfo -> World -> MList IO (World, WorldStats)
+runWorld wmi w = (w, mkStats wmi w) :.: rest w
+   where
+      rest w' = do (newW, _, stats) <- RWS.runRWST (simulateStepReader w') wmi ()
+                   return $ (newW, stats mempty) :.: rest newW
 
 -- |Advances the world state by one time step. The actors perform their actions,
 --  the plants regrow, the stench is updated.
