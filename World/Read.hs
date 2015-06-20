@@ -5,7 +5,7 @@
 module World.Read where
 
 import Codec.BMP
-import Control.Arrow (second)
+import Control.Arrow (second, (***))
 import Control.Lens
 import Control.Monad
 import qualified Data.ByteString as BS
@@ -50,7 +50,7 @@ getRed (r,_,_) = r
 --                   blue channel being the agent's ID. The agent's mind can
 --                   can be stored in an @agent_ID.txt@ file.
 --                   @#646400@ represents a pit.
-readWorld :: String -> IO World
+readWorld :: String -> IO (World, WorldMetaInfo)
 readWorld dir = do
    topography <- M.fromList . map (second def) . filter ((==) white.snd) <$> readBitmap (dir ++ "/topography.bmp")
    items <- M.fromList <$> readBitmap (dir ++ "/items.bmp")
@@ -63,8 +63,6 @@ readWorld dir = do
        cd' = fst $ M.foldrWithKey (addEntity' agents) (cd,[1..]) entities
        -- add minds to the wumpuses
        cd'' = M.mapWithKey (\i c -> c & entity . _Just . _Wu . state %~ pullMessages world i) cd'
-
-       --
 
        -- |Adds a bidirectional edge to m if its target @to@ is an existing cell.
        addEdge from to m = if M.member to topography then
@@ -85,8 +83,13 @@ readWorld dir = do
                      edges
                      cd'
                      (makeEntityIndex cd')
+       
+       -- the index of agent personalities, for the WorldMetaInfo object
+       index = M.fromList $ fmap (show *** snd) $ M.toList agents
+       -- the finished world in which we give minds to the Wumpuses
+       world' = world & cellData .~ cd''
 
-   return (world & cellData .~ cd'')
+   return (world', WMI index)
 
    where
       addEntity' a k v (t, (n:ns)) = (t & ix k %~ addEntity a n k v, ns)
@@ -94,22 +97,29 @@ readWorld dir = do
 
       addItem (r,g,b) c = c & meat +~ fromIntegral r & fruit +~ fromIntegral g & gold +~ fromIntegral b
 
-      addEntity :: M.Map Word8 (Agent SomeMind) -> Int -> CellInd -> Pixel -> CellData -> CellData
+      -- adds and entity. Wumpuses will get undefined minds (to avoid an infinite regress!)
+      addEntity :: M.Map Word8 (Agent SomeMind, a) -> Int -> CellInd -> Pixel -> CellData -> CellData
       addEntity _ n i (255,0,0) c = c & entity ?~ Wu (Wumpus (SM $ WumpusMind undefined i) (show n) cDEFAULT_WUMPUS_HEALTH cMAX_AGENT_STAMINA)
       addEntity _ _ _ (0,255,0) c = c & plant .~ Just cPLANT_MAX
-      addEntity a _ _ (0,0,v) c| v > 0 = c & entity ?~ Ag (a M.! v)
+      addEntity a _ _ (0,0,v) c| v > 0 = c & entity ?~ Ag (fst (a M.! v))
       addEntity _ _ _ _ c = c
 
 
-readAgents :: String -> IO (M.Map Word8 (Agent SomeMind))
+readAgents :: String -> IO (M.Map Word8 (Agent SomeMind, AgentIndex))
 readAgents dir = readFile (dir ++ "/agents.txt")
                  >$> lines
                  >$> map (mkAgent . map trim . splitOn ";")
                  >$> M.fromList
    where
-      mkAgent :: [String] -> (Word8, Agent (SomeMind))
-      mkAgent [num,a,f,e,c,s,symG,antG] = (read num, go)
+      mkAgent :: [String] -> (Word8, (Agent SomeMind, AgentIndex))
+      mkAgent [num,a,f,e,c,s,symG,antG] = (read num, (go, index))
          where
+            index = (psbcFragmentType a,
+                     psbcFragmentType f,
+                     psbcFragmentType e,
+                     psbcFragmentType c,
+                     sjsFragmentType s)
+
             go = defaultAgent $ AS
                     num
                     (M.fromList [(Anger, (0, personalityFragment Anger a)),
