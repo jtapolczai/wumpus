@@ -182,6 +182,10 @@ avg = res . foldr (\x (s,a) -> (s+x,a+1)) (0,0)
 doIf :: (a -> Bool) -> (a -> a) -> a -> a
 doIf pred act x = if pred x then act x else x
 
+-- |Performs a monadic action if a predicate is fulfiled. Otherwise does nothing.
+doIfM :: Monad m => (a -> Bool) -> (a -> m a) -> a -> m a
+doIfM pred act x = if pred x then act x else return x
+
 -- |Applies a function on an agent.
 onAgent :: (Agent SomeMind -> Agent SomeMind) -> CellData -> CellData
 onAgent f cell = cell & entity . _Just %~ f'
