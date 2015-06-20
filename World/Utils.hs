@@ -8,6 +8,7 @@ module World.Utils where
 
 import Control.Lens
 import Control.Monad (guard)
+import Data.Functor.Monadic ((>=$>))
 import qualified Data.Map as M
 import Data.Maybe
 import Data.Ratio
@@ -213,7 +214,13 @@ cellAt i world = world ^. cellData . at i . to fromJust
 
 -- |Applies a function to a given cell.
 onCell :: CellInd -> (CellData -> CellData) -> World -> World
-onCell i f world = world & cellData %~ M.adjust f i
+onCell i f world = world & cellData . ix i %~ f 
+
+-- |Applies a monadic function to a given cell.
+onCellM :: (Functor m, Monad m) => CellInd -> (CellData -> m CellData) -> World -> m World
+onCellM i f world = maybe (return world)
+                          (f >=$> (\c -> (world & cellData . ix i .~ c)))
+                          (world ^. cellData . at i)
 
 -- |Moves an index by 1 in a given direction.
 inDirection :: CellInd -> SquareDirection -> CellInd
