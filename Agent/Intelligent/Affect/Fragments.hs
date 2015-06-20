@@ -4,6 +4,16 @@ module Agent.Intelligent.Affect.Fragments where
 
 import Types
 
+psbcFragmentType :: String -> PSBCFragmentType
+psbcFragmentType "weak" = Weak
+psbcFragmentType "strong" = Strong
+psbcFragmentType x = error $ "psbcFragmentType called with unspported type " ++ x
+
+sjsFragmentType :: String -> SJSFragmentType
+sjsFragmentType "hostile" = Hostile
+sjsFragmentType "friendly" = Friendly
+sjsFragmentType x = error $ "sjsFragmentType called with unspported type " ++ x
+
 -- |Returns the personality fragment belonging to an emotion and
 --  a type (currently supported: weak/strong).
 personalityFragment :: EmotionName -> String -> Filter AgentMessage
