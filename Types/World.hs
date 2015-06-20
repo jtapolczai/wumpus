@@ -184,7 +184,6 @@ data World = World {
    _worldAgents :: M.Map EntityName CellInd
 }
 
-
 -- Agent minds
 -------------------------------------------------------------------------------
 
