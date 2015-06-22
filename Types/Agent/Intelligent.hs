@@ -70,6 +70,10 @@ data AgentMessage =
    | AMEmotionFear Rational
    | AMEmotionEnthusiasm Rational
    | AMEmotionContentment Rational
+   -- |Emotions of the SJS
+   | AMEmotionSympathy CellInd Rational
+   | AMEmotionTrust CellInd Rational
+   | AMEmotionRespect CellInd Rational
    -- |Emotions related to the agent's body
    | AMHealthDecreased Percentage
    | AMHealthIncreased Percentage
