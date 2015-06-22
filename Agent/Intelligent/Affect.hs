@@ -10,6 +10,7 @@ import Control.Lens
 import Control.Monad (join)
 import Data.Default
 import Data.List
+import qualified Data.Map as M
 import Data.Maybe
 import Data.Ratio
 
@@ -21,20 +22,30 @@ import World.Constants
 import World.Utils
 
 
+-- |Modulates an agent's social emotions based on stimuli.
+--  Messages about the three emotions regarding detected agents will
+--  be put into the message space.
 sjsComponent :: Monad m => AgentComponent m
-sjsComponent as = return $ foldr f as cellMsg
+sjsComponent as = return $ M.foldrWithKey sjsFold as cellMsg
    where
       myPos = myPosition $ as ^. messageSpace
       (cellMsg,_) = sortByInd myPos $ as ^. messageSpace
 
-      emotions = [minBound..maxBound]
+sjsFold :: CellInd -> [AgentMessage'] -> AgentState -> AgentState
+sjsFold i ms as = case constructAgentName ms' of
+   (Just name, True) -> foldr (f name) as [minBound..maxBound]
+   _                 -> as
 
-      f :: [AgentMessage'] -> AgentState -> AgentState
-      f ms as' = let ms' = mapMaybe (socialMessage.snd) ms in
-         case constructAgentName ms' of
-            -- if there's an agent on the cell, we evaluate it for all social emotions
-            (Just name, True) -> foldr (sjsEntityEmotion ms' name) as' emotions
-            _                 -> as'
+   where
+      ms' = mapMaybe (socialMessage . snd) ms
+
+      f name en as = addSocialMessage name en $ sjsEntityEmotion ms' name en as
+
+      addSocialMessage name en as =
+         addMessage (False, socialEmotionMessage en i $ view (sjsLens name en) as) as
+
+      sjsLens name en = sjs . _1 . at' name . sst . at' en
+
 
 -- |Tries to get an entity's name from a list of messages.
 constructAgentName :: [AgentMessage]
@@ -131,3 +142,9 @@ emotionMessage Anger = AMEmotionAnger
 emotionMessage Fear = AMEmotionFear
 emotionMessage Enthusiasm = AMEmotionEnthusiasm
 emotionMessage Contentment = AMEmotionContentment
+
+-- |Gets the AgentMessage corresponding to a social emotion.
+socialEmotionMessage :: SocialEmotionName -> CellInd -> Rational -> AgentMessage
+socialEmotionMessage Sympathy = AMEmotionSympathy
+socialEmotionMessage Trust = AMEmotionTrust
+socialEmotionMessage Respect = AMEmotionRespect
