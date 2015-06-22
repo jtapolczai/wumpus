@@ -8,6 +8,7 @@ import Data.Functor.Monadic
 import Data.List
 import qualified Data.Map as M
 import Data.Maybe
+import Data.Monoid
 import Data.Ord
 
 import Agent.Intelligent.Affect
@@ -38,7 +39,7 @@ decisionMakerComponent as =
                                        (myPosition $ as ^. messageSpace)
                                        (strongestEmotionCell dominantEmotion as)
          -- insert it as a planned action
-         let newMsg = isImag [AMPlannedAction act (MemoryIndex []) False,
+         let newMsg = isImag [AMPlannedAction act mempty False,
                               AMPlanEmotion dominantEmotion]
 
          return $ as & newMessages %~ (newMsg++)
@@ -129,7 +130,7 @@ evaluateCells as = fmap evaluateCell cells
       cells = fmap (++globalData) $ fst $ sortByInd myPos ms
 
       globalData :: [AgentMessage']
-      globalData = mapMaybe (\(i,m) -> sieveGlobalMessage m >$> (i,)) ms
+      globalData = mapMaybe (\(i,m) -> globalMessage m >$> (i,)) ms
 
       evaluateCell :: [AgentMessage'] -> M.Map EmotionName Rational
       evaluateCell ms' = fmap (emotionValue (map snd ms')) $ as ^. psbc . to (fmap snd)

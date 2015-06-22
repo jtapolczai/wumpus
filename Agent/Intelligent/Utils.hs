@@ -46,10 +46,10 @@ extractOver :: Getting (First a) s a -> (a -> b) -> s -> Maybe b
 extractOver lens f x = (x ^? lens) & _Just %~ f
 
 -- |Sieves out messages about global world data.
-sieveGlobalMessage :: AgentMessage -> Maybe AgentMessage
-sieveGlobalMessage x@AMTemperature{} = Just x
-sieveGlobalMessage x@AMTime{} = Just x
-sieveGlobalMessage _ = Nothing
+globalMessage :: AgentMessage -> Maybe AgentMessage
+globalMessage x@AMTemperature{} = Just x
+globalMessage x@AMTime{} = Just x
+globalMessage _ = Nothing
 
 -- |Sieves out cell-related messages.
 cellMessage :: AgentMessage -> Maybe AgentMessage
@@ -78,6 +78,21 @@ edgeMessage :: AgentMessage -> Maybe AgentMessage
 edgeMessage x@AMVisualEdgeDanger{} = Just x
 edgeMessage x@AMVisualEdgeFatigue{} = Just x
 edgeMessage _ = Nothing
+
+-- |Sieves out social messages. Social messages are all those that contain
+--  an EntityName, plus 'AMVisualAgent'
+socialMessage :: AgentMessage -> Maybe AgentMessage
+socialMessage x@AMGesture{} = Just x
+socialMessage x@AMVisualEntityName{} = Just x
+socialMessage x@AMVisualAgent{} = Just x
+socialMessage x@AMAttackedBy{} = Just x
+socialMessage x@AMReceivedMeat{} = Just x
+socialMessage x@AMReceivedFruit{} = Just x
+socialMessage x@AMReceivedGold{} = Just x
+socialMessage x@AMGaveMeat{} = Just x
+socialMessage x@AMGaveFruit{} = Just x
+socialMessage x@AMGaveGold{} = Just x
+socialMessage _ = Nothing
 
 -- |Goes through a message space and groups messages by CellInd/EdgeInd, provided
 --  they have such fields.
@@ -124,14 +139,14 @@ myPosition = fromJust . lastWhere _AMPosition
 --  
 --  __NOTE__: Unsafe in case of non-existent paths.
 addMemNode :: MemoryIndex -> a -> T.Tree a -> T.Tree a
-addMemNode (MemoryIndex []) m (T.Node t ts) = T.Node t $ ts ++ [T.Node m []]
-addMemNode (MemoryIndex (x:xs)) m (T.Node t ts) =
-   T.Node t $ ts & ix x %~ addMemNode (MemoryIndex xs) m
+addMemNode (MI []) m (T.Node t ts) = T.Node t $ ts ++ [T.Node m []]
+addMemNode (MI (x:xs)) m (T.Node t ts) =
+   T.Node t $ ts & ix x %~ addMemNode (MI xs) m
 
 hasMemNode :: MemoryIndex -> T.Tree a -> Bool
-hasMemNode (MemoryIndex []) _ = True
-hasMemNode (MemoryIndex (x:xs)) (T.Node _ ts)
-  | length ts > x = hasMemNode (MemoryIndex xs) (ts !! x)
+hasMemNode (MI []) _ = True
+hasMemNode (MI (x:xs)) (T.Node _ ts)
+  | length ts > x = hasMemNode (MI xs) (ts !! x)
   | otherwise     = False
 
 

@@ -265,7 +265,7 @@ reconstructCell agentF c = CD (agentF <$> c ^. entity)
 --  tree. Use this in conjunction with 'addMemory' if you only want to create
 --  a linear sequence of memories with no branching.
 leftMemIndex :: AgentState -> MemoryIndex
-leftMemIndex = MemoryIndex . go mempty . (^. memory)
+leftMemIndex = MI . go mempty . (^. memory)
    where
       go ys (T.Node _ []) = ys
       go ys (T.Node _ (x:_)) = go (0:ys) x

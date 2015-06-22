@@ -1,7 +1,9 @@
 module Types.Agent.Intelligent where
 
+import Data.Default
 import qualified Data.Map as M
 import qualified Data.Tree as T
+import Math.Geometry.Grid.SquareInternal (SquareDirection)
 
 import Types.World
 import Types.Agent.Intelligent.Filter
@@ -74,13 +76,10 @@ data AgentMessage =
    | AMStaminaDecreased Percentage
    | AMStaminaIncreased Percentage
    | AMAttackedBy EntityName
-   | AMAttackedFrom EntityName
+   | AMAttackedFrom SquareDirection
    | AMReceivedMeat EntityName
    | AMReceivedFruit EntityName
    | AMReceivedGold EntityName
-   | AMPickedUpMeat EntityName
-   | AMPickedUpFruit EntityName
-   | AMPickedUpGold EntityName
    | AMGaveMeat EntityName
    | AMGaveFruit EntityName
    | AMGaveGold EntityName
@@ -93,18 +92,24 @@ data AgentMessage =
    | AMPlanEmotion EmotionName
    deriving (Show, Eq, Ord)
 
-newtype MemoryIndex = MemoryIndex [Int]
+newtype MemoryIndex = MI [Int]
    deriving (Show, Eq, Ord)
 
 instance Monoid MemoryIndex where
-   mempty = MemoryIndex []
-   mappend (MemoryIndex i) (MemoryIndex j) = MemoryIndex (i ++ j)
+   mempty = MI []
+   mappend (MI i) (MI j) = MI (i ++ j)
 
 type AgentMessage' = (IsImaginary, AgentMessage)
 
 type PSBCFilters = M.Map EmotionName (HormoneLevel, Filter AgentMessage)
-type SocialStorage = M.Map EntityName (M.Map SocialEmotionName HormoneLevel)
-type SJSFilters = (SocialStorage, M.Map SocialEmotionName (Filter AgentMessage))
+newtype SocialStorage = SST {_socialStorageSst :: M.Map SocialEmotionName HormoneLevel}
+
+instance Default SocialStorage where
+   def = SST $ M.fromList [(Sympathy, 0), (Respect, 0), (Trust, 0)]
+
+type SJSFilters = (M.Map EntityName SocialStorage, M.Map SocialEmotionName (Filter AgentMessage))
+
+
 
 type Memory = (M.Map CellInd VisualCellData, M.Map EdgeInd EdgeData)
 

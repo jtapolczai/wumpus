@@ -66,16 +66,19 @@ makeFields ''DummyMind
 makeFields ''OmniMind
 makeFields ''WorldStats
 makeFields ''WorldMetaInfo
+makeFields ''SocialStorage
 
+-- |Lens for getting or setting a value in a tree. This function is partial;
+--  the path has to refer to an existing node.
 memInd :: MemoryIndex -> Lens' (T.Tree a) a
 memInd i = lens (get i) (set i)
    where
-      get (MemoryIndex []) (T.Node t _) = t
-      get (MemoryIndex (x:xs)) (T.Node _ ts) = get (MemoryIndex xs) (ts !! x)
+      get (MI []) (T.Node t _) = t
+      get (MI (x:xs)) (T.Node _ ts) = get (MI xs) (ts !! x)
 
-      set (MemoryIndex []) (T.Node _ ts) t' = (T.Node t' ts)
-      set (MemoryIndex (x:xs)) (T.Node t ts) t' =
-         T.Node t (ts & ix x %~ flip (set (MemoryIndex xs)) t')
+      set (MI []) (T.Node _ ts) t' = (T.Node t' ts)
+      set (MI (x:xs)) (T.Node t ts) t' =
+         T.Node t (ts & ix x %~ flip (set (MI xs)) t')
 
 -- |More general form of the overloaded 'state' that allows changing
 --  the type of an agent's state.

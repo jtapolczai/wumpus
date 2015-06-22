@@ -8,8 +8,8 @@ module Agent.Intelligent.Affect where
 
 import Control.Lens
 import Control.Monad (join)
+import Data.Default
 import Data.List
-import qualified Data.Map as M
 import Data.Maybe
 import Data.Ratio
 
@@ -20,44 +20,33 @@ import Types
 import World.Constants
 import World.Utils
 
--- |Modulates an agent's opinion about other agents based on stimuli.
---  Only messages with counter values greater or equal to the given one are
---  fed into the emotional system. The message space is left unchanged.
-sjsComponent :: Monad m => AgentComponent m
-sjsComponent as = return $ foldr (uncurry
-                                  $ sjsEntityEmotion
-                                  $ map snd
-                                  $ as ^. messageSpace)
-                                 as emotions
-   where
-      -- the cartesian product of nearby agents and emotions
-      emotions = [(a,e) | a <- agents, e <- [minBound..maxBound]]
-      -- nearby (visually perceivable) agents
-      myPos = myPosition (as ^. messageSpace)
 
+sjsComponent :: Monad m => AgentComponent m
+sjsComponent as = return $ foldr f as cellMsg
+   where
+      myPos = myPosition $ as ^. messageSpace
       (cellMsg,_) = sortByInd myPos $ as ^. messageSpace
-      agents :: [EntityName]
-      agents = fmap snd
-               $ M.toList
-               $ fmap (fromJust . fst)
-               $ M.filter (\x -> isJust (x ^. _1) && x ^. _2)
-               $ fmap constructAgentName cellMsg
+
+      emotions = [minBound..maxBound]
+
+      f :: [AgentMessage'] -> AgentState -> AgentState
+      f ms as' = let ms' = mapMaybe (socialMessage.snd) ms in
+         case constructAgentName ms' of
+            -- if there's an agent on the cell, we evaluate it for all social emotions
+            (Just name, True) -> foldr (sjsEntityEmotion ms' name) as' emotions
+            _                 -> as'
 
 -- |Tries to get an entity's name from a list of messages.
-constructAgentName :: [AgentMessage']
+constructAgentName :: [AgentMessage]
                    -> (Maybe EntityName, Bool)
                    -- ^An occurrence of AMVisualEntityName sets the first part
                    --  to Just x. The occurrence of AMVisualAgent sets the second
                    --  to True.
 constructAgentName = ($ (Nothing, False)) . foldl' addNameInfo id
    where
-      addNameInfo f (_,(AMVisualEntityName _ n)) = (_1 ?~ n) . f
-      addNameInfo f (_,(AMVisualAgent _)) = (_2 .~ True) . f
+      addNameInfo f (AMVisualEntityName _ n) = (_1 ?~ n) . f
+      addNameInfo f (AMVisualAgent _) = (_2 .~ True) . f
       addNameInfo f _ = f
-
--- |A social storage that has 0 for all three social emotions.
-defSocialStorage :: M.Map SocialEmotionName HormoneLevel
-defSocialStorage = M.fromList [(Sympathy, 0), (Respect, 0), (Trust, 0)]
 
 -- |Modulates an agent's social emotional state regarding another agent
 --  based on stimuli.
@@ -68,12 +57,14 @@ sjsEntityEmotion :: [AgentMessage]
                  -> AgentState
 sjsEntityEmotion ms other emo as = as & sjs . _1 . at other %~ changeLvl
    where
-      changeLvl Nothing = Just (defSocialStorage & ix emo .~ avg [lvl, new_lvl])
-      changeLvl (Just emotions) = Just (emotions & ix emo .~ avg [lvl, new_lvl])
+      changeLvl :: Maybe SocialStorage -> Maybe SocialStorage
+      changeLvl Nothing = Just (def & sst . ix emo .~ avg [lvl, new_lvl])
+      changeLvl (Just emotions) = Just (emotions & sst . ix emo .~ avg [lvl, new_lvl])
 
       filt = as ^. sjs . _2 . at' emo
 
-      lvl = fromMaybe 0 $ join $ (as ^. sjs . _1 . at other) ^? _Just . at emo
+      lvl :: Rational
+      lvl = fromMaybe 0 $ join $ (as ^. sjs . _1 . at other) ^? _Just . sst . at emo
 
       new_lvl = emotionValue ms filt
 
