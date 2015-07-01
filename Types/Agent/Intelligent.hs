@@ -94,6 +94,8 @@ data AgentMessage =
    | AMPlannedAction Action MemoryIndex Discharged
    -- |The emotion that dominates the current plan.
    | AMPlanEmotion EmotionName
+   -- |Changes in emotional states as a result of hypothetical actions.
+   | AMPlanEmotionChanged MemoryIndex EmotionName Rational
    deriving (Show, Eq, Ord)
 
 newtype MemoryIndex = MI [Int]
