@@ -45,7 +45,25 @@ decisionMakerComponent as =
          return $ as & newMessages %~ (newMsg++)
    -- if there is one, continue/abandon/OK the plan
    else
+      do 
       -- evaluate plan...
+
+      -- conflicting emotion arises              => abandon (whole plan?)
+      -- emotions doesn't decrease after N steps => abandon whole plan
+      --                                               => and do what?
+      -- cAGENT_PLAN_LIMIT
+      --
+      -- otherwise => continue
+      --
+      -- if plan is abandoned: randomly roll back [0..max] steps.
+      --
+      -- if plan hasn't been abandoned:
+      -- * if emotion decreases => OK plan
+      -- * otherwise: continue plan, choosing dominant emotion.
+
+      --  question: non-direct approach
+
+      -- todo: implement an A* instead
       todo "makeDecision"
 
 
