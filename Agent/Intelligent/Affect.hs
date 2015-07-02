@@ -21,6 +21,10 @@ import Types
 import World.Constants
 import World.Utils
 
+-- |A map of all the emotions, with values set to 0.
+--  Useful as an initial dictionary and for folding over lists of values.
+psbcEmotionMap :: M.Map EmotionName Rational
+psbcEmotionMap = M.fromList [(Anger, 0), (Fear, 0), (Enthusiasm, 0), (Contentment, 0)]
 
 -- |Modulates an agent's social emotions based on stimuli.
 --  Messages about the three emotions regarding detected agents will

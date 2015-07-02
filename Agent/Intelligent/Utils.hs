@@ -23,19 +23,19 @@ import System.Random (randomRIO)
 import Types
 
 -- |Returns the messages that have the given constructor.
-msgWhere :: Prism' AgentMessage a
+msgWhere :: forall a.Prism' AgentMessage a
          -> [AgentMessage']
          -> [(IsImaginary, a)]
-msgWhere l = mapMaybe (\(c,m) -> extractOver l id m >$> (c,))
+msgWhere l = mapMaybe (\(c,m) -> (c,) <$> m ^? l)
 
 -- |Returns the messages that have the one of the given constructors
-msgWhereAny :: forall a.[Prism' AgentMessage a]
+msgWhereAny :: forall a.[Getter AgentMessage (Maybe a)]
             -> [AgentMessage']
             -> [(IsImaginary, a)]
 msgWhereAny ls = concatMap f
   where
     f :: (IsImaginary, AgentMessage) -> [(IsImaginary, a)]
-    f (c,m) = mapMaybe (\(l :: Prism' AgentMessage a) -> extractOver l id m >$> (c,)) ls
+    f (c,m) = mapMaybe (\(l :: Getter AgentMessage (Maybe a)) -> extractOver l id m >$> (c,)) ls
 
 -- |Returns the first message that has the correct consturctor.
 firstWhere :: Prism' AgentMessage a -> [AgentMessage'] -> Maybe a
@@ -51,8 +51,8 @@ lastWhere p = S.last . map snd . msgWhere p
 --  Example usage:
 --  >>> extractOver (AMTime 3) _AMTime (+1) = Just 4
 --  >>> extractOver (AMEmotionAnger 0) _AMTime (+1) = Nothing
-extractOver :: Prism' s a -> (a -> b) -> s -> Maybe b
-extractOver lens f x = (x ^? lens) & _Just %~ f
+extractOver :: Getter s (Maybe a) -> (a -> b) -> s -> Maybe b
+extractOver lens f x = (x ^. lens) & _Just %~ f
 
 -- |Sieves out messages about global world data.
 globalMessage :: AgentMessage -> Maybe AgentMessage
