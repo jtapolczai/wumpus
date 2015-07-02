@@ -3,7 +3,9 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE ImpredicativeTypes #-}
 {-# LANGUAGE TupleSections #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module Agent.Intelligent.Utils where
 
@@ -20,13 +22,20 @@ import System.Random (randomRIO)
 
 import Types
 
--- |Returns the messages that have the correct constructor, sorted by counter
---  value.
+-- |Returns the messages that have the given constructor.
 msgWhere :: Prism' AgentMessage a
          -> [AgentMessage']
          -> [(IsImaginary, a)]
 msgWhere l = mapMaybe (\(c,m) -> extractOver l id m >$> (c,))
-             . sortBy (comparing fst)
+
+-- |Returns the messages that have the one of the given constructors
+msgWhereAny :: forall a.[Prism' AgentMessage a]
+            -> [AgentMessage']
+            -> [(IsImaginary, a)]
+msgWhereAny ls = concatMap f
+  where
+    f :: (IsImaginary, AgentMessage) -> [(IsImaginary, a)]
+    f (c,m) = mapMaybe (\(l :: Prism' AgentMessage a) -> extractOver l id m >$> (c,)) ls
 
 -- |Returns the first message that has the correct consturctor.
 firstWhere :: Prism' AgentMessage a -> [AgentMessage'] -> Maybe a
@@ -42,7 +51,7 @@ lastWhere p = S.last . map snd . msgWhere p
 --  Example usage:
 --  >>> extractOver (AMTime 3) _AMTime (+1) = Just 4
 --  >>> extractOver (AMEmotionAnger 0) _AMTime (+1) = Nothing
-extractOver :: Getting (First a) s a -> (a -> b) -> s -> Maybe b
+extractOver :: Prism' s a -> (a -> b) -> s -> Maybe b
 extractOver lens f x = (x ^? lens) & _Just %~ f
 
 -- |Sieves out messages about global world data.
@@ -157,3 +166,12 @@ choose xs = randomRIO (0, length xs - 1) >$> (xs !!)
 -- |Creates a map from a list of keys and a value generating function.
 mkMap :: Ord k => (k -> v) -> [k] -> M.Map k v
 mkMap f = M.fromList . map (\k -> (k,f k))
+
+-- |Returns True iff the first argument is a sub-index of the first, i.e.
+--  if there is a @rest@ s.t. @xs ++ rest == ys@.
+subIndex :: MemoryIndex -> MemoryIndex -> Bool
+subIndex (MI i) (MI j) = go i j
+  where
+    go (x:xs) (y:ys) = x == y && go xs ys
+    go [] _ = True
+    go xs _ = False
