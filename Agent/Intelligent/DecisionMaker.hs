@@ -1,4 +1,5 @@
 {-# LANGUAGE TupleSections #-}
+{-# LANGUAGE ImpredicativeTypes #-}
 
 module Agent.Intelligent.DecisionMaker where
 
@@ -15,6 +16,7 @@ import Agent.Intelligent.Affect
 import Agent.Intelligent.Memory
 import Agent.Intelligent.Utils
 import Types
+import World.Constants
 import World.Utils
 
 -- |A function which returns actions associated with a given action.
@@ -44,43 +46,94 @@ decisionMakerComponent as =
 
          return $ as & newMessages %~ (newMsg++)
    -- if there is one, continue/abandon/OK the plan
-   else
-      do 
-      -- evaluate plan...
-
-      -- conflicting emotion arises              => abandon (whole plan?)
-      -- emotions doesn't decrease after N steps => abandon whole plan
-      --                                               => and do what?
-      -- cAGENT_PLAN_LIMIT
-      --
-      -- otherwise => continue
-      --
-      -- if plan is abandoned: randomly roll back [0..max] steps.
-      --
-      -- if plan hasn't been abandoned:
-      -- * if emotion decreases => OK plan
-      -- * otherwise: continue plan, choosing dominant emotion.
-
-      --  question: non-direct approach
-
-      -- todo: implement an A* instead
-      todo "makeDecision"
-
-
+   else do 
+      if conflictingEmotionArose allChanges then
+         todo "rollback random amount of steps"
+      else if targetEmotionSatisfied' allChanges then
+         todo "ok plan"
+      else
+         todo "make another step"
    where
+      conflictingEmotionArose = todo "cea"
+
+      planStartEmotion = planStartEmotions as M.! planEmotion
+      targetEmotionSatisfied' = targetEmotionSatisfied planStartEmotion planEmotion
+
+      -- the changes in emotional states since the beginning of the planning
+      allChanges :: M.Map EmotionName Rational
+      allChanges = sumEmotionChanges (leftMemIndex as) (emotionChanges as)
+
+      -- |Gets the strongest current emotion, as indicated by the AMEmotion* messages.
       dominantEmotion :: EmotionName
-      (dominantEmotion, (dominantEmotionLevel,_)) =
-         head . sortBy (flip $ comparing $ fst . snd) . M.toList $ as ^. psbc
+      dominantEmotionLevel :: Rational
+      (dominantEmotion, dominantEmotionLevel) =
+         head $ map snd $ msgWhereAny psbcPrisms $ as ^. messageSpace
 
       plannedActions = as ^. messageSpace . to (msgWhere _AMPlannedAction)
+      planEmotion = fromJust $ firstWhere _AMPlanEmotion $ as ^. messageSpace
 
       -- |Returns whether an emotion is strong enough to lead to an immediate choice
       --  (instead of planning).
       strongEnough :: Rational -> Bool
-      strongEnough = (>0.5)
+      strongEnough = (> cAGENT_EMOTION_IMMEDIATE)
 
       isImag = map $ if strongEnough dominantEmotionLevel then (True,) else (False,)
 
+
+emotionChanges :: AgentState -> [(MemoryIndex, EmotionName, Rational)]
+emotionChanges = map snd . msgWhere _AMPlanEmotionChanged . view messageSpace
+
+-- |Gets the level of emotions felt at the beginning of the planning.
+planStartEmotions :: AgentState -> M.Map EmotionName Rational
+planStartEmotions = foldr f M.empty . map snd . msgWhereAny psbcPrisms . view messageSpace
+   where
+      f n m | M.size m >= cAGENT_NUM_EMOTIONS = m
+            | otherwise                       = case n of
+               (n, r) -> M.insertWith (const id) n r m
+      
+
+psbcPrisms :: [Getter AgentMessage (Maybe (EmotionName, Rational))]
+psbcPrisms = [to a, to f, to e, to c]
+   where
+      a (AMEmotionAnger r) = Just (Anger, r)
+      a _ = Nothing
+
+      f (AMEmotionFear r) = Just (Fear, r)
+      f _ = Nothing
+
+      e (AMEmotionEnthusiasm r) = Just (Enthusiasm, r)
+      e _ = Nothing
+
+      c (AMEmotionContentment r) = Just (Contentment, r)
+      c _ = Nothing
+
+
+targetEmotionSatisfied = undefined
+
+{-
+-- |Returns the degree to which the target emotion's decree satisfies the criterion
+--  given by 'cAGENT_EMOTION_DECREASE_GOAL'.
+targetEmotionSatisfied :: Rational -- ^The strength of the emotion at the start of planning.
+                       -> EmotionName
+                       -> M.Map EmotionName Rational -- ^Map of emotional changes since the start of planning.
+                       -> Rational --^ The degree to which the decrease limit was reached. In [0,1].
+targetEmotionSatisfied start n m = (*) (1/lim) $ min 0 $ max lim (cur / start)
+   where
+      lim = cAGENT
+      cur = m M.! n
+
+-}
+
+-- |Returns the summed emotional changes along a path in a plan.
+sumEmotionChanges :: MemoryIndex
+                  -> [(MemoryIndex, EmotionName, Rational)]
+                  -> M.Map EmotionName Rational
+sumEmotionChanges goalMI = foldl' f psbcEmotionMap
+   where 
+      f :: M.Map EmotionName Rational -> (MemoryIndex, EmotionName, Rational) -> M.Map EmotionName Rational
+      f m (mi, n, v) = if mi `subIndex` goalMI
+                       then M.adjust (v+) n m
+                       else m
 
 -- |Returns the list of emotions that conflict with a given one.
 --  The conflicting emotions are given by the relation
