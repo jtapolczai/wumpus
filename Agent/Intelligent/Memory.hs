@@ -269,3 +269,7 @@ leftMemIndex = MI . go mempty . (^. memory)
    where
       go ys (T.Node _ []) = ys
       go ys (T.Node _ (x:_)) = go (0:ys) x
+
+-- |Gets the length of a memory index.
+memLength :: MemoryIndex -> Int
+memLength = length . runMI

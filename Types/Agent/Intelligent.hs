@@ -98,7 +98,7 @@ data AgentMessage =
    | AMPlanEmotionChanged MemoryIndex EmotionName Rational
    deriving (Show, Eq, Ord)
 
-newtype MemoryIndex = MI [Int]
+newtype MemoryIndex = MI{runMI::[Int]}
    deriving (Show, Eq, Ord)
 
 instance Monoid MemoryIndex where

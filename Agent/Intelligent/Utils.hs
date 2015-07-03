@@ -28,6 +28,14 @@ msgWhere :: forall a.Prism' AgentMessage a
          -> [(IsImaginary, a)]
 msgWhere l = mapMaybe (\(c,m) -> (c,) <$> m ^? l)
 
+-- |Filters messages by their constructor.
+filterWhere :: forall a.[Prism' AgentMessage a]
+            -> [AgentMessage']
+            -> [AgentMessage']
+filterWhere ls = filter f
+   where
+      f x = not . null . mapMaybe (\(l :: Prism' AgentMessage a) -> snd x ^? l) $ ls
+
 -- |Returns the messages that have the one of the given constructors
 msgWhereAny :: forall a.[Getter AgentMessage (Maybe a)]
             -> [AgentMessage']
