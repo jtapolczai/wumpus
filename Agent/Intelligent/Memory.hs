@@ -273,3 +273,13 @@ leftMemIndex = MI . go mempty . (^. memory)
 -- |Gets the length of a memory index.
 memLength :: MemoryIndex -> Int
 memLength = length . runMI
+
+-- |Deletes a sub-tree given by a memory index. If the entire tree is deleted
+--  (if the index is []), Nothing is returned.
+deleteMemory :: MemoryIndex -> T.Tree a -> Maybe (T.Tree a)
+deleteMemory (MI mi) = go mi
+  where
+    go [] (Node n ns) = Nothing
+    go (x:xs) (Node n ns)
+       | length ns >= x = Just $ Node n $ take x ns ++ maybe [] (:[]) (go xs (ns !! x)) ++ drop (x+1) ns
+       | otherwise = error $ "deleteMemory: tried to delete non-existent index " ++ show x

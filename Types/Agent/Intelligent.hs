@@ -115,8 +115,6 @@ instance Default SocialStorage where
 
 type SJSFilters = (M.Map EntityName SocialStorage, M.Map SocialEmotionName (Filter AgentMessage))
 
-
-
 type Memory = (M.Map CellInd VisualCellData, M.Map EdgeInd EdgeData)
 
 data Valence = Negative | Positive
