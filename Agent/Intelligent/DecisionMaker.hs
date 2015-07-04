@@ -19,6 +19,11 @@ import Types
 import World.Constants
 import World.Utils
 
+
+TODO: insert AMPlanEmotionChanged messages
+      conflincting emotion
+      take another step ???
+
 -- |A function which returns actions associated with a given action.
 type ActionSelector a =
    GestureStorage -- ^The agent's gesture storage.
@@ -32,7 +37,7 @@ type ActionSelector a =
 
 
 decisionMakerComponent :: AgentComponent IO
-decisionMakerComponent as =
+decisionMakerComponent asInit =
    -- if there's no plan, start one.
    if null plannedActions then
          -- randomly choose an emotion-appropriate action
@@ -48,12 +53,16 @@ decisionMakerComponent as =
    -- if there is one, continue/abandon/OK the plan
    else do 
       if conflictingEmotionArose allChanges then
-         todo "rollback random amount of steps"
+         do numSteps <- randomRIO (1,memLength $ leftMemIndex as)
+            return $ retractSteps numSteps as
       else if targetEmotionSatisfied' allChanges then
-         todo "ok plan"
+         return $ finalizeAction (MI []) as
       else
          todo "make another step"
    where
+      -- first, we reinsert all the planning-related messages
+      as = asInit & newMessages .~ reinsertablePlanMsg asInit
+
       conflictingEmotionArose = todo "cea"
 
       planStartEmotion = planStartEmotions as M.! planEmotion
@@ -79,7 +88,37 @@ decisionMakerComponent as =
 
       isImag = map $ if strongEnough dominantEmotionLevel then (True,) else (False,)
 
+-- |Deletes n steps from end of a given memory index.
+--
+--  In detail:
+--
+--  * 'AMPlannedAction' and 'AMPlanEmotionChanged' messages are deleted from the 'newMessages' list, and
+--  * the memory nodes corresponding to the deleted memory indices are deleted too.
+--  * If all steps were retracted, the 'AMPanEmotion' message is deleted too.
+retractSteps :: MemoryIndex -- ^The index from which to start deleting upward.
+             -> Int -- ^Number of steps to go back.
+             -> AgentState
+             -> AgentState
+retractSteps mi n = over memory delMem . over newMessages delMsg
+   where
+      delMsg = filter pa
 
+      pa (AMPlannedAction _ mi' _) = not (mi' `subIndex` mi && memLength mi' > memLength mi - n)
+      pa (AMPlannedEmotionChanged _ mi' _) = not (mi' `subIndex` mi && memLength mi' > memLength mi - n)
+      pa (AMPlanEmotion _) = not (mi' == mi)
+      pa _ = True
+
+      delMem ms@(T.Node n _) = fromMaybe (T.Node n []) $ deleteMemory mi ms
+
+-- |Gets the 'AMPlannedAction' with the given memory index and from the message space and
+--  inserts it into 'newMessages', with its 'IsImaginary' flag set to False.
+--  Will fail if the message with the given memory index does not exist.
+finalizeAction :: MemoryIndex -> AgentState -> AgentState
+finalizeAction mi as = as & newMessages %~ ((False,msg):)
+   where
+      (_,msg) = head . filter ((mi ==) . view _2) . msgWhere _AMPlannedAction . view messageSpace $ as
+
+-- |Gets all the 'AMPlanEmotionChanged' messages from the agent's message space.
 emotionChanges :: AgentState -> [(MemoryIndex, EmotionName, Rational)]
 emotionChanges = map snd . msgWhere _AMPlanEmotionChanged . view messageSpace
 
@@ -90,8 +129,15 @@ planStartEmotions = foldr f M.empty . map snd . msgWhereAny psbcPrisms . view me
       f n m | M.size m >= cAGENT_NUM_EMOTIONS = m
             | otherwise                       = case n of
                (n, r) -> M.insertWith (const id) n r m
-      
 
+-- |Gets those messages which are planning-related and should thus be reinserted by the
+--  decisionmaker by default.
+reinsertablePlanMsg :: AgentState -> [AgentMessage']
+reinsertablePlanMsg = msgWhereAny cons . view messageSpace
+   where
+      cons = [_AMPlannedAction, _AMPlanEmotion, _AMPlanEmotionChanged]
+      
+-- |Getters for the four PSBC-emotions.
 psbcPrisms :: [Getter AgentMessage (Maybe (EmotionName, Rational))]
 psbcPrisms = [to a, to f, to e, to c]
    where
@@ -108,9 +154,9 @@ psbcPrisms = [to a, to f, to e, to c]
       c _ = Nothing
 
 
-targetEmotionSatisfied = undefined
+--targetEmotionSatisfied = undefined
 
-{-
+
 -- |Returns the degree to which the target emotion's decree satisfies the criterion
 --  given by 'cAGENT_EMOTION_DECREASE_GOAL'.
 targetEmotionSatisfied :: Rational -- ^The strength of the emotion at the start of planning.
@@ -122,7 +168,7 @@ targetEmotionSatisfied start n m = (*) (1/lim) $ min 0 $ max lim (cur / start)
       lim = cAGENT
       cur = m M.! n
 
--}
+
 
 -- |Returns the summed emotional changes along a path in a plan.
 sumEmotionChanges :: MemoryIndex
