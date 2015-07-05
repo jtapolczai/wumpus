@@ -21,8 +21,7 @@ import Types
 import World.Constants
 import World.Utils
 
-
---TODO: insert AMPlanEmotionChanged messages
+-- TODO:
 --      conflincting emotion
 --      take another step ???
 
@@ -54,7 +53,7 @@ decisionMakerComponent asInit =
          return $ as & newMessages %~ (newMsg++)
    -- if there is one, continue/abandon/OK the plan
    else do 
-      if conflictingEmotionArose allChanges then
+      if strongestOverruling planEmotion allChanges > 0 then
          do numSteps <- randomRIO (1,length . runMI . leftMemIndex $ as)
             return $ retractSteps (leftMemIndex as) numSteps as
       else if targetEmotionSatisfied' allChanges >= 1 then
@@ -64,8 +63,6 @@ decisionMakerComponent asInit =
    where
       -- first, we reinsert all the planning-related messages
       as = asInit & newMessages .~ reinsertablePlanMsg asInit
-
-      conflictingEmotionArose = todo "cea"
 
       planStartEmotion = planStartEmotions as M.! planEmotion
       targetEmotionSatisfied' = targetEmotionSatisfied planStartEmotion planEmotion
@@ -89,6 +86,14 @@ decisionMakerComponent asInit =
       strongEnough = (> cAGENT_EMOTION_IMMEDIATE)
 
       isImag = map $ if strongEnough dominantEmotionLevel then (True,) else (False,)
+
+-- |Returns the amount by which the strongest conflicting emotion is stronger
+--  than a given one. If no confliction emotion is stronger, 0 is returned. 
+strongestOverruling :: EmotionName -> M.Map EmotionName Rational -> Rational
+strongestOverruling en m = fromMaybe 0 $ do
+   enVal <- m ^. at en
+   confVals <- mapM (\e -> m ^. at e) (conflictingEmotions en)
+   return . max 0 . maximum . map (subtract enVal) $ confVals
 
 -- |Deletes n steps from end of a given memory index.
 --
@@ -183,7 +188,7 @@ targetEmotionSatisfied :: Rational -- ^The strength of the emotion at the start 
                        -> EmotionName
                        -> M.Map EmotionName Rational -- ^Map of emotional changes since the start of planning.
                        -> Rational -- ^The degree to which the decrease limit was reached. In [0,1].
-targetEmotionSatisfied start n m = (*) (1/lim) $ min 0 $ max lim (cur / start)
+targetEmotionSatisfied start n m = (*) (1/lim) $ max 0 $ min lim (cur / start)
    where
       lim = cAGENT_EMOTION_DECREASE_GOAL
       cur = m M.! n
@@ -200,16 +205,6 @@ sumEmotionChanges goalMI = foldl' f (psbcEmotionMap 0)
       f m (mi, n, v) = if mi `subIndex` goalMI
                        then M.adjust (v+) n m
                        else m
-
--- |Returns the list of emotions that conflict with a given one.
---  The conflicting emotions are given by the relation
---
---  >>> {(a,b) | a in {anger, enthusiasm}, b in {fear, contentment}}
-conflictingEmotions :: EmotionName -> [EmotionName]
-conflictingEmotions Anger = [Fear, Contentment]
-conflictingEmotions Fear = [Anger, Enthusiasm]
-conflictingEmotions Enthusiasm = conflictingEmotions Anger
-conflictingEmotions Contentment = conflictingEmotions Fear
 
 -- |Gets the cell that evokes the highest value for a given emotion.
 strongestEmotionCell :: EmotionName -> AgentState-> CellInd

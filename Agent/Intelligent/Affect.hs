@@ -157,3 +157,13 @@ socialEmotionMessage :: SocialEmotionName -> CellInd -> Rational -> AgentMessage
 socialEmotionMessage Sympathy = AMEmotionSympathy
 socialEmotionMessage Trust = AMEmotionTrust
 socialEmotionMessage Respect = AMEmotionRespect
+
+-- |Returns the list of emotions that conflict with a given one.
+--  The conflicting emotions are given by the relation
+--
+--  >>> {(a,b) | a in {anger, enthusiasm}, b in {fear, contentment}}
+conflictingEmotions :: EmotionName -> [EmotionName]
+conflictingEmotions Anger = [Fear, Contentment]
+conflictingEmotions Fear = [Anger, Enthusiasm]
+conflictingEmotions Enthusiasm = conflictingEmotions Anger
+conflictingEmotions Contentment = conflictingEmotions Fear
