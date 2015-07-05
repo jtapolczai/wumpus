@@ -70,6 +70,8 @@ data AgentMessage =
    | AMEmotionFear Rational
    | AMEmotionEnthusiasm Rational
    | AMEmotionContentment Rational
+   -- |Emotion changes of the PSBC
+   | AMEmotionChanged EmotionName Rational
    -- |Emotions of the SJS
    | AMEmotionSympathy CellInd Rational
    | AMEmotionTrust CellInd Rational

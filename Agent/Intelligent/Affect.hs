@@ -90,7 +90,12 @@ psbcComponent as = return $
    foldr (\en as' -> addEmotionMessage en $ psbcEmotion msg en as') as [minBound..maxBound]
    where
       msg = map snd $ as ^. messageSpace
-      addEmotionMessage en as' = addMessage (False, emotionMessage en (as' ^. psbc . at' en . _1)) as'
+      addEmotionMessage en as' =
+           addMessage (False, AMEmotionChanged en (emotionVal en as' - emotionVal en as))
+         . addMessage (False, emotionMessage en (emotionVal en as')) $ as'
+
+      emotionVal :: EmotionName -> AgentState -> Rational
+      emotionVal en = view (psbc . at' en . _1)
 
 -- |Updates one emotion based on messages.
 psbcEmotion :: [AgentMessage]
