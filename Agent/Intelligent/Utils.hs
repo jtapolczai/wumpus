@@ -15,8 +15,6 @@ import Data.List
 import qualified Data.List.Safe as S
 import qualified Data.Map as M
 import Data.Maybe
-import Data.Monoid (First(..))
-import Data.Ord
 import qualified Data.Tree as T
 import System.Random (randomRIO)
 
@@ -32,7 +30,7 @@ msgWhere l = mapMaybe (\(c,m) -> (c,) <$> m ^? l)
 anyOfP :: [Prism' AgentMessage a]
        -> AgentMessage
        -> Bool
-anyOfP ls x = not . null . mapMaybe (\(l :: Prism' AgentMessage a) -> snd x ^? l) $ ls
+anyOfP ls x = not . null . mapMaybe (\(l :: Prism' AgentMessage a) -> x ^? l) $ ls
 
 -- |Returns the messages that have the one of the given constructors
 msgWhereAny :: forall a.[Getter AgentMessage (Maybe a)]
@@ -180,4 +178,4 @@ subIndex (MI i) (MI j) = go i j
   where
     go (x:xs) (y:ys) = x == y && go xs ys
     go [] _ = True
-    go xs _ = False
+    go _ _ = False

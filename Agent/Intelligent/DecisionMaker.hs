@@ -20,9 +20,9 @@ import World.Constants
 import World.Utils
 
 
-TODO: insert AMPlanEmotionChanged messages
-      conflincting emotion
-      take another step ???
+--TODO: insert AMPlanEmotionChanged messages
+--      conflincting emotion
+--      take another step ???
 
 -- |A function which returns actions associated with a given action.
 type ActionSelector a =
