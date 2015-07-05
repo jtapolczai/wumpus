@@ -22,7 +22,6 @@ import World.Constants
 import World.Utils
 
 -- TODO:
---      conflincting emotion
 --      take another step ???
 
 -- |A function which returns actions associated with a given action.
@@ -40,17 +39,13 @@ type ActionSelector a =
 decisionMakerComponent :: AgentComponent IO
 decisionMakerComponent asInit =
    -- if there's no plan, start one.
-   if null plannedActions then
-         -- randomly choose an emotion-appropriate action
-      do act <- choose $ emotionAction dominantEmotion
-                                       (as ^. gestures)
-                                       (myPosition $ as ^. messageSpace)
-                                       (strongestEmotionCell dominantEmotion as)
-         -- insert it as a planned action
-         let newMsg = isImag [AMPlannedAction act mempty False,
-                              AMPlanEmotion dominantEmotion]
+   if null plannedActions then do
+      -- randomly choose an emotion-appropriate action
+      act <- getNextAction dominantEmotion
+      let newMsg = isImag [AMPlannedAction act mempty False,
+                           AMPlanEmotion dominantEmotion]
 
-         return $ as & newMessages %~ (newMsg++)
+      return $ as & newMessages %~ (newMsg++)
    -- if there is one, continue/abandon/OK the plan
    else do 
       if strongestOverruling planEmotion allChanges > 0 then
@@ -58,10 +53,21 @@ decisionMakerComponent asInit =
             return $ retractSteps (leftMemIndex as) numSteps as
       else if targetEmotionSatisfied' allChanges >= 1 then
          return $ finalizeAction (MI []) as
-      else
-         todo "make another step"
+      else do
+         act <- getNextAction planEmotion
+         let newMsg = [(True, AMPlannedAction act (leftMemIndex as) False)]
+         return $ as & newMessages %~ (newMsg++)
    where
+      -- chooses another action related to the given emotion
+      getNextAction :: EmotionName -> IO Action
+      getNextAction emotion =
+         choose $ emotionAction emotion
+                                (as ^. gestures)
+                                (myPosition $ as ^. messageSpace)
+                                (strongestEmotionCell emotion as)
+
       -- first, we reinsert all the planning-related messages
+      as :: AgentState
       as = asInit & newMessages .~ reinsertablePlanMsg asInit
 
       planStartEmotion = planStartEmotions as M.! planEmotion
