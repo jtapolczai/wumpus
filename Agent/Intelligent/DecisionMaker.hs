@@ -11,6 +11,8 @@ import qualified Data.Map as M
 import Data.Maybe
 import Data.Monoid
 import Data.Ord
+import qualified Data.Tree as T
+import System.Random (randomRIO)
 
 import Agent.Intelligent.Affect
 import Agent.Intelligent.Memory
@@ -53,7 +55,7 @@ decisionMakerComponent asInit =
    -- if there is one, continue/abandon/OK the plan
    else do 
       if conflictingEmotionArose allChanges then
-         do numSteps <- randomRIO (1,memLength $ leftMemIndex as)
+         do numSteps <- randomRIO (1,length . runMI . leftMemIndex $ as)
             return $ retractSteps numSteps as
       else if targetEmotionSatisfied' allChanges then
          return $ finalizeAction (MI []) as
@@ -99,16 +101,18 @@ retractSteps :: MemoryIndex -- ^The index from which to start deleting upward.
              -> Int -- ^Number of steps to go back.
              -> AgentState
              -> AgentState
-retractSteps mi n = over memory delMem . over newMessages delMsg
+retractSteps mi n as = over memory delMem . over newMessages delMsg $ as
    where
       delMsg = filter pa
 
       pa (AMPlannedAction _ mi' _) = not (mi' `subIndex` mi && memLength mi' > memLength mi - n)
-      pa (AMPlannedEmotionChanged _ mi' _) = not (mi' `subIndex` mi && memLength mi' > memLength mi - n)
-      pa (AMPlanEmotion _) = not (mi' == mi)
+      pa (AMPlanEmotionChanged _ mi' _) = not (mi' `subIndex` mi && memLength mi' > memLength mi - n)
+      pa (AMPlanEmotion _) = n < memLength (leftMemIndex as)
       pa _ = True
 
       delMem ms@(T.Node n _) = fromMaybe (T.Node n []) $ deleteMemory mi ms
+
+      memLength = length . runMI
 
 -- |Gets the 'AMPlannedAction' with the given memory index and from the message space and
 --  inserts it into 'newMessages', with its 'IsImaginary' flag set to False.
@@ -162,10 +166,10 @@ psbcPrisms = [to a, to f, to e, to c]
 targetEmotionSatisfied :: Rational -- ^The strength of the emotion at the start of planning.
                        -> EmotionName
                        -> M.Map EmotionName Rational -- ^Map of emotional changes since the start of planning.
-                       -> Rational --^ The degree to which the decrease limit was reached. In [0,1].
+                       -> Rational -- ^The degree to which the decrease limit was reached. In [0,1].
 targetEmotionSatisfied start n m = (*) (1/lim) $ min 0 $ max lim (cur / start)
    where
-      lim = cAGENT
+      lim = cAGENT_EMOTION_DECREASE_GOAL
       cur = m M.! n
 
 
