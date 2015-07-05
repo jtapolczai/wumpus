@@ -32,6 +32,9 @@ anyOfP :: [Prism' AgentMessage a]
        -> Bool
 anyOfP ls x = not . null . mapMaybe (\(l :: Prism' AgentMessage a) -> x ^? l) $ ls
 
+isP :: Prism' AgentMessage a -> AgentMessage -> Bool
+isP l x = isJust (x ^? l)
+
 -- |Returns the messages that have the one of the given constructors
 msgWhereAny :: forall a.[Getter AgentMessage (Maybe a)]
             -> [AgentMessage']

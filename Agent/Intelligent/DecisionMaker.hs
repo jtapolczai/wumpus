@@ -56,8 +56,8 @@ decisionMakerComponent asInit =
    else do 
       if conflictingEmotionArose allChanges then
          do numSteps <- randomRIO (1,length . runMI . leftMemIndex $ as)
-            return $ retractSteps numSteps as
-      else if targetEmotionSatisfied' allChanges then
+            return $ retractSteps (leftMemIndex as) numSteps as
+      else if targetEmotionSatisfied' allChanges >= 1 then
          return $ finalizeAction (MI []) as
       else
          todo "make another step"
@@ -103,10 +103,10 @@ retractSteps :: MemoryIndex -- ^The index from which to start deleting upward.
              -> AgentState
 retractSteps mi n as = over memory delMem . over newMessages delMsg $ as
    where
-      delMsg = filter pa
+      delMsg = filter (pa.snd)
 
       pa (AMPlannedAction _ mi' _) = not (mi' `subIndex` mi && memLength mi' > memLength mi - n)
-      pa (AMPlanEmotionChanged _ mi' _) = not (mi' `subIndex` mi && memLength mi' > memLength mi - n)
+      pa (AMPlanEmotionChanged mi' _ _) = not (mi' `subIndex` mi && memLength mi' > memLength mi - n)
       pa (AMPlanEmotion _) = n < memLength (leftMemIndex as)
       pa _ = True
 
@@ -118,9 +118,11 @@ retractSteps mi n as = over memory delMem . over newMessages delMsg $ as
 --  inserts it into 'newMessages', with its 'IsImaginary' flag set to False.
 --  Will fail if the message with the given memory index does not exist.
 finalizeAction :: MemoryIndex -> AgentState -> AgentState
-finalizeAction mi as = as & newMessages %~ ((False,msg):)
+finalizeAction mi as = as & newMessages %~ ((False,uncurry3 AMPlannedAction msg):)
    where
-      (_,msg) = head . filter ((mi ==) . view _2) . msgWhere _AMPlannedAction . view messageSpace $ as
+      uncurry3 :: (a -> b -> c -> d) -> (a,b,c) -> d
+      uncurry3 f (x,y,z) = f x y z
+      msg = head . filter ((mi ==) . view _2) . map snd . msgWhere _AMPlannedAction . view messageSpace $ as
 
 -- |Gets all the 'AMPlanEmotionChanged' messages from the agent's message space.
 emotionChanges :: AgentState -> [(MemoryIndex, EmotionName, Rational)]
@@ -128,18 +130,18 @@ emotionChanges = map snd . msgWhere _AMPlanEmotionChanged . view messageSpace
 
 -- |Gets the level of emotions felt at the beginning of the planning.
 planStartEmotions :: AgentState -> M.Map EmotionName Rational
-planStartEmotions = foldr f M.empty . map snd . msgWhereAny psbcPrisms . view messageSpace
+planStartEmotions = foldl' f M.empty . map snd . msgWhereAny psbcPrisms . view messageSpace
    where
-      f n m | M.size m >= cAGENT_NUM_EMOTIONS = m
+      f m n | M.size m >= cAGENT_NUM_EMOTIONS = m
             | otherwise                       = case n of
                (n, r) -> M.insertWith (const id) n r m
 
 -- |Gets those messages which are planning-related and should thus be reinserted by the
---  decisionmaker by default.
+--  decision maker by default.
 reinsertablePlanMsg :: AgentState -> [AgentMessage']
-reinsertablePlanMsg = msgWhereAny cons . view messageSpace
+reinsertablePlanMsg = filter (f.snd) . view messageSpace
    where
-      cons = [_AMPlannedAction, _AMPlanEmotion, _AMPlanEmotionChanged]
+      f = (\x y z -> x || y || z) <$> isP _AMPlannedAction <*> isP _AMPlanEmotion <*> isP _AMPlanEmotionChanged
       
 -- |Getters for the four PSBC-emotions.
 psbcPrisms :: [Getter AgentMessage (Maybe (EmotionName, Rational))]
@@ -158,8 +160,22 @@ psbcPrisms = [to a, to f, to e, to c]
       c _ = Nothing
 
 
---targetEmotionSatisfied = undefined
+-- |Outputs AMPlanEmotionChanged-messages.
+--  Looks for PSBC emotion messages (AMEmoionAnger,... and AMEmotionChanged).
+--  Each pair of AMEmotionAnger/Fear/Enthusiasm/Contentment and AMEmotionChanged
+--  will result in an AMPlanEmotionChanged.
+recordPlanEmotionChanges :: MemoryIndex -> [AgentMessage'] -> [AgentMessage']
+recordPlanEmotionChanges mi = map (True,) . M.foldrWithKey mkMsg [] . foldl' f (psbcEmotionMap Nothing)
+   where
+      mkMsg :: EmotionName -> Maybe Rational -> [AgentMessage] -> [AgentMessage]
+      mkMsg en (Just r) = ((AMPlanEmotionChanged mi en r) :)
 
+      f :: M.Map EmotionName (Maybe Rational) -> AgentMessage' -> M.Map EmotionName (Maybe Rational)
+      f m (_,AMEmotionAnger r) = m & ix Anger .~ Just r
+      f m (_,AMEmotionFear r) = m & ix Fear .~ Just r
+      f m (_,AMEmotionEnthusiasm r) = m & ix Enthusiasm .~ Just r
+      f m (_,AMEmotionContentment r) = m & ix Contentment .~ Just r
+      f m _ = m
 
 -- |Returns the degree to which the target emotion's decree satisfies the criterion
 --  given by 'cAGENT_EMOTION_DECREASE_GOAL'.
@@ -178,7 +194,7 @@ targetEmotionSatisfied start n m = (*) (1/lim) $ min 0 $ max lim (cur / start)
 sumEmotionChanges :: MemoryIndex
                   -> [(MemoryIndex, EmotionName, Rational)]
                   -> M.Map EmotionName Rational
-sumEmotionChanges goalMI = foldl' f psbcEmotionMap
+sumEmotionChanges goalMI = foldl' f (psbcEmotionMap 0)
    where 
       f :: M.Map EmotionName Rational -> (MemoryIndex, EmotionName, Rational) -> M.Map EmotionName Rational
       f m (mi, n, v) = if mi `subIndex` goalMI
