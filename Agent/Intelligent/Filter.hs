@@ -16,6 +16,15 @@ import Types
 instance Default (Filter s) where
    def = FI (HM.empty) (HS.empty)
 
+-- Constructs a 'FilterNode'.
+mkFN :: NodeCondition s
+     -> Int -- |Threshold for activation.
+     -> Int -- |Increase in excitement if the condition is met.
+     -> NodeSignificance -- |Significance (only relevant for output nodes).
+     -> [(G.Vertex, Rational)] -- |Outgoing neighbors, with edge strengths in [0,1).
+     -> FilterNode s
+mkFN c th exInc sign neigh = FN c 0 th exInc False sign neigh
+
 -- |Evaluates a condition against a value.
 runCondition :: NodeCondition s -> s -> Bool
 runCondition (NodeEQ f x) y = maybe False (x==) (y ^? f)
