@@ -2,6 +2,10 @@
 --  agent's personality.
 module Agent.Intelligent.Affect.Fragments where
 
+import qualified Data.HashMap.Strict as HM
+import qualified Data.HashSet as HS
+
+import Agent.Intelligent.Filter (mkFN)
 import Types
 
 psbcFragmentType :: String -> PSBCFragmentType
@@ -43,7 +47,13 @@ strongAnger = todo "affectFragments"
 weakFear :: Filter AgentMessage
 weakFear = todo "affectFragments"
 strongFear :: Filter AgentMessage
-strongFear = todo "affectFragments"
+strongFear = FI graph output
+   where
+      died = mkFN (NodeEQ _AMHealthDecreased 1) 1 1 0.5 []
+
+      graph = HM.fromList [(0, died)]
+
+      output = HS.fromList [0]
 
 weakEnthusiasm :: Filter AgentMessage
 weakEnthusiasm = todo "affectFragments"
