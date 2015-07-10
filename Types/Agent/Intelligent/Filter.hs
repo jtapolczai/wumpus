@@ -13,7 +13,7 @@ import Data.Graph
 import qualified Data.HashMap.Strict as HM
 import qualified Data.HashSet as HS
 
-type NodeSignificance = Int
+type NodeSignificance = Rational
 
 -- |A condition for the firing of a node.
 --  A condition consists of a condition kind (the constructor; EQ, GT, LT),

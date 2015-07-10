@@ -113,10 +113,7 @@ psbcEmotion ms emo as = as & psbc . ix emo .~ (new_lvl , filt)
 emotionValue :: [AgentMessage]
              -> Filter AgentMessage
              -> Rational -- ^The strength of the emotional response (-1 to 1).
-emotionValue ms filt = fromIntegral (runFilter ms limit filt) % sig
-   where
-      limit = cAGENT_FILTER_ROUNDS
-      sig = cAGENT_FILTER_MAX_SIGNIFICANCE
+emotionValue ms filt = runFilter ms cAGENT_FILTER_ROUNDS filt
 
 -- |Returns whether the second emotion is stronger, provided that the two
 --  conflict along the approach/avoidance, axis. If they don't conflict, the returns False.

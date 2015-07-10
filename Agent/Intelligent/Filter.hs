@@ -67,7 +67,7 @@ sendExcitementFrom = flip (F.foldl' (flip exciteNeighbors))
 runFilter :: [AgentMessage]
           -> Int -- ^The upper limit on the number of rounds. 0 means that nothing is done.
           -> Filter AgentMessage
-          -> Int -- ^Sum of the significances of activated output nodes.
+          -> Rational -- ^Capped sum of the significances of activated output nodes.
 runFilter _ 0 f = activatedSum $ activateNodes f
 -- Messages are only given to the nodes once. If no activations are caused,
 -- we can just abort the process. Otherwise, we repeat it and see whether the
@@ -93,9 +93,10 @@ runFilter ms limit filt = if HM.null newActiveNodes then activatedSum filt
       filt'' = sendExcitementFrom activatedNodes filt'
 
 
--- |Returns the sum of the significances of all activated output nodes.
-activatedSum :: Filter a -> Int
-activatedSum filt = F.foldl' add 0 $ HM.filterWithKey isOutput $ filt ^. graph
+-- |Returns the sum of the significances of all activated output nodes,
+--  capped to -1/1.
+activatedSum :: Filter a -> Rational
+activatedSum filt = max (-1) $ min 1 $ F.foldl' add 0 $ HM.filterWithKey isOutput $ filt ^. graph
    where
       isOutput k _ = filt ^. outputNodes . to (HS.member k)
       add acc n = if n ^. active then acc + (n ^. significance) else acc
