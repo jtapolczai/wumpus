@@ -12,7 +12,6 @@ import Data.Default
 import Data.List
 import qualified Data.Map as M
 import Data.Maybe
-import Data.Ratio
 
 import Agent.Intelligent.Filter
 import Agent.Intelligent.MessageHandling

@@ -9,7 +9,6 @@ import Data.Functor.Monadic
 import Data.List
 import qualified Data.Map as M
 import Data.Maybe
-import Data.Monoid
 import Data.Ord
 import qualified Data.Tree as T
 import System.Random (randomRIO)
@@ -180,6 +179,7 @@ recordPlanEmotionChanges mi = map (True,) . M.foldrWithKey mkMsg [] . foldl' f (
    where
       mkMsg :: EmotionName -> Maybe Rational -> [AgentMessage] -> [AgentMessage]
       mkMsg en (Just r) = ((AMPlanEmotionChanged mi en r) :)
+      mkMsg _ _ = error "recordPlanEmotionChanges.mkMsg: called with Nothing!"
 
       f :: M.Map EmotionName (Maybe Rational) -> AgentMessage' -> M.Map EmotionName (Maybe Rational)
       f m (_,AMEmotionAnger r) = m & ix Anger .~ Just r
@@ -198,8 +198,6 @@ targetEmotionSatisfied start n m = (*) (1/lim) $ max 0 $ min lim (cur / start)
    where
       lim = cAGENT_EMOTION_DECREASE_GOAL
       cur = m M.! n
-
-
 
 -- |Returns the summed emotional changes along a path in a plan.
 sumEmotionChanges :: MemoryIndex
@@ -238,7 +236,7 @@ strongestEmotionCell en = fst . head . sortBy (flip $ comparing f) . M.toList . 
 --    are deleted.
 --  * otherwise, the agent state is left unchanged.
 evaluatePlan :: AgentComponent IO
-evaluatePlan as = todo "evaluatePlan"
+evaluatePlan _ = todo "evaluatePlan"
    where
       --planEmotion = firstWhere _AMPlanEmotion (as ^. messageSpace)
 
@@ -324,7 +322,7 @@ enthusiasmActions gestures i j =
 -- |Generic approach-related actions for distant targets.
 --  If the target is still distant a 'Just' will be returned, otherwise Nothing.
 approachDistantActions :: ActionSelector (Maybe [Action])
-approachDistantActions gestures i j
+approachDistantActions _ i j
       | not withinView && distant = Just [Rotate targetDir]
       | distant                   = Just [Move targetDir]
       | otherwise                 = Nothing

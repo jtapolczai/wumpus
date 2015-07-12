@@ -92,6 +92,9 @@ data AgentMessage =
    | AMLostMeat
    | AMLostFruit
    | AMLostGold
+   -- |Emotions related to other Agents/wumpuses
+   | AMKilledAgent EntityName
+   | AMWKilledWumpus EntityName
    -- |A planned action.
    | AMPlannedAction Action MemoryIndex Discharged
    -- |The emotion that dominates the current plan.
