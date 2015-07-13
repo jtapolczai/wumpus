@@ -214,12 +214,14 @@ data Message =
    | MsgReceivedItem EntityName Item
    -- |The agent lost (gave away) an item.
    | MsgLostItem Item
-   -- |The agent died.
-   | MsgYouDied
    -- |Another entity died.
    | MsgDied EntityName EntityType
    -- |The agent attacked another entity.
    | MsgAttacked EntityName
+   -- |The agent's body. Health, Stamina, and inventory
+   | MsgBody Rational Rational (M.Map Item Int)
+   -- |Plant harvested
+   | MsgPlantHarvested
 
 -- |The class of agents.
 --  An agent is a object that can receive messages (percepts) from its
