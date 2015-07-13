@@ -32,9 +32,14 @@ instance Bounded SquareDirection where
    minBound = North
    maxBound = West
 
+-- |A value between in percent. 1 corresponds to 100%.
+type Percentage = Rational
 
 type EntityName = String
 type GestureName = String
+
+-- |Enumeration for entity types.
+data EntityType = TyAgent | TyWumpus
 
 -- Agent data
 -------------------------------------------------------------------------------
@@ -189,11 +194,32 @@ data World = World {
 
 -- |A message.
 data Message =
-   VisualPerception CellInd VisualCellData
-   | LocalPerception CellData
-   | GlobalPerception WorldData
-   | PositionPerception CellInd
-   | GestureM EntityName GestureName
+   -- |Visual data about a dell.
+   MsgVisualPerception CellInd VisualCellData
+   -- |Data about the current cell.
+   | MsgLocalPerception CellData
+   -- |Global world-data.
+   | MsgGlobalPerception WorldData
+   -- |The agent's position.
+   | MsgPositionPerception CellInd
+   -- |A gesture sent from another agent.
+   | MsgGesture EntityName GestureName
+   -- |A change in the agent's health, in percents.
+   | MsgHealthChanged Percentage
+   -- |A change in the agent's health, in percents.
+   | MsgStaminaChanged Percentage
+   -- |The agent was attacked.
+   | MsgAttackedBy EntityName SquareDirection
+   -- |The agent received an item.
+   | MsgReceivedItem EntityName Item
+   -- |The agent lost (gave away) an item.
+   | MsgLostItem Item
+   -- |The agent died.
+   | MsgYouDied
+   -- |Another entity died.
+   | MsgDied EntityName EntityType
+   -- |The agent attacked another entity.
+   | MsgAttacked EntityName
 
 -- |The class of agents.
 --  An agent is a object that can receive messages (percepts) from its

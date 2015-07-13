@@ -33,6 +33,9 @@ instance Monoid Bool where
    mempty = False
    mappend = (&&)
 
+-- |A value from 0 to 100.
+type Percentage = Rational
+
 -- |Creates a new world and initializes it (setting the time to the middle of
 --  the day and initializing the outwardly radiating breeze for the pits).
 makeWorld :: [(CellInd, CellData)]
@@ -178,7 +181,7 @@ doAction i (Gesture dir s) world =
    doIfM (cellAgent j) (\w -> do {tell gestureSent; return $ send w}) world
    where j = inDirection i dir
          me = agentAt i world
-         send = onCell j $ onAgent (state %~ receiveMessage (GestureM (me^.name) s))
+         send = onCell j $ onAgent (state %~ receiveMessage (MsgGesture (me^.name) s))
 
 collect :: Item -> Lens' CellData Int -> CellData -> CellData
 collect item lens c = (lens .~ 0) $ onAgent (inventory . ix item +~ (c ^. lens)) c

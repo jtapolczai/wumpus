@@ -18,11 +18,11 @@ getLocalPerceptions :: World
                     -> [Message]
 getLocalPerceptions world i d = local : global : location : visual
    where
-      local = LocalPerception $ cellAt i world
-      global = GlobalPerception $ world ^. worldData
-      location = PositionPerception i
+      local = MsgLocalPerception $ cellAt i world
+      global = MsgGlobalPerception $ world ^. worldData
+      location = MsgPositionPerception i
       visual = map visualData $ verticesInSightCone world i d
-      visualData j = VisualPerception j $ cast $ cellAt j world
+      visualData j = MsgVisualPerception j $ cast $ cellAt j world
 
 -- |Gets the perceptions to which an all-seeing agent is entitled (i.e. if an agent
 --  had a 360° degree sight cone of infinite extent that went through walls and could
@@ -33,9 +33,9 @@ getGlobalPerceptions :: World
 getGlobalPerceptions world i = global : location : cells
   where
     cells = map cellPerception $ world ^. cellData . to M.keys
-    cellPerception j = VisualPerception j $ cast' $ cellAt j world
-    global = GlobalPerception $ world ^. worldData
-    location = PositionPerception i
+    cellPerception j = MsgVisualPerception j $ cast' $ cellAt j world
+    global = MsgGlobalPerception $ world ^. worldData
+    location = MsgPositionPerception i
 
     -- standard cast, but stench and breeze are also set.
     cast' :: CellData -> VisualCellData

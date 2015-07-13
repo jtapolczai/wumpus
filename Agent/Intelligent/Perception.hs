@@ -14,7 +14,7 @@ import Types
 -- |Processes and breaks up messages from the outside world into smaller
 --  ones that the other sub-systems of the agent can process.
 perception :: Message -> [AgentMessage]
-perception (VisualPerception i d) =
+perception (MsgVisualPerception i d) =
    [AMVisualGold i (d ^. gold),
     AMVisualMeat i (d ^. meat),
     AMVisualFruit i (d ^. fruit)]
@@ -28,7 +28,7 @@ perception (VisualPerception i d) =
    ++ cond (d ^. entity . to isNothing) (AMVisualFree i)
    where
       is f = to (maybe False f)
-perception (LocalPerception d) =
+perception (MsgLocalPerception d) =
    [AMLocalGold (d ^. gold),
     AMLocalMeat (d ^. meat),
     AMLocalFruit (d ^. fruit),
@@ -36,8 +36,10 @@ perception (LocalPerception d) =
     AMLocalStench (d ^. stench),
     AMMyHealth (d ^. entity . to fromJust . health),
     AMMyStamina (d ^. entity . to fromJust . stamina)]
-perception (GlobalPerception d) =
+perception (MsgGlobalPerception d) =
    [AMTemperature $ d ^. temperature,
     AMTime $ d ^. time]
-perception (PositionPerception i) = [AMPosition i]
-perception (GestureM n g) = [AMGesture n g]
+perception (MsgPositionPerception i) = [AMPosition i]
+perception (MsgGesture n g) = [AMGesture n g]
+
+-- todo: add new constructors

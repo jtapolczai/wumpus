@@ -19,8 +19,6 @@ data SocialEmotionName = Trust | Respect | Sympathy
 --  the physical world.
 type IsImaginary = Bool
 
-type Percentage = Rational
-
 type Discharged = Bool
 
 -- |A component of an agent that modifies the agent's state.
