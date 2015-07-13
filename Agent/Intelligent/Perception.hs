@@ -28,6 +28,7 @@ perception (MsgVisualPerception i d) =
    ++ cond (d ^. entity . to isNothing) (AMVisualFree i)
    where
       is f = to (maybe False f)
+
 perception (MsgLocalPerception d) =
    [AMLocalGold (d ^. gold),
     AMLocalMeat (d ^. meat),
@@ -36,10 +37,45 @@ perception (MsgLocalPerception d) =
     AMLocalStench (d ^. stench),
     AMMyHealth (d ^. entity . to fromJust . health),
     AMMyStamina (d ^. entity . to fromJust . stamina)]
+
 perception (MsgGlobalPerception d) =
    [AMTemperature $ d ^. temperature,
     AMTime $ d ^. time]
+
 perception (MsgPositionPerception i) = [AMPosition i]
+
 perception (MsgGesture n g) = [AMGesture n g]
 
--- todo: add new constructors
+perception (MsgHealthChanged p) =
+   [(if p < 0 then AMHealthDecreased else AMHealthIncreased) p]
+
+perception (MsgStaminaChanged p) =
+   [(if p < 0 then AMStaminaDecreased else AMStaminaIncreased) p]
+
+perception (MsgAttackedBy n d) = [AMAttackedBy n, AMAttackedFrom d]
+
+perception (MsgReceivedItem n i) =
+   [case n of Nothing -> case i of Meat -> AMGainedMeat
+                                   Fruit -> AMGainedFruit
+                                   Gold -> AMGainedGold
+              Just n' -> case i of Meat -> AMReceivedMeat n'
+                                   Fruit -> AMReceivedFruit n'
+                                   Gold -> AMReceivedGold n']
+
+perception (MsgLostItem i) = [case i of Meat -> AMGainedMeat
+                                        Fruit -> AMGainedFruit
+                                        Gold -> AMGainedGold]
+
+perception (MsgDied n t) = [(case t of TyAgent -> AMAgentDied
+                                       TyWumpus -> AMWumpusDied) n]
+
+perception (MsgAttacked n) = [AMAttacked n]
+
+perception (MsgBody h s inv) =
+   [AMHaveHealth h,
+    AMHaveStamina s,
+    AMHaveMeat (inv ^. at' Meat),
+    AMHaveFruit (inv ^. at' Fruit),
+    AMHaveGold (inv ^. at' Gold)]
+
+perception MsgPlantHarvested = [AMPlantHarvested]

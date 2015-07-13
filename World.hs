@@ -29,6 +29,14 @@ import Data.MList
 
 type IntensityMap = M.Map CellInd Rational
 
+-- add new constructors for:
+   -- agent death (other agents)
+   -- agent health/stamina changes (me)
+   -- agent attacked
+   -- plant harvested
+   -- agent body
+   -- giving/receiving items
+
 instance Monoid Bool where
    mempty = False
    mappend = (&&)

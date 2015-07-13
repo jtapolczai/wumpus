@@ -79,17 +79,29 @@ data AgentMessage =
    | AMHealthIncreased Percentage
    | AMStaminaDecreased Percentage
    | AMStaminaIncreased Percentage
+   | AMAgentDied EntityName
+   | AMWumpusDied EntityName
+   | AMHaveHealth Rational
+   | AMHaveStamina Rational
    | AMAttackedBy EntityName
    | AMAttackedFrom SquareDirection
+   | AMAttacked EntityName
    | AMReceivedMeat EntityName
    | AMReceivedFruit EntityName
    | AMReceivedGold EntityName
+   | AMGainedMeat
+   | AMGainedFruit
+   | AMGainedGold
    | AMGaveMeat EntityName
    | AMGaveFruit EntityName
    | AMGaveGold EntityName
    | AMLostMeat
    | AMLostFruit
    | AMLostGold
+   | AMPlantHarvested
+   | AMHaveMeat Int
+   | AMHaveFruit Int
+   | AMHaveGold Int
    -- |Emotions related to other Agents/wumpuses
    | AMKilledAgent EntityName
    | AMWKilledWumpus EntityName

@@ -211,7 +211,10 @@ data Message =
    -- |The agent was attacked.
    | MsgAttackedBy EntityName SquareDirection
    -- |The agent received an item.
-   | MsgReceivedItem EntityName Item
+   --  If the entity name is set, another agent gave
+   --  the item; if not, the item was gained via
+   --  harvesting/looting
+   | MsgReceivedItem (Maybe EntityName) Item
    -- |The agent lost (gave away) an item.
    | MsgLostItem Item
    -- |Another entity died.
