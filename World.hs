@@ -76,8 +76,12 @@ simulateStepReader :: (MonadReader WorldMetaInfo m, MonadWriter (WorldStats -> W
 simulateStepReader world =
    (worldData %~ advanceGlobalData)
    . (cellData %~ fmap advanceLocalData)
+   . sendBodyMessages
    <$> foldM updateAgent world (worldAgents world)
    where
+      sendBodyMessages :: World -> World
+      sendBodyMessages w = foldl' sendBodyMessage w (worldAgents w)
+
       -- "updating an agent" means giving it its perceptions and performing
       -- its action. We also update the wumpus stench to have accurate stench
       -- information.
@@ -85,7 +89,13 @@ simulateStepReader world =
          where world' = giveEntityPerceptions world (fst ent)
 
       -- perform local changes to agents/plants
-      advanceLocalData = increaseFatigue . increaseHunger . regrowPlants
+      advanceLocalData = increaseStamina . increaseHunger . regrowPlants
+
+sendBodyMessage :: World -> (CellInd, Entity') -> World
+sendBodyMessage w (_,Wu _) = w
+sendBodyMessage w (i,Ag a) = onCell i (onAgent $ sendMsg msg) w
+   where
+      msg = MsgBody (a ^. health) (a ^. stamina) (a ^. inventory)
 
 -- |Gives an entity its perceptions based on the current world, and updates
 --  the world accordingly.
@@ -249,12 +259,19 @@ moveEntity i j world = do
    maybe (return ()) entityDied . join $ world' ^? cellData . at j . _Just . entity
    return world'
    where
-      fat = world ^. edgeData . at (i,getDirection i j) . to (maybe 0 $ view fatigue)
+      edgeFat = world ^. edgeData . at (i,getDirection i j) . to (maybe 0 $ view fatigue)
 
       ent = world ^. cellData . at' i . ju entity
-      ent' = ent & stamina -~ cEDGE_FATIGUE * fat
+      ent' = ent & stamina -~ cEDGE_FATIGUE * edgeFat
+
+      -- the agent's change in stamina in percent
+      dS = ((ent ^. stamina) / (ent ^. stamina)) - 1
+
+      -- |Puts the entity onto its new cell and sends it a "stamina changed" message.
+      --  If the cell has a put, the entity is deleted instead.
       putEnt :: CellData -> CellData
-      putEnt c = if c ^. pit then c else c & entity ?~ ent'
+      putEnt c = if c ^. pit then onAgent (sendMsg $ MsgStaminaChanged dS) c
+                 else c & entity ?~ ent'
 
       move m = m & ix i %~ (entity .~ Nothing)
                  & ix j %~ putEnt
@@ -279,7 +296,8 @@ attack :: (MonadReader WorldMetaInfo m, MonadWriter (WorldStats -> WorldStats) m
        -> m World
 attack i j world = tell attackPerformed
                    >> onCellM i  (die . msg other . fight me) world
-                   >>= onCellM j (die . msg me . fight other) 
+                   >>= onCellM j (die . msg me . fight other)
+                   >$> removeDeadFromIndex [(me, i), (other, j)]
    where
       me = entityAt i world
       other = entityAt j world
@@ -296,6 +314,18 @@ attack i j world = tell attackPerformed
          . sendMsg (if o == me then MsgAttackedBy (o ^. name) attackSource
                                else MsgAttacked (o ^. name))
          . sendMsg (MsgHealthChanged $ negate healthLoss)
+
+-- |Goes through a list of entities and deletes those entities from
+--  the world's agent index which are no longer on their given cells.
+removeDeadFromIndex :: [(Entity', CellInd)] -> World -> World
+removeDeadFromIndex = flip (foldl' rem)
+   where
+      rem w (e, i) =
+         if maybe True ((e ^. name) ==) (w ^. cellData . at i
+                                         >>= view entity
+                                         >$> view name)
+         then w & agents . at (e ^. name) .~ Nothing
+         else w
 
 
 -- |Damages the entity on the target cell by the amount of health
@@ -350,8 +380,15 @@ regrowPlants = plant %~ fmap (min 1 . (cPLANT_REGROWTH+))
 increaseHunger :: CellData -> CellData
 increaseHunger = onAgent (health -~ cHUNGER_RATE)
 
-increaseFatigue :: CellData -> CellData
-increaseFatigue = onAgent (stamina +~ cSTAMINA_RESTORE)
+-- |Increases the agent's stamina by the default amount and sends an
+--  appropriate message.
+increaseStamina :: CellData -> CellData
+increaseStamina = onAgent rest
+   where
+      rest a = sendMsg (MsgStaminaChanged dS) (a & stamina .~ newS)
+         where
+            newS = min cMAX_AGENT_STAMINA $ (a ^. stamina) + cSTAMINA_RESTORE
+            dS = ((a ^. stamina) / newS) - 1
 
 
 -- Intensity maps
