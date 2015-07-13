@@ -71,6 +71,10 @@ data Agent s = Agent {
    _agentState :: s
    }
 
+-- |Equality by agent name.
+instance Eq (Agent s) where
+   Agent{_agentName = n1} == Agent{_agentName = n2} = n1 == n2
+
 instance Default s => Default (Agent s) where
    def = Agent "" North 1 1 M.empty def
 
@@ -93,6 +97,11 @@ data Wumpus s = Wumpus {
    _wumpusHealth :: Rational,
    _wumpusStamina :: Rational
    }
+
+-- |Equality by wumpus name.
+instance Eq (Wumpus s) where
+   Wumpus{_wumpusName = n1} == Wumpus{_wumpusName = n2} = n1 == n2
+
 
 data VisualWumpus = VisualWumpus {
    _visualWumpusName :: EntityName,

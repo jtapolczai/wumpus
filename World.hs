@@ -30,12 +30,8 @@ import Data.MList
 type IntensityMap = M.Map CellInd Rational
 
 -- add new constructors for:
-   -- agent death (other agents)
    -- agent health/stamina changes (me)
-   -- agent attacked
-   -- plant harvested
    -- agent body
-   -- giving/receiving items
 
 instance Monoid Bool where
    mempty = False
@@ -153,8 +149,16 @@ doAction i (Give dir item) world =
       qty = me ^. inventory . at item . to (maybe 0 (min 1))
 
       give :: World -> World
-      give = onCell j (onAgent (inventory . ix item +~ qty))
-             . onCell i (onAgent (inventory . ix item -~ qty))
+      give = onCell j (onAgent (got . change qty))
+             . onCell i (onAgent (lost . change (-qty)))
+
+      -- Changes the item's quantity in the agent's inventory
+      change i = inventory . ix item +~ i
+
+      -- Sends a "you received an item" message
+      got = sendMsg $ MsgReceivedItem (Just $ me ^. name) item
+      -- Sends a "you lost an item" message to
+      lost = sendMsg $ MsgLostItem item
 
 -- Gather fruit from plant on the cell.
 doAction i Gather world =
@@ -162,8 +166,12 @@ doAction i Gather world =
    where
       ripePlant = (cPLANT_HARVEST >=) . fromMaybe 0 . view plant
 
-      harvest = onCell i (onAgent (inventory . ix Fruit +~ 1))
-                . onCell i (plant . _Just -~ cPLANT_HARVEST)
+      harvest = onCell i $
+         (plant . _Just -~ cPLANT_HARVEST)
+         . onAgent (sendMsg MsgPlantHarvested
+                    . sendMsg (MsgReceivedItem Nothing Fruit)
+                    . (inventory . ix Fruit +~ 1))
+
 -- Collect something on the cell.
 doAction i (Collect item) world = return $ onCell i (collect item $ itemLens item) world
 -- Drop one piece of an item from the agent's inventory on the floor.
@@ -172,7 +180,9 @@ doAction i (Drop item) world = return $ onCell i drop world
       me = agentAt i world
       qty = me ^. inventory . at item . to (fromMaybe 0) .  to (min 1)
       decr x = max 0 (x-1)
-      drop = (itemLens item +~ qty) . onAgent (inventory . ix item %~ decr)
+      drop = (itemLens item +~ qty)
+             . onAgent (sendMsg (MsgLostItem item)
+                        . (inventory . ix item %~ decr))
 -- Eat fruit or meat. Remove the item from the agent's inventory and regain
 -- 0.5 health (+0.01 to compensate for this round's hunger).
 doAction i (Eat item) world = return $ doIf hasItem (onCell i eatItem) world
@@ -182,8 +192,10 @@ doAction i (Eat item) world = return $ doIf hasItem (onCell i eatItem) world
                           . inventory
                           . at item
                           . to (maybe False (0<))) i
-      eatItem = onAgent (health %~ (min cMAX_AGENT_HEALTH . (cHEAL_FOOD + cHUNGER_RATE +)))
-                . onAgent (inventory . ix item -~ 1)
+      eatItem = onAgent $
+         sendMsg (MsgLostItem item)
+         . (inventory . ix item -~ 1)
+         . (health %~ (min cMAX_AGENT_HEALTH . (cHEAL_FOOD + cHUNGER_RATE +)))
 
 doAction i (Gesture dir s) world =
    doIfM (cellAgent j) (\w -> do {tell gestureSent; return $ send w}) world
@@ -192,7 +204,10 @@ doAction i (Gesture dir s) world =
          send = onCell j $ onAgent (state %~ receiveMessage (MsgGesture (me^.name) s))
 
 collect :: Item -> Lens' CellData Int -> CellData -> CellData
-collect item lens c = (lens .~ 0) $ onAgent (inventory . ix item +~ (c ^. lens)) c
+collect item lens c =
+   (lens .~ 0)
+   . onAgent (sendMsg (MsgReceivedItem Nothing item)
+              . (inventory . ix item +~ (c ^. lens))) $ c
 
 -- |Gets the lens associated with an item.
 itemLens :: Item -> Lens' CellData Int
@@ -256,13 +271,31 @@ attack :: (MonadReader WorldMetaInfo m, MonadWriter (WorldStats -> WorldStats) m
        -> World
        -> m World
 attack i j world = tell attackPerformed
-                   >> onCellM i (die . fight me) world
-                   >>= onCellM j (die . fight other) 
+                   >> onCellM i  (die . msg other . fight me) world
+                   >>= onCellM j (die . msg me . fight other) 
    where
       me = entityAt i world
       other = entityAt j world
+      attackSource = getDirection j i
 
-fight :: Entity' -> CellData -> CellData
+      healthLoss = min (me ^. health) (other ^. health)
+
+      -- sends messages about the agent's health loss and, if the other
+      -- agent died, about that one's death.
+      msg o = onAgent $
+         (if o ^. health <= healthLoss
+            then sendMsg $ MsgDied (o ^. name) (getEntityType o)
+            else id)
+         . sendMsg (if o == me then MsgAttackedBy (o ^. name) attackSource
+                               else MsgAttacked (o ^. name))
+         . sendMsg (MsgHealthChanged $ negate healthLoss)
+
+
+-- |Damages the entity on the target cell by the amount of health
+--  the first entity has.
+fight :: Entity' -- ^The attacking entity.
+      -> CellData -- ^Cell with the target entity.
+      -> CellData
 fight enemy = onEntity (health -~ (enemy ^. health))
 
 -- |Let the entity on cell x die if its health is <= 0. Dying means removing

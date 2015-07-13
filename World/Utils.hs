@@ -194,6 +194,11 @@ onAgent f cell = cell & entity . _Just %~ f'
       f' (Ag s) = Ag (f s)
       f' s = s
 
+-- |Gets the type of an entity.
+getEntityType :: Entity s t -> EntityType
+getEntityType (Ag _) = TyAgent
+getEntityType (Wu _) = TyWumpus
+
 -- |Applies a function on an entity.
 onEntity :: (Entity' -> Entity') -> CellData -> CellData
 onEntity f cell = cell & entity . _Just %~ f
@@ -201,6 +206,10 @@ onEntity f cell = cell & entity . _Just %~ f
 -- |Applies a function on a agent's state.
 onAgentMind :: (s -> s) -> Agent s -> Agent s
 onAgentMind f a = a & state %~ f
+
+-- |Sends a message to an agent via 'receiveMessage'.
+sendMsg :: Message -> Agent SomeMind -> Agent SomeMind
+sendMsg = over state . receiveMessage
 
 -- |Gets the entity on a given cell. Fails if the cell does not exist or has
 --  has no entity.
