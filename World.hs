@@ -192,10 +192,17 @@ doAction i (Eat item) world = return $ doIf hasItem (onCell i eatItem) world
                           . inventory
                           . at item
                           . to (maybe False (0<))) i
-      eatItem = onAgent $
-         sendMsg (MsgLostItem item)
-         . (inventory . ix item -~ 1)
-         . (health %~ (min cMAX_AGENT_HEALTH . (cHEAL_FOOD + cHUNGER_RATE +)))
+
+      eatItem c = onAgent (sendMsg (MsgHealthChanged dH)
+                           . sendMsg (MsgLostItem item)
+                           . (inventory . ix item -~ 1)
+                           . (health .~ newH)) c
+         where
+            curH = c ^. ju entity . health
+            newH = min cMAX_AGENT_HEALTH (cHEAL_FOOD + cHUNGER_RATE + curH)
+
+            -- |Change in health in percent.
+            dH = (curH / newH) - 1
 
 doAction i (Gesture dir s) world =
    doIfM (cellAgent j) (\w -> do {tell gestureSent; return $ send w}) world
