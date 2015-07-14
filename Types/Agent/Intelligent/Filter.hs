@@ -37,6 +37,7 @@ data NodeCondition s =
    -- that each emotion should be "primitive" in the following sense:
    -- emotions should be triggered only by positive stimuli, not by negative
    -- ones, obviating the need for a NOT.
+   | forall a.NodeIs (Prism' s a)
    -- -| NodeAnd (NodeCondition a) (NodeCondition a)
    -- -| NodeOr (NodeCondition a) (NodeCondition a)
    -- -| NodeNot (NodeCondition a)

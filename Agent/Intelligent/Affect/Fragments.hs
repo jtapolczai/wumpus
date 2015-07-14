@@ -40,20 +40,26 @@ sympathyFragment Sympathy "friendly" = friendlySocial
 sympathyFragment _ x = error $ "sympathyFragment called with unsupported type "++x
 
 weakAnger :: Filter AgentMessage
-weakAnger = todo "affectFragments"
+weakAnger = FI (HM.fromList graph) (HS.fromList output)
+   where
+      wumpusDied = mkFN (NodeIs _AMWumpusDied) 1 1 (negate 0.5) []
+      --wumpusSeen = mkFn (NodeIs)
+      graph = [(0, wumpusDied)]
+
+      output = [0]
 strongAnger :: Filter AgentMessage
 strongAnger = todo "affectFragments"
 
 weakFear :: Filter AgentMessage
 weakFear = todo "affectFragments"
 strongFear :: Filter AgentMessage
-strongFear = FI graph output
+strongFear = FI (HM.fromList graph) (HS.fromList output)
    where
       died = mkFN (NodeEQ _AMHealthDecreased 1) 1 1 0.5 []
 
-      graph = HM.fromList [(0, died)]
+      graph = [(0, died)]
 
-      output = HS.fromList [0]
+      output = [0]
 
 weakEnthusiasm :: Filter AgentMessage
 weakEnthusiasm = todo "affectFragments"

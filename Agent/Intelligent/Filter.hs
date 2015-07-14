@@ -30,6 +30,7 @@ runCondition :: NodeCondition s -> s -> Bool
 runCondition (NodeEQ f x) y = maybe False (x==) (y ^? f)
 runCondition (NodeGT f x) y = maybe False (x<=) (y ^? f)
 runCondition (NodeLT f x) y = maybe False (x>=) (y ^? f)
+runCondition (NodeIs f  ) y = maybe False (const True) (y ^? f)
 
 -- |Excites a node based on an input.
 exciteNode :: (Ord a) => a -> FilterNode a -> FilterNode a
