@@ -46,10 +46,34 @@ import Types
 import World
 import World.Utils
 
--- |Resets the memory tree of an agent and constructs a new root
---  node from the agent's message space.
+-- |Creates memories for all non-discharged, imaginary _AMPlannedAction messages
 memoryComponent :: Monad m => AgentComponent m
-memoryComponent as = return $ resetMemory as (as ^. messageSpace)
+memoryComponent = undefined
+
+{- memoryComponent as = return $ foldl' mkAction as actions
+   where
+      mkAction :: AgentState -> (Action, MemoryIndex) -> AgentState
+      mkAction as' (act, mi) = undefined
+         where
+            newW = reconstructWorld act mi as' 
+
+
+         addMemory (as' ^. messageSpace) mi 
+
+      [AgentMessage'] -> MemoryIndex -> AgentState -> AgentState
+
+      actions = sortBy (comparing snd)
+                . map (\(_,(act, mi)) -> (act, mi))
+                . filter (fst &&& (view _3 . snd))
+                . msgWhere _AMPlannedAction
+                . view messageSpace $ as
+-}
+
+--resetMemory as (as ^. messageSpace)
+
+-- World -> Action -> Memory
+
+
 
 -- |Takes the agent's memory (and current messages about global data) and
 --  constructs a world from it.
@@ -146,6 +170,9 @@ addMemory xs mi as = as & memory %~ addMemNode mi newMem
 
 -- |Takes a list of messages, sieves out those which are relevant to cells/edges
 --  and constructs a collection of cell/edge updates for the world from them.
+-- 
+--  While the coordinates in the input messages are relative, the output coordinates will be
+--  absolute
 makeWorldUpdates :: [AgentMessage']
                  -> (M.Map CellInd (VisualCellData -> VisualCellData),
                      M.Map EdgeInd (EdgeData -> EdgeData))
@@ -155,7 +182,7 @@ makeWorldUpdates xs = (cellUpdates, edgeUpdates)
 
       -- put the edge- and cell-related messages into bags indexed by
       -- cell/edge index.
-      (cellMsg, edgeMsg) = sortByInd myPos xs
+      (cellMsg, edgeMsg) = sortByInd xs
 
       cellUpdates = constructCell <$> cellMsg
       edgeUpdates = constructEdge <$> edgeMsg
@@ -199,9 +226,9 @@ constructEntity ms = agentKind
    where
       agentKind = case (firstWhere _AMVisualAgent ms,
                         firstWhere _AMVisualWumpus ms) of
-                     (Just _,_) -> (entity .~ Just (Ag va))
-                     (_, Just _) -> (entity .~ Just (Wu vw))
-                     (_,_) -> id
+                          (Just _,_) -> (entity .~ Just (Ag va))
+                          (_, Just _) -> (entity .~ Just (Wu vw))
+                          (_,_) -> id
 
       va = VisualAgent (vaErr "name") (vaErr "direction") (vaErr "health") (vaErr "stamina")
       vw = VisualWumpus (vwErr "name") (vwErr "health") (vwErr "stamina")

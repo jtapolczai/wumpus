@@ -21,6 +21,9 @@ type IsImaginary = Bool
 
 type Discharged = Bool
 
+newtype RelInd = RI CellInd deriving (Show, Eq, Ord)
+newtype RelEdgeInd = REI EdgeInd deriving (Show, Eq, Ord)
+
 -- |A component of an agent that modifies the agent's state.
 type AgentComponent m = AgentState -> m AgentState
 
@@ -42,19 +45,19 @@ data AgentMessage =
    -- |The agent's position.
    | AMPosition CellInd
    -- |Visual perceptions.
-   | AMVisualEntityName CellInd EntityName
-   | AMVisualAgent CellInd
-   | AMVisualWumpus CellInd
-   | AMVisualEntityHealth CellInd Rational
-   | AMVisualEntityStamina CellInd Rational
-   | AMVisualFree CellInd
-   | AMVisualPit CellInd
-   | AMVisualGold CellInd Int
-   | AMVisualMeat CellInd Int
-   | AMVisualFruit CellInd Int
-   | AMVisualPlant CellInd Rational
-   | AMVisualEdgeDanger EdgeInd Rational
-   | AMVisualEdgeFatigue EdgeInd Rational
+   | AMVisualEntityName RelInd EntityName
+   | AMVisualAgent RelInd
+   | AMVisualWumpus RelInd
+   | AMVisualEntityHealth RelInd Rational
+   | AMVisualEntityStamina RelInd Rational
+   | AMVisualFree RelInd
+   | AMVisualPit RelInd
+   | AMVisualGold RelInd Int
+   | AMVisualMeat RelInd Int
+   | AMVisualFruit RelInd Int
+   | AMVisualPlant RelInd Rational
+   | AMVisualEdgeDanger RelEdgeInd Rational
+   | AMVisualEdgeFatigue RelEdgeInd Rational
    -- |Local perceptions
    | AMLocalStench Rational
    | AMLocalBreeze Rational
@@ -71,9 +74,9 @@ data AgentMessage =
    -- |Emotion changes of the PSBC
    | AMEmotionChanged EmotionName Rational
    -- |Emotions of the SJS
-   | AMEmotionSympathy CellInd Rational
-   | AMEmotionTrust CellInd Rational
-   | AMEmotionRespect CellInd Rational
+   | AMEmotionSympathy RelInd Rational
+   | AMEmotionTrust RelInd Rational
+   | AMEmotionRespect RelInd Rational
    -- |Emotions related to the agent's body
    | AMHealthDecreased Percentage
    | AMHealthIncreased Percentage

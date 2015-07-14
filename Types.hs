@@ -96,11 +96,10 @@ ju :: (Contravariant f, Profunctor p)
    => (p (Maybe a) (f (Maybe a)) -> c) -> p a (f a) -> c
 ju l = l . to fromJust
 
--- |Gets the CellInd of an AgentMessage, for all which have one.
-_agentMessageCellInd :: Getter AgentMessage (Maybe CellInd)
+-- |Gets the CellInd of an AgentMessage, for all which have one (except AMPosition).
+_agentMessageCellInd :: Getter AgentMessage (Maybe RelInd)
 _agentMessageCellInd = to go
    where
-      go (AMPosition c) = Just c
       go (AMVisualEntityName c _) = Just c
       go (AMVisualAgent c) = Just c
       go (AMVisualWumpus c) = Just c
@@ -115,7 +114,7 @@ _agentMessageCellInd = to go
       go _ = Nothing
 
 -- |Gets the EgdeInd of an AgentMessage, for all which have one.
-_agentMessageEdgeInd :: Getter AgentMessage (Maybe EdgeInd)
+_agentMessageEdgeInd :: Getter AgentMessage (Maybe RelEdgeInd)
 _agentMessageEdgeInd = to go
    where
       go (AMVisualEdgeDanger e _) = Just e

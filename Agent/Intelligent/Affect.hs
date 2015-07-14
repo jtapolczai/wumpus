@@ -31,10 +31,9 @@ psbcEmotionMap x = M.fromList [(Anger, x), (Fear, x), (Enthusiasm, x), (Contentm
 sjsComponent :: Monad m => AgentComponent m
 sjsComponent as = return $ M.foldrWithKey sjsFold as cellMsg
    where
-      myPos = myPosition $ as ^. messageSpace
-      (cellMsg,_) = sortByInd myPos $ as ^. messageSpace
+      (cellMsg,_) = sortByInd $ as ^. messageSpace
 
-sjsFold :: CellInd -> [AgentMessage'] -> AgentState -> AgentState
+sjsFold :: RelInd -> [AgentMessage'] -> AgentState -> AgentState
 sjsFold i ms as = case constructAgentName ms' of
    (Just name, True) -> foldr (f name) as [minBound..maxBound]
    _                 -> as
@@ -149,7 +148,7 @@ emotionMessage Enthusiasm = AMEmotionEnthusiasm
 emotionMessage Contentment = AMEmotionContentment
 
 -- |Gets the AgentMessage corresponding to a social emotion.
-socialEmotionMessage :: SocialEmotionName -> CellInd -> Rational -> AgentMessage
+socialEmotionMessage :: SocialEmotionName -> RelInd -> Rational -> AgentMessage
 socialEmotionMessage Sympathy = AMEmotionSympathy
 socialEmotionMessage Trust = AMEmotionTrust
 socialEmotionMessage Respect = AMEmotionRespect

@@ -62,8 +62,10 @@ decisionMakerComponent asInit =
       getNextAction emotion =
          choose $ emotionAction emotion
                                 (as ^. gestures)
-                                (myPosition $ as ^. messageSpace)
-                                (strongestEmotionCell emotion as)
+                                myPos
+                                (makeAbs myPos $ strongestEmotionCell emotion as)
+
+      myPos = myPosition $ as ^. messageSpace
 
       -- first, we reinsert all the planning-related messages
       as :: AgentState
@@ -259,11 +261,9 @@ evaluateCells as = fmap evaluateCell cells
    where
       ms = as ^. messageSpace
 
-      myPos = myPosition ms
-
       -- |Messages relating to given cells (plus global data which applies everywhere).
       cells :: M.Map CellInd [AgentMessage']
-      cells = fmap (++globalData) $ fst $ sortByInd myPos ms
+      cells = fmap (++globalData) $ fst $ sortByInd ms
 
       globalData :: [AgentMessage']
       globalData = mapMaybe (\(i,m) -> globalMessage m >$> (i,)) ms

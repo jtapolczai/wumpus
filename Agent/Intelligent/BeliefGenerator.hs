@@ -42,6 +42,7 @@ simulateConsequences
    -> IO (World, [AgentMessage])
 simulateConsequences act mi as = do
    let currentWorld = reconstructWorld act mi as
+       myPos = myPosition $ view messageSpace as
    nextWorld <- simulateStep currentWorld
    -- get the messages from the agent at its new position.
    -- the agent not being present means that it has died, so create an
@@ -49,7 +50,7 @@ simulateConsequences act mi as = do
    let messages = fromMaybe [AMHealthDecreased 100] $ do
                      newPos <- nextWorld ^. agents . at (as ^. name)
                      me <- nextWorld ^? cellData . at newPos . _Just . entity . _Just . _Ag
-                     return $ concatMap perception $ readMessageSpace $ me ^. state
+                     return $ concatMap (perception myPos) $ readMessageSpace $ me ^. state
 
    return (nextWorld, messages)
 

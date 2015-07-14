@@ -263,3 +263,15 @@ getEntity :: EntityName -> World -> (CellInd, CellData)
 getEntity en = head . M.toList . M.filter f . (^. cellData)
   where
     f c = maybe False (en ==) (c ^? entity . _Just . name)
+
+-- |Gets the difference between two coordinates.
+makeRel :: CellInd -- |The desired center of the coordinate system
+        -> CellInd -- |The index which should be relative.
+        -> RelInd -- |The difference between the given center and the second coordinate.
+makeRel (i1,j1) (i2,j2) = RI (i2-i1,j2-j1)
+
+-- |Centers coordinates to (0,0).
+makeAbs :: CellInd -- |Vector 1
+        -> RelInd -- |Vector 2
+        -> CellInd -- |Sum of vectors 1 and 2
+makeAbs (i1,j1) (RI (i2,j2)) = (i1+i2, j1+j2)

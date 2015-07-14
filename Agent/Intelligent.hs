@@ -27,8 +27,10 @@ instance AgentMind AgentState where
          me = w ^. cellData . ju (at i) . ju entity
          dir = fromJust (me ^? _Ag . direction)
 
-   receiveMessage msg a = a & messageSpace %~ (msg'++)
-      where msg' = zip (repeat False) (perception msg)
+   receiveMessage msg as = as & messageSpace %~ (msg'++)
+      where
+        msg' = zip (repeat False) (perception myPos msg)
+        myPos = myPosition $ view messageSpace as
 
    getAction = getAction'
 

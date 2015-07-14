@@ -115,11 +115,10 @@ socialMessage _ = Nothing
 --
 --  This function is good for re-constructing complex facts about individual
 --  cells/edges from simple, atomic messages.
-sortByInd :: CellInd -- ^The agent's current position (for local messages).
-          -> [AgentMessage']
-          -> (M.Map CellInd [AgentMessage'],
-              M.Map EdgeInd [AgentMessage'])
-sortByInd i = foldl' collect (M.empty, M.empty)
+sortByInd :: [AgentMessage']
+          -> (M.Map RelInd [AgentMessage'],
+              M.Map RelEdgeInd [AgentMessage'])
+sortByInd = foldl' collect (M.empty, M.empty)
    where
       collect (cs, es) (c,m) =
          (maybe cs (const $ insert' (msgPos m) (c,m) cs) (cellMessage m),
@@ -127,7 +126,7 @@ sortByInd i = foldl' collect (M.empty, M.empty)
 
       insert' k x = M.alter (Just . maybe [x] (x:)) k
 
-      msgPos m = fromMaybe i (m ^. _agentMessageCellInd)
+      msgPos m = fromMaybe (error "no pos in sortByInd") (m ^. _agentMessageCellInd)
       msgEdg m = fromJust (m ^. _agentMessageEdgeInd)
 
 -- |Does a full outer join of two maps, where one of the maps is
