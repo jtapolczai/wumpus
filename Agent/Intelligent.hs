@@ -15,6 +15,7 @@ import Agent.Intelligent.DecisionMaker
 import Agent.Intelligent.Memory
 import Agent.Intelligent.MessageHandling
 import Agent.Intelligent.Perception
+import Agent.Intelligent.PersistentMessages
 import Agent.Intelligent.Utils
 import Types
 import World.Perception
@@ -46,4 +47,5 @@ getAction' as = do action <- loop action (callComponents components) as
                     sjsComponent, 
                     memoryComponent,
                     decisionMakerComponent,
-                    beliefGeneratorComponent]
+                    beliefGeneratorComponent,
+                    persistentMessagesComponent]
