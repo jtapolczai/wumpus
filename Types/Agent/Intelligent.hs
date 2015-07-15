@@ -84,30 +84,52 @@ data AgentMessage =
    | AMStaminaIncreased Percentage
    | AMAgentDied EntityName
    | AMWumpusDied EntityName
+   -- |The agent has died. This message will only be imaginary, naturally.
+   | AMYouDied
+   -- |Current health.
    | AMHaveHealth Rational
+   -- |Current stamina.
    | AMHaveStamina Rational
+   -- |Attacked by another entity.
    | AMAttackedBy EntityName
+   -- |Attacked from a direction.
    | AMAttackedFrom SquareDirection
+   -- |I attacked another entity.
    | AMAttacked EntityName
+   -- |Received meat from another entity.
    | AMReceivedMeat EntityName
+   -- |Received fruit from another entity.
    | AMReceivedFruit EntityName
+   -- |Received gold from another entity.
    | AMReceivedGold EntityName
+   -- |Received meat (from any source).
    | AMGainedMeat
+   -- |Received fruit (from any source).
    | AMGainedFruit
+   -- |Received gold (from any source).
    | AMGainedGold
+   -- |Gave meat to another entity.
    | AMGaveMeat EntityName
+   -- |Gave fruit to another entity.
    | AMGaveFruit EntityName
+   -- |Gave gold to another entity.
    | AMGaveGold EntityName
+   -- |Lost meat (by giving/dropping).
    | AMLostMeat
+   -- |Lost fruit (by giving/dropping).
    | AMLostFruit
+   -- |Lost gold (by giving/dropping).
    | AMLostGold
    | AMPlantHarvested
+   -- |Current amount of meat.
    | AMHaveMeat Int
+   -- |Current amount of fruit.
    | AMHaveFruit Int
+   -- |Current amout of gold.
    | AMHaveGold Int
    -- |Emotions related to other Agents/wumpuses
    | AMKilledAgent EntityName
-   | AMWKilledWumpus EntityName
+   | AMKilledWumpus EntityName
    -- |A planned action.
    | AMPlannedAction Action MemoryIndex Discharged
    -- |The emotion that dominates the current plan.
