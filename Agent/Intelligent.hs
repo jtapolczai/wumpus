@@ -35,7 +35,8 @@ instance AgentMind AgentState where
    getAction = getAction'
 
 getAction' :: AgentState -> IO (Action, AgentState)
-getAction' as = do action <- loop action (callComponents components) as
+getAction' as = do action <- callComponents [initialMemoryComponent] as
+                             >>= loop action (callComponents components)
                    return (action, as & messageSpace .~ [])
    where
       loop :: Monad m => (a -> Maybe b) -> (a -> m a) -> a -> m b
