@@ -213,7 +213,7 @@ sumEmotionChanges goalMI = foldl' f (psbcEmotionMap 0)
                        else m
 
 -- |Gets the cell that evokes the highest value for a given emotion.
-strongestEmotionCell :: EmotionName -> AgentState-> CellInd
+strongestEmotionCell :: EmotionName -> AgentState-> RelInd
 strongestEmotionCell en = fst . head . sortBy (flip $ comparing f) . M.toList . evaluateCells
    where
       f = view (at' en) . snd
@@ -256,13 +256,13 @@ evaluatePlan _ = todo "evaluatePlan"
       -- positive/negative is ok?
 
 -- |Performs affective evaluation separately on every cell.
-evaluateCells :: AgentState -> M.Map CellInd (M.Map EmotionName Rational)
+evaluateCells :: AgentState -> M.Map RelInd (M.Map EmotionName Rational)
 evaluateCells as = fmap evaluateCell cells
    where
       ms = as ^. messageSpace
 
       -- |Messages relating to given cells (plus global data which applies everywhere).
-      cells :: M.Map CellInd [AgentMessage']
+      cells :: M.Map RelInd [AgentMessage']
       cells = fmap (++globalData) $ fst $ sortByInd ms
 
       globalData :: [AgentMessage']
