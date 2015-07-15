@@ -181,3 +181,4 @@ subIndex (MI i) (MI j) = go i j
     go (x:xs) (y:ys) = x == y && go xs ys
     go [] _ = True
     go _ _ = False
+

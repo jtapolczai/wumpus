@@ -13,8 +13,8 @@ import World.Utils
 
 -- |Gets the perceptions to which a given agent is entitled.
 getLocalPerceptions :: World
-                    -> CellInd -- ^The cell on which the agent is.
-                    -> SquareDirection -- ^The direction in which the agent is facing.
+                    -> CellInd -- ^The agent's position.
+                    -> SquareDirection -- ^The agent's direction.
                     -> [Message]
 getLocalPerceptions world i d = local : global : location : visual
    where
@@ -28,7 +28,7 @@ getLocalPerceptions world i d = local : global : location : visual
 --  had a 360° degree sight cone of infinite extent that went through walls and could
 --  perceive stench/breeze everywhere.
 getGlobalPerceptions :: World
-                     -> CellInd
+                     -> CellInd -- |The agent's current position.
                      -> [Message]
 getGlobalPerceptions world i = global : location : cells
   where

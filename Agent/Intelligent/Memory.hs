@@ -2,10 +2,12 @@
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE TupleSections #-}
 {-# LANGUAGE LambdaCase #-}
 
 module Agent.Intelligent.Memory (
    -- * Main component
+   initialMemoryComponent,
    memoryComponent,
    -- * Turning messages into memories
    resetMemory,
@@ -36,45 +38,69 @@ import Control.Lens
 import Data.List
 import qualified Data.Map as M
 import Data.Maybe
+import Data.Ord (comparing)
 import qualified Data.Tree as T
 import Math.Geometry.Grid.Square (UnboundedSquareGrid(..))
 
 import Agent.Dummy
 import Agent.Wumpus
+import Agent.Intelligent.MessageHandling
+import Agent.Intelligent.Perception
 import Agent.Intelligent.Utils
 import Agent.Omni()
 import Types
 import World
 import World.Utils
 
--- |Creates memories for all non-discharged, imaginary _AMPlannedAction messages
-memoryComponent :: Monad m => AgentComponent m
-memoryComponent = undefined
+-- |Resets the agent's memory to a root node, based on the agent's perceptions.
+--  This should only be called when the agent begins its thought process.
+--  After that, memoryComponent should be called for planning.
+initialMemoryComponent :: Monad m => AgentComponent m
+initialMemoryComponent as = return $ resetMemory as (as ^. messageSpace) 
 
-{- memoryComponent as = return $ foldl' mkAction as actions
+-- |Creates memories for all non-discharged, imaginary _AMPlannedAction messages.
+--  For each created memory, perception messages will be inserted into the message
+--  space. If the agent dies as a result of an action, only an 'AMYouDied' message 
+--  is inserted.
+--  The actions with the smallest MemoryIndex (by Ord-instance) will be processed
+--  first.
+--
+--  Note that multiple actions will almost always create multiple (contradictory)
+--  messages about perceptions, positions, etc.
+memoryComponent :: Monad m => AgentComponent m
+memoryComponent as = return $ foldl' mkAction as actions
    where
+      -- we add the messages to the agent's message space and, if the agent
+      -- didn't die, a new memory.
       mkAction :: AgentState -> (Action, MemoryIndex) -> AgentState
-      mkAction as' (act, mi) = undefined
+      mkAction as' (act, mi) = newMem $ addMessages newMsg as'
          where
             newW = reconstructWorld act mi as' 
 
+            perc :: CellInd -> [AgentMessage]
+            perc p = concatMap (perception p)
+                     . readMessageSpace
+                     . view (cellData . at' p . ju entity . state) $ newW
 
-         addMemory (as' ^. messageSpace) mi 
+            -- if the agent died, it will no longer be in the index and newPos
+            -- will be Nothing.
+            newPos = newW ^. agents . at (as' ^. name)
 
-      [AgentMessage'] -> MemoryIndex -> AgentState -> AgentState
+            -- new messages to be added
+            newMsg = map (True,) $ maybe [AMYouDied] perc newPos
+
+            -- The new memory. If the agent died, it will be identical to the
+            -- previous one on which it was supposed to be based.
+            newMem = addMemory newMsg mi
 
       actions = sortBy (comparing snd)
-                . map (\(_,(act, mi)) -> (act, mi))
-                . filter (fst &&& (view _3 . snd))
+                . map (\(_,(act, mi, _)) -> (act, mi))
+                . filter filt
                 . msgWhere _AMPlannedAction
                 . view messageSpace $ as
--}
 
---resetMemory as (as ^. messageSpace)
-
--- World -> Action -> Memory
-
-
+      filt :: (IsImaginary, (Action, MemoryIndex, Discharged)) -> Bool
+      filt = (&&) <$> fst <*> not . view _3 . snd
 
 -- |Takes the agent's memory (and current messages about global data) and
 --  constructs a world from it.
