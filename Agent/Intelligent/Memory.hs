@@ -31,6 +31,7 @@ module Agent.Intelligent.Memory (
    agentDummyMind,
    ) where
 
+import Control.Arrow (first)
 import Control.Lens
 import Data.List
 import qualified Data.Map as M
@@ -171,8 +172,8 @@ addMemory xs mi as = as & memory %~ addMemNode mi newMem
 -- |Takes a list of messages, sieves out those which are relevant to cells/edges
 --  and constructs a collection of cell/edge updates for the world from them.
 -- 
---  While the coordinates in the input messages are relative, the output coordinates will be
---  absolute
+--  While the coordinates in the input messages are relative,
+--  the output coordinates will be absolute.
 makeWorldUpdates :: [AgentMessage']
                  -> (M.Map CellInd (VisualCellData -> VisualCellData),
                      M.Map EdgeInd (EdgeData -> EdgeData))
@@ -184,8 +185,13 @@ makeWorldUpdates xs = (cellUpdates, edgeUpdates)
       -- cell/edge index.
       (cellMsg, edgeMsg) = sortByInd xs
 
-      cellUpdates = constructCell <$> cellMsg
-      edgeUpdates = constructEdge <$> edgeMsg
+      mkAbs = makeAbs myPos
+      absolutize f = M.fromList . map (first f) . M.toList
+
+      -- make the cell/edge indices absolute again and create
+      -- cell/edge update functions.
+      cellUpdates = constructCell <$> absolutize mkAbs cellMsg
+      edgeUpdates = constructEdge <$> absolutize (first mkAbs) edgeMsg
 
 -- |Constructs a cell update function from agent messages.
 constructCell :: [AgentMessage']

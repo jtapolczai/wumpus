@@ -21,8 +21,8 @@ type IsImaginary = Bool
 
 type Discharged = Bool
 
-newtype RelInd = RI CellInd deriving (Show, Eq, Ord)
-newtype RelEdgeInd = REI EdgeInd deriving (Show, Eq, Ord)
+newtype RelInd = RI{runRelInd :: CellInd} deriving (Show, Eq, Ord)
+type RelEdgeInd = (RelInd, SquareDirection)
 
 -- |A component of an agent that modifies the agent's state.
 type AgentComponent m = AgentState -> m AgentState
