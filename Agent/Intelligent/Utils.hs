@@ -15,34 +15,35 @@ import Data.List
 import qualified Data.List.Safe as S
 import qualified Data.Map as M
 import Data.Maybe
+import Data.Monoid (First)
 import qualified Data.Tree as T
 import System.Random (randomRIO)
 
 import Types
 
 -- |Returns the messages that have the given constructor.
-msgWhere :: forall a.Prism' AgentMessage a
+msgWhere :: forall a.Getting (First a) AgentMessage a
          -> [AgentMessage']
          -> [(IsImaginary, a)]
 msgWhere l = mapMaybe (\(c,m) -> (c,) <$> m ^? l)
 
 -- |Returns True iff an AgentMessage has one of the given constructors.
-anyOfP :: [Prism' AgentMessage a]
+anyOfP :: [Getting (First a) AgentMessage a]
        -> AgentMessage
        -> Bool
-anyOfP ls x = not . null . mapMaybe (\(l :: Prism' AgentMessage a) -> x ^? l) $ ls
+anyOfP ls x = not . null . mapMaybe (\l -> x ^? l) $ ls
 
-isP :: Prism' AgentMessage a -> AgentMessage -> Bool
+isP :: Getting (First a) AgentMessage a -> AgentMessage -> Bool
 isP l x = isJust (x ^? l)
 
 -- |Returns the messages that have the one of the given constructors
-msgWhereAny :: forall a.[Getter AgentMessage (Maybe a)]
+msgWhereAny :: forall a.[Getting (First a) AgentMessage a]
             -> [AgentMessage']
             -> [(IsImaginary, a)]
 msgWhereAny ls = concatMap f
-  where
-    f :: (IsImaginary, AgentMessage) -> [(IsImaginary, a)]
-    f (c,m) = mapMaybe (\(l :: Getter AgentMessage (Maybe a)) -> extractOver l id m >$> (c,)) ls
+   where
+      f :: (IsImaginary, AgentMessage) -> [(IsImaginary, a)]
+      f (c,m) = mapMaybe (\l -> (m ^? l) >$> (c,)) ls
 
 -- |Returns the first message that has the correct consturctor.
 firstWhere :: Prism' AgentMessage a -> [AgentMessage'] -> Maybe a
@@ -58,8 +59,8 @@ lastWhere p = S.last . map snd . msgWhere p
 --  Example usage:
 --  >>> extractOver (AMTime 3) _AMTime (+1) = Just 4
 --  >>> extractOver (AMEmotionAnger 0) _AMTime (+1) = Nothing
-extractOver :: Getter s (Maybe a) -> (a -> b) -> s -> Maybe b
-extractOver lens f x = (x ^. lens) & _Just %~ f
+--extractOver :: Getter s (Maybe a) -> (a -> b) -> s -> Maybe b
+--extractOver lens f x = (x ^. lens) & _Just %~ f
 
 -- |Sieves out messages about global world data.
 globalMessage :: AgentMessage -> Maybe AgentMessage

@@ -156,20 +156,11 @@ reinsertablePlanMsg = filter (f.snd) . view messageSpace
       f = (\x y z -> x || y || z) <$> isP _AMPlannedAction <*> isP _AMPlanEmotion <*> isP _AMPlanEmotionChanged
       
 -- |Getters for the four PSBC-emotions.
-psbcPrisms :: [Getter AgentMessage (Maybe (EmotionName, Rational))]
-psbcPrisms = [to a, to f, to e, to c]
-   where
-      a (AMEmotionAnger r) = Just (Anger, r)
-      a _ = Nothing
-
-      f (AMEmotionFear r) = Just (Fear, r)
-      f _ = Nothing
-
-      e (AMEmotionEnthusiasm r) = Just (Enthusiasm, r)
-      e _ = Nothing
-
-      c (AMEmotionContentment r) = Just (Contentment, r)
-      c _ = Nothing
+--psbcPrisms :: [Prism' ]
+psbcPrisms = [_AMEmotionAnger . to (Anger,),
+              _AMEmotionFear . to (Fear,),
+              _AMEmotionEnthusiasm . to (Enthusiasm,),
+              _AMEmotionContentment . to (Contentment,)]
 
 
 -- |Outputs AMPlanEmotionChanged-messages.
