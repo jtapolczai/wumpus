@@ -2,10 +2,12 @@
 --  agent's personality.
 module Agent.Intelligent.Affect.Fragments where
 
+import Control.Lens
+import qualified Data.Graph as G
 import qualified Data.HashMap.Strict as HM
 import qualified Data.HashSet as HS
 
-import Agent.Intelligent.Filter (mkFN)
+import Agent.Intelligent.Filter
 import Types
 
 psbcFragmentType :: String -> PSBCFragmentType
@@ -43,10 +45,25 @@ weakAnger :: Filter AgentMessage
 weakAnger = FI (HM.fromList graph) (HS.fromList output)
    where
       wumpusDied = mkFN (NodeIs _AMWumpusDied) 1 1 (negate 0.5) []
-      --wumpusSeen = mkFn (NodeIs)
-      graph = [(0, wumpusDied)]
+      highTemp = mkFN (NodeGT _AMTemperature Warm) 1 1 0.1 []
 
-      output = [0]
+      --wumpusSeen = mkFn (NodeIs)
+      graph = [(0, wumpusDied),
+               (1, highTemp)]
+
+      output = [0,1]
+
+-- |Creates a graph whose output node is activated is a wumpus is at a given location.
+wumpusAt :: RelInd -- ^Coordinates to check.
+         -> G.Vertex -- ^Vertex of the target node.
+         -> Rational -- ^Significance of the target node.
+         -> [FilterNode AgentMessage]
+wumpusAt (RI (i, j)) tv sig = andGraph src tv t
+   where
+      src = [mkFN (NodeEQ (_AMVisualWumpus . _RI . _1) i) 1 1 0 [],
+             mkFN (NodeEQ (_AMVisualWumpus . _RI . _2) j) 1 1 0 []]
+      t = mkFN NodeFalse 2 0 sig []
+
 strongAnger :: Filter AgentMessage
 strongAnger = todo "affectFragments"
 
@@ -55,11 +72,17 @@ weakFear = todo "affectFragments"
 strongFear :: Filter AgentMessage
 strongFear = FI (HM.fromList graph) (HS.fromList output)
    where
-      died = mkFN (NodeEQ _AMHealthDecreased 1) 1 1 0.5 []
+      quarterHealthLoss = mkFN (NodeGT _AMHealthDecreased 0.25) 1 1 0.2 []
+      halfHealthLoss = mkFN (NodeGT _AMHealthDecreased 0.5) 1 1 0.4 []
+      threeQuarterHealthLoss = mkFN (NodeGT _AMHealthDecreased 0.5) 1 1 0.6 []
+      died = mkFN (NodeGT _AMHealthDecreased 1) 1 1 0.8 []
 
-      graph = [(0, died)]
+      graph = [(0, quarterHealthLoss),
+               (1, halfHealthLoss),
+               (2, threeQuarterHealthLoss),
+               (3, died)]
 
-      output = [0]
+      output = [0,1,2,3]
 
 weakEnthusiasm :: Filter AgentMessage
 weakEnthusiasm = todo "affectFragments"

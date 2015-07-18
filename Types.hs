@@ -67,6 +67,7 @@ makeFields ''OmniMind
 makeFields ''WorldStats
 makeFields ''WorldMetaInfo
 makeFields ''SocialStorage
+makePrisms ''RelInd
 
 -- |Lens for getting or setting a value in a tree. This function is partial;
 --  the path has to refer to an existing node.

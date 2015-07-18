@@ -19,25 +19,25 @@ type NodeSignificance = Rational
 --  A condition consists of a condition kind (the constructor; EQ, GT, LT),
 --  a getter, and a comparison value. The assumption is that NodeCondition
 --  will be used with some sum type, from which have have to extract a value.
---  The Prism encodes which constructor of the sum type is to be used.
+--  The getter can be anything that gets stuff: a Prism, a Getter, a Traversal, etc.
 --
 --  Example usage:
---  >>> NodeEq _Left 3
---  If this condition is run, it should match @Left 3@, but not @Left 4@ or
---  @Right 3@.
+--  >>> NodeEQ (_Left . _1) 3
+--  If this condition is run, it should match @Left (3, True)@, but not @Left 4@ or
+--  @Right (3, True)@.
 data NodeCondition s =
    -- |\"Equal to x\".
-   forall a.Ord a => NodeEQ (Prism' s a) a
+   forall a.Eq a => NodeEQ (Traversal' s a) a
    -- |\"Greater than (or equal to) x\" (i.e. @(NodeGT x) y <=> x <= y@).
-   | forall a.Ord a => NodeGT (Prism' s a) a
+   | forall a.Ord a => NodeGT (Traversal' s a) a
    -- |The reverse of 'NodeGT' (but not its negation).
-   | forall a.Ord a => NodeLT (Prism' s a) a
+   | forall a.Ord a => NodeLT (Traversal' s a) a
    -- These combinators are commented out under the assumption that
    -- the complexity of the detection will lie in the graph structure and
    -- that each emotion should be "primitive" in the following sense:
    -- emotions should be triggered only by positive stimuli, not by negative
    -- ones, obviating the need for a NOT.
-   | forall a.NodeIs (Prism' s a)
+   | forall a.NodeIs (Traversal' s a)
    -- |A condition that's always true.
    | NodeTrue
    -- |A condition that's always false.

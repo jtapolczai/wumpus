@@ -90,6 +90,7 @@ notGraph s tv t = dummy : mkGraphSchema (\s -> negate $ orEdgeStrength s t) [s] 
    where
       dummy = mkFN NodeTrue 1 1 0 [(tv, fromIntegral $ t ^. threshold)]
 
+-- |Edge strength function for AND.
 andEdgeStrength :: Int -> FilterNode s -> FilterNode s -> Rational
 andEdgeStrength n s t = t' / (n' * s')
    where
@@ -97,16 +98,18 @@ andEdgeStrength n s t = t' / (n' * s')
       n' = fromIntegral n
       s' = fromIntegral $ s ^. threshold
 
+-- |Edge strength function for OR.
 orEdgeStrength :: FilterNode s -> FilterNode s -> Rational
 orEdgeStrength s t = t' / s'
    where
       t' = fromIntegral $ t ^. threshold
       s' = fromIntegral $ s ^. threshold
 
+-- |Makes a graph with edges from a list of source nodes to a single target node.
 mkGraphSchema :: Functor f
-              => (FilterNode s -> Rational)
+              => (FilterNode s -> Rational) -- ^Edge strength function.
               -> f (FilterNode s)
-              -> G.Vertex
+              -> G.Vertex -- ^Target node's vertex.
               -> f (FilterNode s)
 mkGraphSchema edgeStrength fs tv = (\s -> s & neighbors %~ ((tv, edgeStrength s):)) <$> fs
 
