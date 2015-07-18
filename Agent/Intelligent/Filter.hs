@@ -1,6 +1,27 @@
 {-# LANGUAGE FlexibleContexts #-}
 
-module Agent.Intelligent.Filter where
+module Agent.Intelligent.Filter (
+   -- *Running filters
+   runCondition,
+   exciteNode,
+   exciteNeighbor,
+   exciteNeighbors,
+   sendExcitementFrom,
+   runFilter,
+   activatedSum,
+   activateNodes,
+   -- *Creating graphs
+   -- |When creating graphs, we gave a @N@ source nodes and one target node.
+   --  Each source node has a threshold @T_i@ and the target node has a threshold @T_target@.
+   --  
+   mkFN,
+   andGraph,
+   orGraph,
+   notGraph,
+   mkGraphSchema,
+   andEdgeStrength,
+   orEdgeStrength,
+   ) where
 
 import Control.Lens
 import Data.Default
@@ -16,6 +37,9 @@ import Types
 instance Default (Filter s) where
    def = FI (HM.empty) (HS.empty)
 
+-- Making graphs
+-------------------------------------------------------------------------------
+
 -- Constructs a 'FilterNode'.
 mkFN :: NodeCondition s
      -> Int -- |Threshold for activation.
@@ -25,12 +49,79 @@ mkFN :: NodeCondition s
      -> FilterNode s
 mkFN c th exInc sign neigh = FN c 0 th exInc False sign neigh
 
+-- |Creates an AND-graph in which a target node is activated if a list of source nodes
+--  are all activated. Definition:
+--
+--  We create one edge from each source node to the target node with edge strength
+--  @E_i = T_target / (N * T_i)@. That is, the activation of a source
+--  node will contribute @1/N_input@ to the activation of the target node. If all source nodes
+--  are activated, the target node is activated.
+andGraph :: (Foldable f, Functor f)
+         => f (FilterNode s) -- ^Source nodes.
+         -> G.Vertex -- ^Target node's vertex.
+         -> FilterNode s -- ^Target node.
+         -> f (FilterNode s) -- ^The source nodes, with edges to the target node added.
+andGraph fs tv t = mkGraphSchema (\s -> andEdgeStrength (length fs) s t) fs tv
+
+-- |Creates an OR-graph in which a target node is activated if any member of a list
+--  of source nodes is activated. Definition:
+--
+--  We create one edge from each source node to the target node with edge strength
+--  @E_i = T_target / T_i@. The activation of a source node will activate the target node.
+orGraph :: Functor f
+        => f (FilterNode s) -- ^Source nodes.
+        -> G.Vertex -- ^Target node's vertex.
+        -> FilterNode s -- ^Target node.
+        -> f (FilterNode s) -- ^The source nodes, with edges to the target node added.
+orGraph fs tv t = mkGraphSchema (\s -> orEdgeStrength s t) fs tv
+
+-- |Creates a NOT-graph in which a target node is activated if a source node is NOT
+--  activated. Definition:
+--
+--  We create one edge from the source node from the target node with edge strength
+--  @E_i = (- T_target) / T_i@. In addition, we create a second dummy node that's always
+--  active and sends @T@ excitement to the target node. If the source node is active, it
+--  neutralizes this dummy node's excitement.
+notGraph :: FilterNode s -- ^Source node.
+         -> G.Vertex -- ^Target node's vertex.
+         -> FilterNode s -- ^Target node.
+         -> [FilterNode s] -- ^The source node with an edge added, and a second dummy.
+notGraph s tv t = dummy : mkGraphSchema (\s -> negate $ orEdgeStrength s t) [s] tv
+   where
+      dummy = mkFN NodeTrue 1 1 0 [(tv, fromIntegral $ t ^. threshold)]
+
+andEdgeStrength :: Int -> FilterNode s -> FilterNode s -> Rational
+andEdgeStrength n s t = t' / (n' * s')
+   where
+      t' = fromIntegral $ t ^. threshold
+      n' = fromIntegral n
+      s' = fromIntegral $ s ^. threshold
+
+orEdgeStrength :: FilterNode s -> FilterNode s -> Rational
+orEdgeStrength s t = t' / s'
+   where
+      t' = fromIntegral $ t ^. threshold
+      s' = fromIntegral $ s ^. threshold
+
+mkGraphSchema :: Functor f
+              => (FilterNode s -> Rational)
+              -> f (FilterNode s)
+              -> G.Vertex
+              -> f (FilterNode s)
+mkGraphSchema edgeStrength fs tv = (\s -> s & neighbors %~ ((tv, edgeStrength s):)) <$> fs
+
+-- Running filters
+-------------------------------------------------------------------------------
+
+
 -- |Evaluates a condition against a value.
 runCondition :: NodeCondition s -> s -> Bool
 runCondition (NodeEQ f x) y = maybe False (x==) (y ^? f)
 runCondition (NodeGT f x) y = maybe False (x<=) (y ^? f)
 runCondition (NodeLT f x) y = maybe False (x>=) (y ^? f)
 runCondition (NodeIs f  ) y = maybe False (const True) (y ^? f)
+runCondition NodeTrue _ = True
+runCondition NodeFalse _ = False
 
 -- |Excites a node based on an input.
 exciteNode :: (Ord a) => a -> FilterNode a -> FilterNode a

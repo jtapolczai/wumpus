@@ -38,17 +38,28 @@ data NodeCondition s =
    -- emotions should be triggered only by positive stimuli, not by negative
    -- ones, obviating the need for a NOT.
    | forall a.NodeIs (Prism' s a)
+   -- |A condition that's always true.
+   | NodeTrue
+   -- |A condition that's always false.
+   | NodeFalse
    -- -| NodeAnd (NodeCondition a) (NodeCondition a)
    -- -| NodeOr (NodeCondition a) (NodeCondition a)
    -- -| NodeNot (NodeCondition a)
 
 data FilterNode s = FN {
    _filterNodeCondition :: NodeCondition s,
+   -- |The node's current excitement.
    _filterNodeExcitement :: Int,
+   -- |Excitement threshold for a node's activation. When a node becomes
+   --  activated, this value, multiplied by the edge's strength, will be sent to
+   --  outgoing neighbors as excitement.
    _filterNodeThreshold :: Int,
+   -- |The increase in node excitement if the node's condition is met.
    _filterNodeExcitementInc :: Int,
    _filterNodeActive :: Bool,
+   -- |Significance of an output node.
    _filterNodeSignificance :: NodeSignificance,
+   -- |Outgoing neighbors, with edge strengths.
    _filterNodeNeighbors :: [(Vertex, Rational)]
    }
 
