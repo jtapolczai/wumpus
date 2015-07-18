@@ -46,11 +46,11 @@ msgWhereAny ls = concatMap f
       f (c,m) = mapMaybe (\l -> (m ^? l) >$> (c,)) ls
 
 -- |Returns the first message that has the correct consturctor.
-firstWhere :: Prism' AgentMessage a -> [AgentMessage'] -> Maybe a
+firstWhere :: Getting (First a) AgentMessage a -> [AgentMessage'] -> Maybe a
 firstWhere p = S.head . map snd . msgWhere p
 
 -- |Returns the last message that has the correct consturctor.
-lastWhere :: Prism' AgentMessage a -> [AgentMessage'] -> Maybe a
+lastWhere :: Getting (First a) AgentMessage a -> [AgentMessage'] -> Maybe a
 lastWhere p = S.last . map snd . msgWhere p
 
 -- |A clumsy combinator that applies a function to a single constructor of
