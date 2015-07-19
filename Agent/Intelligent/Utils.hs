@@ -25,7 +25,7 @@ import Types
 msgWhere :: forall a.Getting (First a) AgentMessage a
          -> [AgentMessage']
          -> [(IsImaginary, a)]
-msgWhere l = mapMaybe (\(c,m) -> (c,) <$> m ^? l)
+msgWhere = msgWhereAny . (:[])
 
 -- |Returns True iff an AgentMessage has one of the given constructors.
 anyOfP :: [Getting (First a) AgentMessage a]
@@ -52,15 +52,6 @@ firstWhere p = S.head . map snd . msgWhere p
 -- |Returns the last message that has the correct consturctor.
 lastWhere :: Getting (First a) AgentMessage a -> [AgentMessage'] -> Maybe a
 lastWhere p = S.last . map snd . msgWhere p
-
--- |A clumsy combinator that applies a function to a single constructor of
---  a sum type and returns Nothing if the given constructor doesn't match.
---
---  Example usage:
---  >>> extractOver (AMTime 3) _AMTime (+1) = Just 4
---  >>> extractOver (AMEmotionAnger 0) _AMTime (+1) = Nothing
---extractOver :: Getter s (Maybe a) -> (a -> b) -> s -> Maybe b
---extractOver lens f x = (x ^. lens) & _Just %~ f
 
 -- |Sieves out messages about global world data.
 globalMessage :: AgentMessage -> Maybe AgentMessage
