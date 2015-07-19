@@ -125,6 +125,16 @@ angle i@(x1,y1) j@(x2,y2) = case (x1 <= x2, y1 <= y2) of
       angle' :: Float
       angle' = asin $ (fromIntegral $ abs (y1-y2)) / fromRational (dist i j)
 
+-- |Creates a function that goes linearly between to points.
+linearFunc :: (Rational, Rational) -- Point 1 (x,y)
+           -> (Rational, Rational) -- Point 2 (x,y)
+           -> (Rational -> Rational)
+linearFunc (x1,y1) (x2,y2) x = y1 + (x - x1) * (dy / dx)
+   where
+      dx = x1 - x2
+      dy = y1 - y2
+
+
 -- |Returns the SquareDirection that corresponds most closely to an angle.
 angleToDirection :: Float -- ^he angle in radians.
                  -> SquareDirection
