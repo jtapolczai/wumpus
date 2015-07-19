@@ -55,10 +55,13 @@ weakAnger = FI (HM.fromList graph) (HS.fromList output)
       -- each of these fields will get a check for wumpuses/hostile agents.
       circleAroundMe = (linearFunc (0,0.6) (10,0.01) . dist (0,0) &&& RI) <$> getCircle (0,0) 10
 
-      --wumpus detectors
+      --low-health wumpus detectors
       --DON'T FIDDLE WITH THE INDICES HERE
-      wumpusOutputNodes = take (length circleAroundMe) [6,9..]
-      wumpusHere v (d,i) = [v-2,v-1,v] `zip` wumpusAt i v d
+      wumpusOutputNodes = take (length circleAroundMe) [9,15..]
+      -- check for low health (agent should only get angry at weak wumpuses)
+      lowHealth = NodeLT (_AMVisualEntityHealth . _2) 0.5
+      -- check that there's a wumpus with low health at this position
+      wumpusHere v (d,i) = [(v-5) .. v] `zip` wumpusAt i v d (Just lowHealth)
       wumpuses = concat . map (uncurry wumpusHere) . zip wumpusOutputNodes $ circleAroundMe
 
       graph = [(0, wumpusDied),
@@ -69,16 +72,31 @@ weakAnger = FI (HM.fromList graph) (HS.fromList output)
 
       output = [0,1,2,3] ++ wumpusOutputNodes
 
+
 -- |Creates a graph whose output node is activated is a wumpus is at a given location.
 wumpusAt :: RelInd -- ^Coordinates to check.
          -> G.Vertex -- ^Vertex of the target node.
          -> Rational -- ^Significance of the target node.
-         -> [FilterNode AgentMessage] -- Three nodes. The first two are source nodes, the third the target node.
-wumpusAt (RI (i, j)) tv sig = t : andGraph src tv t
+            -- ^Desired health of the Wumpus.
+            --  This should be a check for 'AMVisualEntityHealth'.
+         -> Maybe (NodeCondition AgentMessage) 
+            -- |Three/six nodes. The first check for VisualWumpus, three optional ones
+            --  after that for 'AMVisualEntityHealth', the last one is the target node.
+         -> [FilterNode AgentMessage] 
+wumpusAt (RI (i, j)) tv sig healthCond = andGraph (src ++ healthSrc) tv t ++ [t]
    where
-      src = [mkFN (NodeEQ (_AMVisualWumpus . _RI . _1) i) 1 1 0 [],
-             mkFN (NodeEQ (_AMVisualWumpus . _RI . _2) j) 1 1 0 []]
-      t = mkFN NodeFalse 2 0 sig []
+      src = [mkFNs (NodeEQ (_AMVisualWumpus . _RI . _1) i) [],
+             mkFNs (NodeEQ (_AMVisualWumpus . _RI . _2) j) []]
+
+      -- If a healthCond was given, we create 3 additional nodes for a check on
+      -- 'AMVisualEntityHealth'
+      healthSrc = case healthCond of
+         Nothing -> []
+         Just cnd -> [mkFNs (NodeEQ (_AMVisualEntityHealth . _1 . _RI . _1) i) [],
+                      mkFNs (NodeEQ (_AMVisualEntityHealth . _1 . _RI . _2) i) [],
+                      mkFNs cnd []]
+
+      t = mkFN NodeFalse (length src + length healthSrc) 0 sig []
 
 strongAnger :: Filter AgentMessage
 strongAnger = todo "affectFragments"
