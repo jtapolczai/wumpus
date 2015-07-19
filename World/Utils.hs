@@ -132,8 +132,14 @@ angleToDirection x | x `between` (pi*0.25, pi*0.75) = North
                    | x `between` (pi*0.75, pi*1.25) = West
                    | x `between` (pi*1.25, pi*1.75) = South
                    | otherwise                      = East
-  where
-    between n (l,u) = l <= n && n < u
+   where
+      between n (l,u) = l <= n && n < u
+
+-- |Gets all coordinates that are within a given distance of a CellInd.
+getCircle :: CellInd -> Rational -> [CellInd]
+getCircle o@(oi, oj) r = filter ((<= r) . dist o) [(i,j) | i <- inds oi, j <- inds oj]
+   where
+      inds x = [x - ceiling r .. x + ceiling r]
 
 -- |Rotates a SquareDirection clockwise (N-E-S-W).
 rotateCW :: SquareDirection -> SquareDirection

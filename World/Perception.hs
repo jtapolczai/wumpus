@@ -72,5 +72,4 @@ verticesInSightCone world i d =
 
       -- a small segment of cells that can possibly be in the sight cone.
       -- we generate this list to avoid looking at every cell in the world.
-      proximity = [(x,y) | x <- [fst i - 8 .. fst i + 8],
-                           y <- [snd i - 8 .. snd i + 8]]
+      proximity = getCircle i 8
