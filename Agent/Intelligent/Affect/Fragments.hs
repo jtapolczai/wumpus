@@ -2,6 +2,7 @@
 --  agent's personality.
 module Agent.Intelligent.Affect.Fragments where
 
+import Control.Arrow
 import Control.Lens
 import qualified Data.Graph as G
 import qualified Data.HashMap.Strict as HM
@@ -9,6 +10,7 @@ import qualified Data.HashSet as HS
 
 import Agent.Intelligent.Filter
 import Types
+import World.Utils
 
 psbcFragmentType :: String -> PSBCFragmentType
 psbcFragmentType "weak" = Weak
@@ -46,19 +48,33 @@ weakAnger = FI (HM.fromList graph) (HS.fromList output)
    where
       wumpusDied = mkFN (NodeIs _AMWumpusDied) 1 1 (negate 0.5) []
       highTemp = mkFN (NodeGT _AMTemperature Warm) 1 1 0.1 []
+      goodHealth = mkFN (NodeGT _AMHaveHealth 1.0) 1 1 0.05 []
+      highHealth = mkFN (NodeGT _AMHaveHealth 1.5) 1 1 0.05 []
 
-      --wumpusSeen = mkFn (NodeIs)
+      -- gets a 10-large circle of coordinates around the agents.
+      -- each of these fields will get a check for wumpuses/hostile agents.
+      circleAroundMe = (linearFunc (0,0.6) (10,0.01) . dist (0,0) &&& RI) <$> getCircle (0,0) 10
+
+      --wumpus detectors
+      --DON'T FIDDLE WITH THE INDICES HERE
+      wumpusOutputNodes = take (length circleAroundMe) [6,9..]
+      wumpusHere v (d,i) = [v-2,v-1,v] `zip` wumpusAt i v d
+      wumpuses = concat . map (uncurry wumpusHere) . zip wumpusOutputNodes $ circleAroundMe
+
       graph = [(0, wumpusDied),
-               (1, highTemp)]
+               (1, highTemp),
+               (2, goodHealth),
+               (3, highHealth)]
+               ++ wumpuses
 
-      output = [0,1]
+      output = [0,1,2,3] ++ wumpusOutputNodes
 
 -- |Creates a graph whose output node is activated is a wumpus is at a given location.
 wumpusAt :: RelInd -- ^Coordinates to check.
          -> G.Vertex -- ^Vertex of the target node.
          -> Rational -- ^Significance of the target node.
-         -> [FilterNode AgentMessage]
-wumpusAt (RI (i, j)) tv sig = andGraph src tv t
+         -> [FilterNode AgentMessage] -- Three nodes. The first two are source nodes, the third the target node.
+wumpusAt (RI (i, j)) tv sig = t : andGraph src tv t
    where
       src = [mkFN (NodeEQ (_AMVisualWumpus . _RI . _1) i) 1 1 0 [],
              mkFN (NodeEQ (_AMVisualWumpus . _RI . _2) j) 1 1 0 []]
