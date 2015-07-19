@@ -100,6 +100,8 @@ socialMessage x@AMReceivedGold{} = Just x
 socialMessage x@AMGaveMeat{} = Just x
 socialMessage x@AMGaveFruit{} = Just x
 socialMessage x@AMGaveGold{} = Just x
+socialMessage x@AMKilledAgent{} = Just x
+socialMessage x@AMKilledWumpus{} = JUst x
 socialMessage _ = Nothing
 
 -- |Goes through a message space and groups messages by CellInd/EdgeInd, provided
