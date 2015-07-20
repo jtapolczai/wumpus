@@ -1,3 +1,6 @@
+{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE ImpredicativeTypes #-}
+
 -- |Contains pre-made affective fragments from which one can piece together an
 --  agent's personality.
 module Agent.Intelligent.Affect.Fragments where
@@ -54,49 +57,117 @@ weakAnger = FI (HM.fromList graph) (HS.fromList output)
       -- gets a 10-large circle of coordinates around the agents.
       -- each of these fields will get a check for wumpuses/hostile agents.
       circleAroundMe = (linearFunc (0,0.6) (10,0.01) . dist (0,0) &&& RI) <$> getCircle (0,0) 10
-
+      
       --low-health wumpus detectors
-      --DON'T FIDDLE WITH THE INDICES HERE
-      wumpusOutputNodes = take (length circleAroundMe) [9,15..]
-      -- check for low health (agent should only get angry at weak wumpuses)
-      lowHealth = NodeLT (_AMVisualEntityHealth . _2) 0.5
-      -- check that there's a wumpus with low health at this position
-      wumpusHere v (d,i) = [(v-5) .. v] `zip` wumpusAt i v d (Just lowHealth)
-      wumpuses = concat . map (uncurry wumpusHere) . zip wumpusOutputNodes $ circleAroundMe
+      (wumpuses, wumpusOutputNodes) = weakWumpusHere circleAroundMe 3
+
+      agentFrom = last wumpusOutputNodes
+      (agents, agentOutputNodes) = weakEnemyHere circleAroundMe agentFrom
 
       graph = [(0, wumpusDied),
                (1, highTemp),
                (2, goodHealth),
                (3, highHealth)]
                ++ wumpuses
+               ++ agents
 
-      output = [0,1,2,3] ++ wumpusOutputNodes
+      output = [0,1,2,3] ++ wumpusOutputNodes ++ agentOutputNodes
+
+-- |See 'entityHereFilt'. Gets wumpuses with low health.
+weakWumpusHere :: [(Rational, RelInd)] -> Int -> ([(Int, FilterNode AgentMessage)], [Int])
+weakWumpusHere circ from = entityHereFilt circ from _AMVisualWumpus [lowHealth]
+   where
+      lowHealth :: (Traversal' AgentMessage RelInd, NodeCondition AgentMessage)
+      lowHealth = (_AMVisualEntityHealth . _1, 
+                   NodeLT (_AMVisualEntityHealth . _2) 0.5)
+
+-- |See 'entityHereFilt'. Gets hostile agents with low health.
+weakEnemyHere :: [(Rational, RelInd)] -> Int -> ([(Int, FilterNode AgentMessage)], [Int])
+weakEnemyHere circ from = entityHereFilt circ from _AMVisualAgent [lowHealth, enemy]
+   where
+      lowHealth :: (Traversal' AgentMessage RelInd, NodeCondition AgentMessage)
+      lowHealth = (_AMVisualEntityHealth . _1,
+                   NodeLT (_AMVisualEntityHealth . _2) 0.8)
+      
+      enemy :: (Traversal' AgentMessage RelInd, NodeCondition AgentMessage)
+      enemy = (_AMEmotionSympathy . _1,
+               NodeLT (_AMEmotionSympathy . _2) 0)
+
+entityHereFilt
+      -- |Fields for which a check should be made, with output significance
+      --  in case of success.
+   :: [(Rational, RelInd)]
+      -- |The starting vertex (inclusive) 
+   -> G.Vertex
+      -- |The basic check for the presence of some entity, e.g. 'AMVisualWumpus'.
+   -> Traversal' AgentMessage RelInd
+      -- |Optional checks for health, sympathy, etc.
+      --  The first part of a check gets a message's coordinates, the second
+      --  gets the data for the actual check. See, for example.
+      -- 'AMEmotionSympathy'.
+   -> [(Traversal' AgentMessage RelInd, NodeCondition AgentMessage)]
+      -- |A list of new nodes, and a sublist of the vertices that belong to output
+      --  nodes. The number of nodes __per field__ will be @3 + 3*n@, where @n@
+      --  is the number of checks. The number of __output nodes per fields__ will be
+      --  one.
+   -> ([(Int, FilterNode AgentMessage)], [Int])
+entityHereFilt circ from visualCons checks = (nodes, outputNodes)
+   where
+      numNodes = 3 + (length checks * 3)
+      from' = from + 1
+
+      outputNodes :: [Int]
+      outputNodes = take (length circ) $ map ((from'+) . (numNodes*)) [1..]
+
+      here :: Int -> (Rational, RelInd) -> [(Int, FilterNode AgentMessage)]
+      here v (d,i) = zip [(v - numNodes + 1) .. v]
+                     $ entityHere visualCons checks i v d
+
+      nodes = concatMap (uncurry here) . zip outputNodes $ circ
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 -- |Creates a graph whose output node is activated is a wumpus is at a given location.
-wumpusAt :: RelInd -- ^Coordinates to check.
+entityHere
+         -- |The basic position check. Likely a prism of 'AMVisualAgent' or 'AMVisualWumpus'.
+         :: Traversal' AgentMessage RelInd
+            -- |Optional additional checks for health, sympathy etc.
+         -> [(Traversal' AgentMessage RelInd, NodeCondition AgentMessage)]
+         -> RelInd -- ^Coordinates to check.
          -> G.Vertex -- ^Vertex of the target node.
          -> Rational -- ^Significance of the target node.
-            -- ^Desired health of the Wumpus.
-            --  This should be a check for 'AMVisualEntityHealth'.
-         -> Maybe (NodeCondition AgentMessage) 
-            -- |Three/six nodes. The first check for VisualWumpus, three optional ones
-            --  after that for 'AMVisualEntityHealth', the last one is the target node.
+            -- |Three nodes + 3*n nodes, where n is the number of additional checks.
+            --  The last node will be target node.
          -> [FilterNode AgentMessage] 
-wumpusAt (RI (i, j)) tv sig healthCond = andGraph (src ++ healthSrc) tv t ++ [t]
+entityHere cons optCons (RI (i, j)) tv sig = andGraph (src ++ optSrc) tv t ++ [t]
    where
-      src = [mkFNs (NodeEQ (_AMVisualWumpus . _RI . _1) i) [],
-             mkFNs (NodeEQ (_AMVisualWumpus . _RI . _2) j) []]
+      src = [mkFNs (NodeEQ (cons . _RI . _1) i) [],
+             mkFNs (NodeEQ (cons . _RI . _2) j) []]
 
-      -- If a healthCond was given, we create 3 additional nodes for a check on
-      -- 'AMVisualEntityHealth'
-      healthSrc = case healthCond of
-         Nothing -> []
-         Just cnd -> [mkFNs (NodeEQ (_AMVisualEntityHealth . _1 . _RI . _1) i) [],
-                      mkFNs (NodeEQ (_AMVisualEntityHealth . _1 . _RI . _2) i) [],
-                      mkFNs cnd []]
+      mkCons :: Traversal' AgentMessage RelInd
+             -> NodeCondition AgentMessage
+             -> [FilterNode AgentMessage]
+      mkCons pos cnd = [mkFNs (NodeEQ (pos . _RI . _1) i) [],
+                        mkFNs (NodeEQ (pos . _RI . _2) j) [],
+                        mkFNs cnd []]
+      optSrc = concatMap (uncurry mkCons) optCons
 
-      t = mkFN NodeFalse (length src + length healthSrc) 0 sig []
+      t = mkFN NodeFalse (length src + length optSrc) 0 sig []
+
 
 strongAnger :: Filter AgentMessage
 strongAnger = todo "affectFragments"
