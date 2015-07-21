@@ -110,12 +110,28 @@ strongFear = FI (HM.fromList graph) (HS.fromList output)
       --low-health wumpus detectors
       (wumpuses, wumpusOutputNodes) = strongWumpusHere circleAroundMe 9
 
-      agentFrom = last wumpusOutputNodes
-      (agents, agentOutputNodes) = strongEnemyHere circleAroundMe agentFrom
 
-      pitFrom = last agentOutputNodes
-      pitCircle = circleAroundMeFilt 0.3 2
-      (pits, pitOutputNodes) = pitHere pitCircle pitFrom
+      -- we have 4 kinds detectors for enemies:
+      -- weak, normal, strong, and very strong agents. Given that each
+      -- is a subset of the previous one, the very strong agents
+      -- trigger the fear for strong, normal, and weak ones, resulting
+      -- in a large amount of cumulative fear.
+      wAgentFrom = last wumpusOutputNodes
+      (wAgents, wAgentOutputNodes) = strongEnemyHere 0.3 (circleAroundMeFilt 0.1 8) wAgentFrom
+
+      nAgentFrom = last wAgentOutputNodes
+      (nAgents, nAgentOutputNodes) = strongEnemyHere 0.75 (circleAroundMeFilt 0.2 10) nAgentFrom
+
+      sAgentFrom = last nAgentOutputNodes
+      (sAgents, sAgentOutputNodes) = strongEnemyHere 1 (circleAroundMeFilt 0.15 10) sAgentFrom
+
+      vAgentFrom = last sAgentOutputNodes
+      (vAgents, vAgentOutputNodes) = strongEnemyHere 1.5 (circleAroundMeFilt 0.15 12) vAgentFrom
+
+      -- detectors for pits. Since pits are immobile, we are only interested
+      -- in very close ones
+      pitFrom = last vAgentOutputNodes
+      (pits, pitOutputNodes) = pitHere (circleAroundMeFilt 0.3 2) pitFrom
 
       graph = [(0, quarterHealthLoss),
                (1, halfHealthLoss),
@@ -128,12 +144,18 @@ strongFear = FI (HM.fromList graph) (HS.fromList output)
                (8, criticalHealth),
                (9, goodHealth)]
                ++ wumpuses
-               ++ agents
+               ++ wAgents
+               ++ nAgents
+               ++ sAgents
+               ++ vAgents
                ++ pits
 
       output = [0..9]
                ++ wumpusOutputNodes
-               ++ agentOutputNodes
+               ++ wAgentOutputNodes
+               ++ nAgentOutputNodes
+               ++ sAgentOutputNodes
+               ++ vAgentOutputNodes
                ++ pitOutputNodes
 
 -- |Takes an inital value @mx@ and a radius @r@ and returns all fields within
@@ -187,7 +209,7 @@ weakEnemyHere circ from = entityHereFilt circ from [agent, lowHealth, enemy]
 
       lowHealth :: AreaFilterCheck
       lowHealth = (_AMVisualEntityHealth . _1,
-                   Just $ NodeLT (_AMVisualEntityHealth . _2) 0.8)
+                   Just $ NodeLT (_AMVisualEntityHealth . _2) 0.75)
       
       enemy :: AreaFilterCheck
       enemy = (_AMEmotionSympathy . _1,
@@ -201,8 +223,29 @@ pitHere circ from = entityHereFilt circ from [pit]
       pit = (_AMVisualPit, Nothing)
 
 strongWumpusHere :: AreaFilter
-strongWumpusHere = undefined
-strongEnemyHere = undefined
+strongWumpusHere circ from = entityHereFilt circ from [wumpus, highHealth]
+   where
+      wumpus :: AreaFilterCheck
+      wumpus = (_AMVisualWumpus, Nothing)
+
+      highHealth :: AreaFilterCheck
+      highHealth = (_AMVisualEntityHealth . _1,
+                    Just $ NodeGT (_AMVisualEntityHealth . _2) 0.75)
+
+strongEnemyHere :: Rational -- |Cut-off for what qualifies as "high health".
+                -> AreaFilter
+strongEnemyHere v circ from = entityHereFilt circ from [agent, highHealth, enemy]
+   where
+      agent :: AreaFilterCheck
+      agent = (_AMVisualAgent, Nothing)
+
+      highHealth :: AreaFilterCheck
+      highHealth = (_AMVisualEntityHealth . _1,
+                    Just $ NodeGT (_AMVisualEntityHealth . _2) v)
+      
+      enemy :: AreaFilterCheck
+      enemy = (_AMEmotionSympathy . _1,
+               Just $ NodeLT (_AMEmotionSympathy . _2) 0)
 
 
 -- |Wrapper around 'entityHere' that assignes vertices to the nodes too.
