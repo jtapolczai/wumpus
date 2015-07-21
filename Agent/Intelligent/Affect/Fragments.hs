@@ -49,14 +49,14 @@ sympathyFragment _ x = error $ "sympathyFragment called with unsupported type "+
 weakAnger :: Filter AgentMessage
 weakAnger = FI (HM.fromList graph) (HS.fromList output)
    where
-      wumpusDied = mkFN (NodeIs _AMWumpusDied) 1 1 (negate 0.5) []
-      highTemp = mkFN (NodeGT _AMTemperature Warm) 1 1 0.1 []
-      goodHealth = mkFN (NodeGT _AMHaveHealth 1.0) 1 1 0.05 []
-      highHealth = mkFN (NodeGT _AMHaveHealth 1.5) 1 1 0.05 []
+      wumpusDied = mkFNo (NodeIs _AMWumpusDied) (negate 0.5) []
+      highTemp = mkFNo (NodeGT _AMTemperature Warm) 0.1 []
+      goodHealth = mkFNo (NodeGT _AMHaveHealth 1.0) 0.05 []
+      highHealth = mkFNo (NodeGT _AMHaveHealth 1.5) 0.05 []
 
       -- gets a 10-large circle of coordinates around the agents.
       -- each of these fields will get a check for wumpuses/hostile agents.
-      circleAroundMe = (linearFunc (0,0.6) (10,0.01) . dist (0,0) &&& RI) <$> getCircle (0,0) 10
+      circleAroundMe = circleAroundMeFilt 0.6 10
       
       --low-health wumpus detectors
       (wumpuses, wumpusOutputNodes) = weakWumpusHere circleAroundMe 3
@@ -71,7 +71,89 @@ weakAnger = FI (HM.fromList graph) (HS.fromList output)
                ++ wumpuses
                ++ agents
 
-      output = [0,1,2,3] ++ wumpusOutputNodes ++ agentOutputNodes
+      output = [0..3] ++ wumpusOutputNodes ++ agentOutputNodes
+
+
+strongAnger :: Filter AgentMessage
+strongAnger = todo "affectFragments"
+
+weakFear :: Filter AgentMessage
+weakFear = todo "affectFragments"
+
+strongFear :: Filter AgentMessage
+strongFear = FI (HM.fromList graph) (HS.fromList output)
+   where
+      quarterHealthLoss = mkFNo (NodeGT _AMHealthDecreased 0.25) 0.2 []
+      halfHealthLoss = mkFNo (NodeGT _AMHealthDecreased 0.5) 0.4 []
+      threeQuarterHealthLoss = mkFNo (NodeGT _AMHealthDecreased 0.5) 0.6 []
+      died = mkFNo (NodeGT _AMHealthDecreased 1) 0.8 []
+      highTemp = mkFNo (NodeGT _AMTemperature Warm) (negate 0.1) []
+      lowTemp = mkFNo (NodeLT _AMTemperature Temperate) 0.1 []
+      badHealth = mkFNo (NodeLT _AMHaveHealth 0.75) 0.15 []
+      veryBadHealth = mkFNo (NodeLT _AMHaveHealth 0.4) 0.25 []
+      criticalHealth = mkFNo (NodeLT _AMHaveHealth 0.1) 0.65 []
+      goodHealth = mkFNo (NodeLT _AMHaveHealth 1.5) (negate 0.3) []
+
+      -- gets a 10-large circle of coordinates around the agents.
+      -- each of these fields will get a check for wumpuses/hostile agents.
+      circleAroundMe = circleAroundMeFilt 0.6 10
+
+      --low-health wumpus detectors
+      (wumpuses, wumpusOutputNodes) = strongWumpusHere circleAroundMe 9
+
+      agentFrom = last wumpusOutputNodes
+      (agents, agentOutputNodes) = strongEnemyHere circleAroundMe agentFrom
+
+      pitFrom = last agentOutputNodes
+      pitCircle = circleAroundMeFilt 0.3 2
+      (pits, pitOutputNodes) = pitHere pitCircle pitFrom
+
+      graph = [(0, quarterHealthLoss),
+               (1, halfHealthLoss),
+               (2, threeQuarterHealthLoss),
+               (3, died),
+               (4, highTemp),
+               (5, lowTemp),
+               (6, badHealth),
+               (7, veryBadHealth),
+               (8, criticalHealth),
+               (9, goodHealth)]
+               ++ wumpuses
+               ++ agents
+               ++ pits
+
+      output = [0..9] ++ wumpusOutputNodes ++ agentOutputNodes
+
+-- |Takes an inital value @mx@ and a radius @r@ and returns all fields within
+--  distance @r@, with an intensity that's linearly interpolated between @mx@
+--  and 0.01.
+circleAroundMeFilt :: Rational -- Initial value.
+                   -> Rational -- Radius.
+                   -> [(Rational, RelInd)]
+circleAroundMeFilt mx r = (linearFunc (0,mx) (r,0.01) . dist (0,0) &&& RI) <$> getCircle (0,0) r
+
+
+weakEnthusiasm :: Filter AgentMessage
+weakEnthusiasm = todo "affectFragments"
+strongEnthusiasm :: Filter AgentMessage
+strongEnthusiasm = todo "affectFragments"
+
+weakContentment :: Filter AgentMessage
+weakContentment = todo "affectFragments"
+strongContentment :: Filter AgentMessage
+strongContentment = todo "affectFragments"
+
+hostileSocial :: Filter AgentMessage
+hostileSocial = todo "affectFragments"
+
+friendlySocial :: Filter AgentMessage
+friendlySocial = todo "affectFragments"
+
+
+
+
+-- Helpers
+-------------------------------------------------------------------------------
 
 -- |See 'entityHereFilt'. Gets wumpuses with low health.
 weakWumpusHere :: [(Rational, RelInd)] -> Int -> ([(Int, FilterNode AgentMessage)], [Int])
@@ -92,6 +174,10 @@ weakEnemyHere circ from = entityHereFilt circ from _AMVisualAgent [lowHealth, en
       enemy :: (Traversal' AgentMessage RelInd, NodeCondition AgentMessage)
       enemy = (_AMEmotionSympathy . _1,
                NodeLT (_AMEmotionSympathy . _2) 0)
+
+strongWumpusHere = undefined
+strongEnemyHere = undefined
+pitHere = undefined
 
 entityHereFilt
       -- |Fields for which a check should be made, with output significance
@@ -127,20 +213,6 @@ entityHereFilt circ from visualCons checks = (nodes, outputNodes)
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 -- |Creates a graph whose output node is activated is a wumpus is at a given location.
 entityHere
          -- |The basic position check. Likely a prism of 'AMVisualAgent' or 'AMVisualWumpus'.
@@ -167,41 +239,3 @@ entityHere cons optCons (RI (i, j)) tv sig = andGraph (src ++ optSrc) tv t ++ [t
       optSrc = concatMap (uncurry mkCons) optCons
 
       t = mkFN NodeFalse (length src + length optSrc) 0 sig []
-
-
-strongAnger :: Filter AgentMessage
-strongAnger = todo "affectFragments"
-
-weakFear :: Filter AgentMessage
-weakFear = todo "affectFragments"
-strongFear :: Filter AgentMessage
-strongFear = FI (HM.fromList graph) (HS.fromList output)
-   where
-      quarterHealthLoss = mkFN (NodeGT _AMHealthDecreased 0.25) 1 1 0.2 []
-      halfHealthLoss = mkFN (NodeGT _AMHealthDecreased 0.5) 1 1 0.4 []
-      threeQuarterHealthLoss = mkFN (NodeGT _AMHealthDecreased 0.5) 1 1 0.6 []
-      died = mkFN (NodeGT _AMHealthDecreased 1) 1 1 0.8 []
-
-      graph = [(0, quarterHealthLoss),
-               (1, halfHealthLoss),
-               (2, threeQuarterHealthLoss),
-               (3, died)]
-
-      output = [0,1,2,3]
-
-weakEnthusiasm :: Filter AgentMessage
-weakEnthusiasm = todo "affectFragments"
-strongEnthusiasm :: Filter AgentMessage
-strongEnthusiasm = todo "affectFragments"
-
-weakContentment :: Filter AgentMessage
-weakContentment = todo "affectFragments"
-strongContentment :: Filter AgentMessage
-strongContentment = todo "affectFragments"
-
-hostileSocial :: Filter AgentMessage
-hostileSocial = todo "affectFragments"
-
-friendlySocial :: Filter AgentMessage
-friendlySocial = todo "affectFragments"
-
