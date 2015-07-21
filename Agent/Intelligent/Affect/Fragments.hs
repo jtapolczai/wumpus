@@ -1,5 +1,6 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ImpredicativeTypes #-}
+{-# LANGUAGE LambdaCase #-}
 
 -- |Contains pre-made affective fragments from which one can piece together an
 --  agent's personality.
@@ -14,6 +15,14 @@ import qualified Data.HashSet as HS
 import Agent.Intelligent.Filter
 import Types
 import World.Utils
+
+-- |A function that takes a list of coordinate-significance pairs and
+--  a starting vertex and returns a forest of filters, with
+--  a list of output nodes.
+type AreaFilter = [(Rational, RelInd)] -> Int -> ([(G.Vertex, FilterNode AgentMessage)], [G.Vertex])
+
+-- |A check that an 'AreaFilter' can perform on a cell.
+type AreaFilterCheck = (Traversal' AgentMessage RelInd, Maybe (NodeCondition AgentMessage))
 
 psbcFragmentType :: String -> PSBCFragmentType
 psbcFragmentType "weak" = Weak
@@ -122,7 +131,10 @@ strongFear = FI (HM.fromList graph) (HS.fromList output)
                ++ agents
                ++ pits
 
-      output = [0..9] ++ wumpusOutputNodes ++ agentOutputNodes
+      output = [0..9]
+               ++ wumpusOutputNodes
+               ++ agentOutputNodes
+               ++ pitOutputNodes
 
 -- |Takes an inital value @mx@ and a radius @r@ and returns all fields within
 --  distance @r@, with an intensity that's linearly interpolated between @mx@
@@ -156,50 +168,61 @@ friendlySocial = todo "affectFragments"
 -------------------------------------------------------------------------------
 
 -- |See 'entityHereFilt'. Gets wumpuses with low health.
-weakWumpusHere :: [(Rational, RelInd)] -> Int -> ([(Int, FilterNode AgentMessage)], [Int])
-weakWumpusHere circ from = entityHereFilt circ from _AMVisualWumpus [lowHealth]
+weakWumpusHere :: AreaFilter
+weakWumpusHere circ from = entityHereFilt circ from [wumpus, lowHealth]
    where
-      lowHealth :: (Traversal' AgentMessage RelInd, NodeCondition AgentMessage)
+      wumpus :: AreaFilterCheck
+      wumpus = (_AMVisualWumpus, Nothing)
+
+      lowHealth :: AreaFilterCheck
       lowHealth = (_AMVisualEntityHealth . _1, 
-                   NodeLT (_AMVisualEntityHealth . _2) 0.5)
+                   Just $ NodeLT (_AMVisualEntityHealth . _2) 0.5)
 
 -- |See 'entityHereFilt'. Gets hostile agents with low health.
-weakEnemyHere :: [(Rational, RelInd)] -> Int -> ([(Int, FilterNode AgentMessage)], [Int])
-weakEnemyHere circ from = entityHereFilt circ from _AMVisualAgent [lowHealth, enemy]
+weakEnemyHere :: AreaFilter
+weakEnemyHere circ from = entityHereFilt circ from [agent, lowHealth, enemy]
    where
-      lowHealth :: (Traversal' AgentMessage RelInd, NodeCondition AgentMessage)
-      lowHealth = (_AMVisualEntityHealth . _1,
-                   NodeLT (_AMVisualEntityHealth . _2) 0.8)
-      
-      enemy :: (Traversal' AgentMessage RelInd, NodeCondition AgentMessage)
-      enemy = (_AMEmotionSympathy . _1,
-               NodeLT (_AMEmotionSympathy . _2) 0)
+      agent :: AreaFilterCheck
+      agent = (_AMVisualAgent, Nothing)
 
+      lowHealth :: AreaFilterCheck
+      lowHealth = (_AMVisualEntityHealth . _1,
+                   Just $ NodeLT (_AMVisualEntityHealth . _2) 0.8)
+      
+      enemy :: AreaFilterCheck
+      enemy = (_AMEmotionSympathy . _1,
+               Just $ NodeLT (_AMEmotionSympathy . _2) 0)
+
+-- |See 'entityHereFilt'. Gets pits in proximity.
+pitHere :: AreaFilter
+pitHere circ from = entityHereFilt circ from [pit]
+   where
+      pit :: AreaFilterCheck
+      pit = (_AMVisualPit, Nothing)
+
+strongWumpusHere :: AreaFilter
 strongWumpusHere = undefined
 strongEnemyHere = undefined
-pitHere = undefined
 
+
+-- |Wrapper around 'entityHere' that assignes vertices to the nodes too.
 entityHereFilt
       -- |Fields for which a check should be made, with output significance
       --  in case of success.
    :: [(Rational, RelInd)]
       -- |The starting vertex (inclusive) 
    -> G.Vertex
-      -- |The basic check for the presence of some entity, e.g. 'AMVisualWumpus'.
-   -> Traversal' AgentMessage RelInd
-      -- |Optional checks for health, sympathy, etc.
+      -- |Checks for the presence of an entity, health, sympathy, etc.
       --  The first part of a check gets a message's coordinates, the second
       --  gets the data for the actual check. See, for example.
       -- 'AMEmotionSympathy'.
-   -> [(Traversal' AgentMessage RelInd, NodeCondition AgentMessage)]
+   -> [AreaFilterCheck]
       -- |A list of new nodes, and a sublist of the vertices that belong to output
-      --  nodes. The number of nodes __per field__ will be @3 + 3*n@, where @n@
-      --  is the number of checks. The number of __output nodes per fields__ will be
-      --  one.
+      --  nodes. See 'entityHere' for the number of output nodes.
    -> ([(Int, FilterNode AgentMessage)], [Int])
-entityHereFilt circ from visualCons checks = (nodes, outputNodes)
+entityHereFilt circ from checks = (nodes, outputNodes)
    where
-      numNodes = 3 + (length checks * 3)
+      numNodes = (1 +) . sum . map (\case{(_,Just _) -> 3; _ -> 2}) $ checks
       from' = from + 1
 
       outputNodes :: [Int]
@@ -207,35 +230,32 @@ entityHereFilt circ from visualCons checks = (nodes, outputNodes)
 
       here :: Int -> (Rational, RelInd) -> [(Int, FilterNode AgentMessage)]
       here v (d,i) = zip [(v - numNodes + 1) .. v]
-                     $ entityHere visualCons checks i v d
+                     $ entityHere checks i v d
 
       nodes = concatMap (uncurry here) . zip outputNodes $ circ
 
 
-
 -- |Creates a graph whose output node is activated is a wumpus is at a given location.
 entityHere
-         -- |The basic position check. Likely a prism of 'AMVisualAgent' or 'AMVisualWumpus'.
-         :: Traversal' AgentMessage RelInd
-            -- |Optional additional checks for health, sympathy etc.
-         -> [(Traversal' AgentMessage RelInd, NodeCondition AgentMessage)]
+            -- |Checks to perform on the cell. VisualWumpus, health, sympathy etc.
+         :: [AreaFilterCheck]
          -> RelInd -- ^Coordinates to check.
          -> G.Vertex -- ^Vertex of the target node.
          -> Rational -- ^Significance of the target node.
-            -- |Three nodes + 3*n nodes, where n is the number of additional checks.
-            --  The last node will be target node.
+            -- |1 target (output) node at the end, plus the following number of source
+            --  nodes: 2 for every check without a 'NodeCondition' and 3 for every
+            --  check with one.
          -> [FilterNode AgentMessage] 
-entityHere cons optCons (RI (i, j)) tv sig = andGraph (src ++ optSrc) tv t ++ [t]
+entityHere cons (RI (i, j)) tv sig = andGraph src tv t ++ [t]
    where
-      src = [mkFNs (NodeEQ (cons . _RI . _1) i) [],
-             mkFNs (NodeEQ (cons . _RI . _2) j) []]
-
       mkCons :: Traversal' AgentMessage RelInd
-             -> NodeCondition AgentMessage
+             -> Maybe (NodeCondition AgentMessage)
              -> [FilterNode AgentMessage]
-      mkCons pos cnd = [mkFNs (NodeEQ (pos . _RI . _1) i) [],
-                        mkFNs (NodeEQ (pos . _RI . _2) j) [],
-                        mkFNs cnd []]
-      optSrc = concatMap (uncurry mkCons) optCons
+      mkCons pos cnd =
+         (case cnd of {Nothing -> id; Just cnd' -> (++[mkFNs cnd' []])})
+         [mkFNs (NodeEQ (pos . _RI . _1) i) [],
+          mkFNs (NodeEQ (pos . _RI . _2) j) []]
 
-      t = mkFN NodeFalse (length src + length optSrc) 0 sig []
+      src = concatMap (uncurry mkCons) cons
+
+      t = mkFN NodeFalse (length src) 0 sig []
