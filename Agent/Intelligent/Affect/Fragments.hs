@@ -62,25 +62,26 @@ weakAnger = FI (HM.fromList graph) (HS.fromList output)
       highTemp = mkFNo (NodeGT _AMTemperature Warm) 0.1 []
       goodHealth = mkFNo (NodeGT _AMHaveHealth 1.0) 0.05 []
       highHealth = mkFNo (NodeGT _AMHaveHealth 1.5) 0.05 []
+      highStamina = mkFNo (NodeGT _AMHaveStamina 0.75) 0.02 []
 
-      -- gets a 10-large circle of coordinates around the agents.
-      -- each of these fields will get a check for wumpuses/hostile agents.
-      circleAroundMe = circleAroundMeFilt 0.6 10
+      singleFilt = [wumpusDied,
+                    highTemp,
+                    goodHealth,
+                    highHealth,
+                    highStamina]
       
-      --low-health wumpus detectors
-      (wumpuses, wumpusOutputNodes) = weakWumpusHere circleAroundMe 3
+      --low-health wumpus detectors in a 10-large circle
+      wumpusFrom = length singleFilt - 1
+      (wumpuses, wumpusOutputNodes) = weakWumpusHere (circleAroundMeFilt 0.6 10) wumpusFrom
 
       agentFrom = last wumpusOutputNodes
-      (agents, agentOutputNodes) = weakEnemyHere circleAroundMe agentFrom
+      (agents, agentOutputNodes) = weakEnemyHere (circleAroundMeFilt 0.6 10) agentFrom
 
-      graph = [(0, wumpusDied),
-               (1, highTemp),
-               (2, goodHealth),
-               (3, highHealth)]
+      graph = (zip [0..] singleFilt)
                ++ wumpuses
                ++ agents
 
-      output = [0..3] ++ wumpusOutputNodes ++ agentOutputNodes
+      output = [0..wumpusFrom] ++ wumpusOutputNodes ++ agentOutputNodes
 
 
 strongAnger :: Filter AgentMessage
@@ -102,14 +103,25 @@ strongFear = FI (HM.fromList graph) (HS.fromList output)
       veryBadHealth = mkFNo (NodeLT _AMHaveHealth 0.4) 0.25 []
       criticalHealth = mkFNo (NodeLT _AMHaveHealth 0.1) 0.65 []
       goodHealth = mkFNo (NodeLT _AMHaveHealth 1.5) (negate 0.3) []
+      healthGain = mkFNo (NodeIs _AMHealthIncreased) (negate 0.08) []
+      lowStamina = mkFNo (NodeLT _AMHaveStamina 0.25) (negate 0.05) []
 
-      -- gets a 10-large circle of coordinates around the agents.
-      -- each of these fields will get a check for wumpuses/hostile agents.
-      circleAroundMe = circleAroundMeFilt 0.6 10
+      singleFilt = [quarterHealthLoss,
+                    halfHealthLoss,
+                    threeQuarterHealthLoss,
+                    died,
+                    highTemp,
+                    lowTemp,
+                    badHealth,
+                    veryBadHealth,
+                    criticalHealth,
+                    goodHealth,
+                    healthGain,
+                    lowStamina]
 
-      --low-health wumpus detectors
-      (wumpuses, wumpusOutputNodes) = strongWumpusHere circleAroundMe 9
-
+      --high-health wumpus detectors in a 10-large circle
+      wumpusFrom = length singleFilt - 1
+      (wumpuses, wumpusOutputNodes) = strongWumpusHere (circleAroundMeFilt 0.6 10) wumpusFrom
 
       -- we have 4 kinds detectors for enemies:
       -- weak, normal, strong, and very strong agents. Given that each
@@ -133,16 +145,7 @@ strongFear = FI (HM.fromList graph) (HS.fromList output)
       pitFrom = last vAgentOutputNodes
       (pits, pitOutputNodes) = pitHere (circleAroundMeFilt 0.3 2) pitFrom
 
-      graph = [(0, quarterHealthLoss),
-               (1, halfHealthLoss),
-               (2, threeQuarterHealthLoss),
-               (3, died),
-               (4, highTemp),
-               (5, lowTemp),
-               (6, badHealth),
-               (7, veryBadHealth),
-               (8, criticalHealth),
-               (9, goodHealth)]
+      graph = (zip [0..] singleFilt)
                ++ wumpuses
                ++ wAgents
                ++ nAgents
@@ -150,7 +153,7 @@ strongFear = FI (HM.fromList graph) (HS.fromList output)
                ++ vAgents
                ++ pits
 
-      output = [0..9]
+      output = [0..wumpusFrom]
                ++ wumpusOutputNodes
                ++ wAgentOutputNodes
                ++ nAgentOutputNodes
