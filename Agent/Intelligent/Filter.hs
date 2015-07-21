@@ -16,6 +16,7 @@ module Agent.Intelligent.Filter (
    --  
    mkFN,
    mkFNs,
+   mkFNo,
    andGraph,
    orGraph,
    notGraph,
@@ -55,6 +56,13 @@ mkFNs :: NodeCondition s
       -> [(G.Vertex, Rational)]
       -> FilterNode s
 mkFNs c neigh = mkFN c 1 1 0 neigh
+
+-- |Creates an output node with excitement threshold 1.
+mkFNo :: NodeCondition s
+      -> NodeSignificance
+      -> [(G.Vertex, Rational)]
+      -> FilterNode s
+mkFNo c sign neigh = mkFN c 1 1 sign neigh
 
 -- |Creates an AND-graph in which a target node is activated if a list of source nodes
 --  are all activated. Definition:
