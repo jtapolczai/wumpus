@@ -180,11 +180,20 @@ weakEnthusiasm = FI (HM.fromList graph) (HS.fromList output)
       lowTemp = mkFNo (NodeLT _AMTemperature Temperate) (negate 0.1) []
       lowStamina = mkFNo (NodeLT _AMHaveStamina 0.5) (negate 0.1) []
 
+      gaveGold = mkFNo (NodeIs _AMGaveGold) (negate 0.3) []
+      gaveMeat = mkFNo (NodeIs _AMGaveMeat) (negate 0.45) []
+      gaveFruit = mkFNo (NodeIs _AMGaveFruit) (negate 0.45) []
+      plantHarvested = mkFNo (NodeIs _AMPlantHarvested) (negate 0.3) []
+
       singleFilt = [quarterHealthLoss,
                     halfHealthLoss,
                     highTemp,
                     lowTemp,
-                    lowStamina]
+                    lowStamina,
+                    gaveGold,
+                    gaveMeat,
+                    gaveFruit,
+                    plantHarvested]
 
       -- we have 4 kinds detectors for friends:
       -- weak, normal, and strong agents.
@@ -260,7 +269,62 @@ strongEnthusiasm = todo "affectFragments"
 
 
 weakContentment :: Filter AgentMessage
-weakContentment = todo "affectFragments"
+weakContentment = FI (HM.fromList graph) (HS.fromList output)
+   where
+      quarterHealthLoss = mkFNo (NodeGT _AMHealthDecreased 0.25) (negate 0.2) []
+      halfHealthLoss = mkFNo (NodeGT _AMHealthDecreased 0.5) (negate 0.5) []
+      badHealth = mkFNo (NodeLT _AMHaveHealth 0.75) (negate 0.10) []
+      veryBadHealth = mkFNo (NodeLT _AMHaveHealth 0.4) (negate 0.23) []
+      criticalHealth = mkFNo (NodeLT _AMHaveHealth 0.1) (negate 0.8) []
+      staminaLoss = mkFNo (NodeGT _AMStaminaDecreased 0.1) 0.04 []
+      highHealth = mkFNo (NodeGT _AMHaveHealth 1.2) 0.05 []
+      veryHighHealth = mkFNo (NodeGT _AMHaveHealth 1.75) 0.04 []
+      excellentHealth = mkFNo (NodeGT _AMHaveHealth 1.90) 0.07 []
+      haveGold = mkFNo (NodeGT _AMHaveGold 5) 0.03 []
+      haveFruit = mkFNo (NodeGT _AMHaveFruit 1) 0.03 []
+      haveMuchFruit = mkFNo (NodeGT _AMHaveFruit 5) 0.03 []
+      haveMeat = mkFNo (NodeGT _AMHaveMeat 1) 0.03 []
+      haveMuchMeat = mkFNo (NodeGT _AMHaveMeat 5) 0.03 []
+
+      singleFilt = [quarterHealthLoss,
+                    halfHealthLoss,
+                    badHealth,
+                    veryBadHealth,
+                    criticalHealth,
+                    staminaLoss,
+                    highHealth,
+                    veryHighHealth,
+                    excellentHealth,
+                    haveGold,
+                    haveFruit,
+                    haveMuchFruit,
+                    haveMeat,
+                    haveMuchMeat]
+
+      -- plants next to it calm the agent down and make it reluctant to move
+      plantFrom = length singleFilt - 1
+      (plants, plantOutputNodes) = plantHere 2 (circleAroundMeFilt 0.2 1) plantFrom
+
+      graph = (zip [0..] singleFilt)
+               ++ plants
+
+      output = [0..plantFrom] ++ plantOutputNodes
+               
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 strongContentment :: Filter AgentMessage
 strongContentment = todo "affectFragments"
 
