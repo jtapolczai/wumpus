@@ -20,9 +20,6 @@ import Types
 import World.Constants
 import World.Utils
 
--- TODO:
---      take another step ???
-
 -- |A function which returns actions associated with a given action.
 type ActionSelector a =
    GestureStorage -- ^The agent's gesture storage.
@@ -209,43 +206,6 @@ strongestEmotionCell en = fst . head . sortBy (flip $ comparing f) . M.toList . 
    where
       f = view (at' en) . snd
 
-   --if there's no planned action => choose an initial one based on the strongest
-   --emotion (global?)
-
-   --if there's one => evaluate plan and abort/continue/OK
-
-
-   -- if any emotion goes beyond a certain level (probabilistically), execute its action
-   -- immediately (exists c : cell(s); sort by cell
-
-
--- |Inspects the most recent memory affectively and does one three, depending on the
---  results:
---
---  * if the most recent memory is deemed 'good enough' __TODO: what does 'good' mean?___,
---    the agent approves of the plan, inserting a __real__ 'AMPlannedAction' into message
---    space (the first step of the plan).
---  * if the most recent memory is deemed 'too bad', the last memory and 'AMPlannedAction'
---    are deleted.
---  * otherwise, the agent state is left unchanged.
-evaluatePlan :: AgentComponent IO
-evaluatePlan _ = todo "evaluatePlan"
-   where
-      --planEmotion = firstWhere _AMPlanEmotion (as ^. messageSpace)
-
-      --world = reconstructWorld NoOp (leftMemIndex as) as
-
-      --cellMessages = ...
-
-      --cellEmtoions c = mkMap (\e -> ) [minBound..maxBound]
-
-      --cellEmotions ::
-      --cellEmotions = mkMap (\c -> mkMap [minBound...maxBound])
-
-      
-      -- bad : approach/avoidance mismatch
-      -- positive/negative is ok?
-
 -- |Performs affective evaluation separately on every cell.
 evaluateCells :: AgentState -> M.Map RelInd (M.Map EmotionName Rational)
 evaluateCells as = fmap evaluateCell cells
@@ -301,14 +261,23 @@ angerActions gestures i j =
 --    its hostile gesture at (Sympathy, Positive), or it gives an item (fruit/meat/gold).
 --  * If there's a plant on the target cell, harvest the fruit.
 --  * If there's an item on the target cell, pick it up.
+--  * Eat an food item.
 enthusiasmActions :: ActionSelector [Action]
 enthusiasmActions gestures i j =
-   fromMaybe (Gesture targetDir friendlyGesture : map (Give targetDir) items)
-             (approachDistantActions gestures i j)
+   (if i == j then (localActions ++) else id)
+   $ fromMaybe adjacentActions (approachDistantActions gestures i j)
    where
       targetDir = angleToDirection (angle i j)
       friendlyGesture = gestures ^. at' (Sympathy, Positive)
       items = [Fruit, Meat, Gold]
+
+      gesture = Gesture targetDir friendlyGesture
+      give = map (Give targetDir) items
+      pickUp = [Collect Fruit, Collect Meat, Collect Gold]
+      eat = [Eat Fruit, Eat Meat]
+
+      adjacentActions = gesture : give
+      localActions = Gather : pickUp ++ eat
 
 -- |Generic approach-related actions for distant targets.
 --  If the target is still distant a 'Just' will be returned, otherwise Nothing.
