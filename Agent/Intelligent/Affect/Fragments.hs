@@ -1,6 +1,7 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ImpredicativeTypes #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE TupleSections #-}
 
 -- |Contains pre-made affective fragments from which one can piece together an
 --  agent's personality.
@@ -183,7 +184,6 @@ weakEnthusiasm = FI (HM.fromList graph) (HS.fromList output)
       gaveMeat = mkFNo (NodeIs _AMGaveMeat) (negate 0.45) []
       gaveFruit = mkFNo (NodeIs _AMGaveFruit) (negate 0.45) []
       plantHarvested = mkFNo (NodeIs _AMPlantHarvested) (negate 0.3) []
-      lowHealth = mkFNo (NodeLT _AMHaveHealth 0.5) 0.2 []
 
       singleFilt = [quarterHealthLoss,
                     halfHealthLoss,
@@ -193,14 +193,31 @@ weakEnthusiasm = FI (HM.fromList graph) (HS.fromList output)
                     gaveGold,
                     gaveMeat,
                     gaveFruit,
-                    plantHarvested,
-                    lowHealth]
+                    plantHarvested]
 
+      -- Special detectors for hunger, basically.
+      -- Only the planner gives us 'You are Here' messages.
+      -- The presence of these indicates that we have to take our health
+      -- into account as hunger.
+      --
+      -- This is a star formation with an 'AMYouAreHere' at the center, which
+      -- is necessary to activate the outer health-detectors.
+      youAreHereFrom = length singleFilt
+      youAreHereT = [mkFN (NodeLT _AMHaveHealth 0.8) 2 1 0.1 [],
+                     mkFN (NodeLT _AMHaveHealth 0.6) 2 1 0.15 [],
+                     mkFN (NodeLT _AMHaveHealth 0.4) 2 1 0.2 [],
+                     mkFN (NodeLT _AMHaveHealth 0.2) 2 1 0.1 [],
+                     mkFN (NodeLT _AMHaveHealth 0.1) 2 1 0.2 []]
+      youAreHereOutputNodes = take (length youAreHereT) [youAreHereFrom ..]
+      youAreHereS = mkFNs (NodeIs _AMYouAreHere) $ map (,1) youAreHereOutputNodes
+
+      youAreHere = (youAreHereFrom, youAreHereS) : zip youAreHereOutputNodes youAreHereT
+      
       -- we have 4 kinds detectors for friends:
       -- weak, normal, and strong agents.
       -- Weak friendly agents (the first) elicit a lot of helpful feeling, healthy
       -- ones less so.
-      sAgentFrom = length singleFilt - 1
+      sAgentFrom = last youAreHereOutputNodes
       (sAgents, sAgentOutputNodes) = weakFriendHere 1.5 (circleAroundMeFilt 0.1 8) sAgentFrom
 
       nAgentFrom = last sAgentOutputNodes
@@ -238,6 +255,7 @@ weakEnthusiasm = FI (HM.fromList graph) (HS.fromList output)
       (fruit, fruitOutputNodes) = itemHere Meat (circleAroundMeFilt 0.8 12) fruitFrom
 
       graph = (zip [0..] singleFilt)
+               ++ youAreHere
                ++ sAgents
                ++ nAgents
                ++ wAgents
@@ -250,7 +268,8 @@ weakEnthusiasm = FI (HM.fromList graph) (HS.fromList output)
                ++ meat
                ++ fruit
 
-      output = [0..sAgentFrom]
+      output = [0..youAreHereFrom]
+               ++ youAreHereOutputNodes
                ++ sAgentOutputNodes
                ++ nAgentOutputNodes
                ++ wAgentOutputNodes

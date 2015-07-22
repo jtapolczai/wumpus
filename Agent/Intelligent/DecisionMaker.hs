@@ -212,12 +212,21 @@ evaluateCells as = fmap evaluateCell cells
    where
       ms = as ^. messageSpace
 
-      -- |Messages relating to given cells (plus global data which applies everywhere).
+      -- |Messages relating to given cells (plus global data which applies everywhere,
+      --  and local messages which influence judgments about other cells).
+      --  Also, the RelInd (0,0) will get a 'You are here'-message inserted.
       cells :: M.Map RelInd [AgentMessage']
-      cells = fmap (++globalData) $ fst $ sortByInd ms
+      cells = M.mapWithKey addData $ fst $ sortByInd ms
+
+      addData k = (if k == RI (0,0) then ((True, AMYouAreHere) :) else id)
+                  . (localData++)
+                  . (globalData++)
 
       globalData :: [AgentMessage']
       globalData = mapMaybe (\(i,m) -> globalMessage m >$> (i,)) ms
+
+      localData :: [AgentMessage']
+      localData = mapMaybe (\(i,m) -> localMessage m >$> (i,)) ms
 
       evaluateCell :: [AgentMessage'] -> M.Map EmotionName Rational
       evaluateCell ms' = fmap (emotionValue (map snd ms')) $ as ^. psbc . to (fmap snd)
