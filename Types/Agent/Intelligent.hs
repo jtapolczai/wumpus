@@ -61,11 +61,6 @@ data AgentMessage =
    -- |Local perceptions
    | AMLocalStench Rational
    | AMLocalBreeze Rational
-   | AMMyHealth Rational
-   | AMMyStamina Rational
-   | AMLocalGold Int
-   | AMLocalMeat Int
-   | AMLocalFruit Int
    -- |Emotions of the PSBC
    | AMEmotionAnger Rational
    | AMEmotionFear Rational

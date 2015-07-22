@@ -3,6 +3,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE TupleSections #-}
+{-# LANGUAGE GADTs #-}
 {-# LANGUAGE LambdaCase #-}
 
 module Agent.Intelligent.Memory (
@@ -240,11 +241,11 @@ constructCell ms = foldl' addCellInfo cellEntity (map snd ms)
 
       addCellInfo f (AMLocalStench n) = (stench ?~ n) . f
       addCellInfo f (AMLocalBreeze n) = (breeze ?~ n) . f
-      addCellInfo f (AMMyHealth n) = (entity . _Just . health .~ n) . f
-      addCellInfo f (AMMyStamina n) = (entity . _Just . stamina .~ n) . f
-      addCellInfo f (AMLocalGold n) = (gold .~ n) . f
-      addCellInfo f (AMLocalMeat n) = (meat .~ n) . f
-      addCellInfo f (AMLocalFruit n) = (fruit .~ n) . f
+      addCellInfo f (AMHaveHealth n) = (entity . _Just . health .~ n) . f
+      addCellInfo f (AMHaveStamina n) = (entity . _Just . stamina .~ n) . f
+      addCellInfo f (AMHaveGold n) = (entity . _Just . _Ag . inventory . _Just . ix Gold .~ n) . f
+      addCellInfo f (AMHaveMeat n) = (entity . _Just . _Ag . inventory . _Just . ix Meat .~ n) . f
+      addCellInfo f (AMHaveFruit n) = (entity . _Just . _Ag . inventory . _Just . ix Fruit .~ n) . f
 
       addCellInfo f _ = f
 
@@ -262,7 +263,7 @@ constructEntity ms = agentKind
                           (_, Just _) -> (entity .~ Just (Wu vw))
                           (_,_) -> id
 
-      va = VisualAgent (vaErr "name") (vaErr "direction") (vaErr "health") (vaErr "stamina")
+      va = VisualAgent (vaErr "name") (vaErr "direction") (vaErr "health") (vaErr "stamina") Nothing
       vw = VisualWumpus (vwErr "name") (vwErr "health") (vwErr "stamina")
 
       vaErr x = error $ "Uninitialized field " ++ x ++ "in VisualAgent (Memory.hs)"
@@ -287,7 +288,7 @@ reconstructAgent am _ (Ag a) =
               (a ^. direction)
               (a ^. health)
               (a ^. stamina)
-              M.empty
+              (fromMaybe M.empty (a ^. inventory))
               am
 reconstructAgent _ aw (Wu w) =
    Wu $ Wumpus aw

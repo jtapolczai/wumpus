@@ -59,7 +59,7 @@ globalMessage x@AMTemperature{} = Just x
 globalMessage x@AMTime{} = Just x
 globalMessage _ = Nothing
 
--- |Sieves out cell-related messages.
+-- |Sieves out cell-related messages (those which have a RelInd).
 cellMessage :: AgentMessage -> Maybe AgentMessage
 cellMessage x@AMVisualAgent{} = Just x
 cellMessage x@AMVisualWumpus{} = Just x
@@ -72,15 +72,20 @@ cellMessage x@AMVisualMeat{} = Just x
 cellMessage x@AMVisualFruit{} = Just x
 cellMessage x@AMVisualPlant{} = Just x
 
-cellMessage x@AMLocalStench{} = Just x
-cellMessage x@AMLocalBreeze{} = Just x
-cellMessage x@AMMyHealth{} = Just x
-cellMessage x@AMMyStamina{} = Just x
-cellMessage x@AMLocalGold{} = Just x
-cellMessage x@AMLocalMeat{} = Just x
-cellMessage x@AMLocalFruit{} = Just x
-
 cellMessage _ = Nothing
+
+-- |Sives out local messages (those which don't have an RelInd but are known
+--  to pertain to relative index (0,0), e.g. LocalBreeze, HaveHealth,...).
+localMessage :: AgentMessage -> Maybe AgentMessage
+localMessage x@AMHaveHealth{} = Just x
+localMessage x@AMHaveStamina{} = Just x
+localMessage x@AMHaveGold{} = Just x
+localMessage x@AMHaveMeat{} = Just x
+localMessage x@AMHaveFruit{} = Just x
+localMessage x@AMLocalBreeze{} = Just x
+localMessage x@AMLocalStench{} = Just x
+
+localMessage _ = Nothing
 
 edgeMessage :: AgentMessage -> Maybe AgentMessage
 edgeMessage x@AMVisualEdgeDanger{} = Just x
@@ -115,9 +120,11 @@ sortByInd :: [AgentMessage']
 sortByInd = foldl' collect (M.empty, M.empty)
    where
       collect (cs, es) (c,m) =
-         (maybe cs (const $ insert' (msgPos m) (c,m) cs) (cellMessage m),
-          maybe es (const $ insert' (msgEdg m) (c,m) es) (edgeMessage m))
+         (maybe id (const $ insert' (RI (0,0)) (c,m)) (localMessage m)
+          $ maybe id (const $ insert' (msgPos m) (c,m)) (cellMessage m) cs,
+          maybe id (const $ insert' (msgEdg m) (c,m)) (edgeMessage m) es)
 
+      insert' :: Ord k => k -> a -> M.Map k [a] -> M.Map k [a] 
       insert' k x = M.alter (Just . maybe [x] (x:)) k
 
       msgPos m = fromMaybe (error "no pos in sortByInd") (m ^. _agentMessageCellInd)

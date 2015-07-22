@@ -11,6 +11,7 @@ import Control.Lens
 import qualified Data.Graph as G
 import qualified Data.HashMap.Strict as HM
 import qualified Data.HashSet as HS
+import Data.List (partition)
 
 import Agent.Intelligent.Filter
 import Types
@@ -98,7 +99,7 @@ strongFear = FI (HM.fromList graph) (HS.fromList output)
       threeQuarterHealthLoss = mkFNo (NodeGT _AMHealthDecreased 0.5) 0.6 []
       died = mkFNo (NodeGT _AMHealthDecreased 1) 0.8 []
       highTemp = mkFNo (NodeGT _AMTemperature Warm) (negate 0.1) []
-      lowTemp = mkFNo (NodeLT _AMTemperature Temperate) 0.1 []
+      lowTemp = mkFNo (NodeLT _AMTemperature Temperate) 0.05 []
       badHealth = mkFNo (NodeLT _AMHaveHealth 0.75) 0.15 []
       veryBadHealth = mkFNo (NodeLT _AMHaveHealth 0.4) 0.25 []
       criticalHealth = mkFNo (NodeLT _AMHaveHealth 0.1) 0.65 []
@@ -171,14 +172,99 @@ circleAroundMeFilt mx r = (linearFunc (0,mx) (r,0.01) . dist (0,0) &&& RI) <$> g
 
 
 weakEnthusiasm :: Filter AgentMessage
-weakEnthusiasm = todo "affectFragments"
+weakEnthusiasm = FI (HM.fromList graph) (HS.fromList output)
+   where
+      quarterHealthLoss = mkFNo (NodeGT _AMHealthDecreased 0.25) (negate 0.2) []
+      halfHealthLoss = mkFNo (NodeGT _AMHealthDecreased 0.5) (negate 0.4) []
+      highTemp = mkFNo (NodeGT _AMTemperature Warm) 0.1 []
+      lowTemp = mkFNo (NodeLT _AMTemperature Temperate) (negate 0.1) []
+      lowStamina = mkFNo (NodeLT _AMHaveStamina 0.5) (negate 0.1) []
+
+      singleFilt = [quarterHealthLoss,
+                    halfHealthLoss,
+                    highTemp,
+                    lowTemp,
+                    lowStamina]
+
+      -- we have 4 kinds detectors for friends:
+      -- weak, normal, and strong agents.
+      -- Weak friendly agents (the first) elicit a lot of helpful feeling, healthy
+      -- ones less so.
+      sAgentFrom = length singleFilt - 1
+      (sAgents, sAgentOutputNodes) = weakFriendHere 1.5 (circleAroundMeFilt 0.1 8) sAgentFrom
+
+      nAgentFrom = last sAgentOutputNodes
+      (nAgents, nAgentOutputNodes) = weakFriendHere 0.8 (circleAroundMeFilt 0.1 8) nAgentFrom
+
+      wAgentFrom = last nAgentOutputNodes
+      (wAgents, wAgentOutputNodes) = weakFriendHere 0.3 (circleAroundMeFilt 0.2 8) wAgentFrom
+
+      -- 5 detectors for plants: the lower our healths, the more enthusiasm plants generate.
+      plantFrom = last wAgentOutputNodes
+      (plants, plantOutputNodes) = plantHere 2 (circleAroundMeFilt 0.1 6) plantFrom
+
+      plantFrom2 = last plantOutputNodes
+      (plants2, plant2OutputNodes) = plantHere 1.5 (circleAroundMeFilt 0.1 8) plantFrom2
+
+      plantFrom3 = last plant2OutputNodes
+      (plants3, plant3OutputNodes) = plantHere 1 (circleAroundMeFilt 0.25 10) plantFrom3
+
+      plantFrom4 = last plant3OutputNodes
+      (plants4, plant4OutputNodes) = plantHere 0.75 (circleAroundMeFilt 0.3 12) plantFrom4
+
+      plantFrom5 = last plant4OutputNodes
+      (plants5, plant5OutputNodes) = plantHere 0.4 (circleAroundMeFilt 0.4 12) plantFrom5
+
+      -- detectors for items
+      -- items lying on the ground are pretty valuable, so they elicit strong
+      -- enthusiasm
+      goldFrom = last plant5OutputNodes
+      (gold, goldOutputNodes) = itemHere Gold (circleAroundMeFilt 0.4 12) goldFrom
+
+      meatFrom = last goldOutputNodes
+      (meat, meatOutputNodes) = itemHere Meat (circleAroundMeFilt 0.8 12) meatFrom
+
+      fruitFrom = last meatOutputNodes
+      (fruit, fruitOutputNodes) = itemHere Meat (circleAroundMeFilt 0.8 12) fruitFrom
+
+      graph = (zip [0..] singleFilt)
+               ++ sAgents
+               ++ nAgents
+               ++ wAgents
+               ++ plants
+               ++ plants2
+               ++ plants3
+               ++ plants4
+               ++ plants5
+               ++ gold
+               ++ meat
+               ++ fruit
+
+      output = [0..sAgentFrom]
+               ++ sAgentOutputNodes
+               ++ nAgentOutputNodes
+               ++ wAgentOutputNodes
+               ++ plantOutputNodes
+               ++ plant2OutputNodes
+               ++ plant3OutputNodes
+               ++ plant4OutputNodes
+               ++ plant5OutputNodes
+               ++ goldOutputNodes
+               ++ meatOutputNodes
+               ++ fruitOutputNodes
+
+
 strongEnthusiasm :: Filter AgentMessage
 strongEnthusiasm = todo "affectFragments"
+
+
 
 weakContentment :: Filter AgentMessage
 weakContentment = todo "affectFragments"
 strongContentment :: Filter AgentMessage
 strongContentment = todo "affectFragments"
+
+
 
 hostileSocial :: Filter AgentMessage
 hostileSocial = todo "affectFragments"
@@ -249,6 +335,76 @@ strongEnemyHere v circ from = entityHereFilt circ from [agent, highHealth, enemy
       enemy :: AreaFilterCheck
       enemy = (_AMEmotionSympathy . _1,
                Just $ NodeLT (_AMEmotionSympathy . _2) 0)
+
+weakFriendHere :: Rational -- |Cut-off for what qualifies as "low health".
+               -> AreaFilter
+weakFriendHere v circ from = entityHereFilt circ from [agent, lowHealth, friend]
+   where
+      agent :: AreaFilterCheck
+      agent = (_AMVisualAgent, Nothing)
+
+      lowHealth :: AreaFilterCheck
+      lowHealth = (_AMVisualEntityHealth . _1,
+                    Just $ NodeLT (_AMVisualEntityHealth . _2) v)
+      
+      friend :: AreaFilterCheck
+      friend = (_AMEmotionSympathy . _1,
+                Just $ NodeGT (_AMEmotionSympathy . _2) 0)
+
+plantHere :: Rational -- |Max. health of the agent.
+          -> AreaFilter
+plantHere v circ from = (nodesSrc ++ nodesOut', newOutputNodes)
+   where
+      (nodes, outputNodes) = entityHereFilt circ from [plant]
+
+      (nodesOut, nodesSrc) = partition (flip elem outputNodes . fst) nodes
+
+      -- we "replace" the output nodes given by 'entityHereFilt' by our
+      -- new ones. Each old output node is put into an AND-coupling with a
+      -- new health check and a fresh target node. The __number__ of output nodes
+      -- doesn't change, however.
+      lowHealthNodes = take (length nodesOut) [maximum outputNodes + 1 .. ]
+      newOutputNodes = map (+ length nodesOut) [maximum outputNodes + 1 .. ]
+
+      nodesOut' = concat
+                  $ map mkAnd
+                  $ zip3 nodesOut lowHealthNodes newOutputNodes
+
+      -- takes an old vertex/node-pair plus two indices
+      -- and creates three nodes. The old target and a lowHealth-node
+      -- will both go via AND to a new target node
+      mkAnd :: ((G.Vertex, FilterNode AgentMessage), G.Vertex, G.Vertex) -> [(G.Vertex, FilterNode AgentMessage)]
+      mkAnd ((i, oldT), lh, no) = zip [i, lh, no]
+                                  $ andGraph [oldT, lowHealth] no newT ++ [newT]
+         where
+            newT = mkTarget oldT
+
+      plant :: AreaFilterCheck
+      plant = (_AMVisualAgent, Nothing)
+
+      lowHealth :: FilterNode AgentMessage
+      lowHealth = mkFNs (NodeLT _AMHaveHealth v) []
+
+      -- |Creates an output node with NodeFalse as condition,
+      --  threshold of 2, and the significance of the input node.
+      mkTarget :: FilterNode AgentMessage -> FilterNode AgentMessage
+      mkTarget n = mkFN NodeFalse 2 0 (n ^. significance) []
+
+-- |Gets fields which have at least 1 of a given item
+itemHere :: Item -- |Item to look for.
+         -> AreaFilter
+itemHere it circ from = entityHereFilt circ from [item, gteOne]
+   where
+      item :: AreaFilterCheck
+      item = (itemLens it . _1, Nothing)
+
+      gteOne :: AreaFilterCheck
+      gteOne = (itemLens it . _1,
+                Just $ NodeGT (itemLens it . _2) 1)
+
+      itemLens Gold = _AMVisualGold
+      itemLens Meat = _AMVisualMeat
+      itemLens Fruit = _AMVisualFruit
 
 
 -- |Wrapper around 'entityHere' that assignes vertices to the nodes too.

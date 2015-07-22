@@ -35,13 +35,11 @@ perception pos (MsgVisualPerception iAbs d) =
       i = makeRel pos iAbs
 
 perception _ (MsgLocalPerception d) =
-   [AMLocalGold (d ^. gold),
-    AMLocalMeat (d ^. meat),
-    AMLocalFruit (d ^. fruit),
+   [AMVisualGold (RI (0,0)) (d ^. gold),
+    AMVisualMeat (RI (0,0)) (d ^. meat),
+    AMVisualFruit (RI (0,0)) (d ^. fruit),
     AMLocalBreeze (d ^. breeze),
-    AMLocalStench (d ^. stench),
-    AMMyHealth (d ^. entity . to fromJust . health),
-    AMMyStamina (d ^. entity . to fromJust . stamina)]
+    AMLocalStench (d ^. stench)]
 
 perception _ (MsgGlobalPerception d) =
    [AMTemperature $ d ^. temperature,

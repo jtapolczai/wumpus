@@ -84,7 +84,8 @@ data VisualAgent = VisualAgent {
    _visualAgentName :: EntityName,
    _visualAgentDirection :: SquareDirection,
    _visualAgentHealth :: Rational,
-   _visualAgentStamina :: Rational
+   _visualAgentStamina :: Rational,
+   _visualAgentInventory :: Maybe (M.Map Item Int)
    }
    deriving (Show, Eq, Ord)
 

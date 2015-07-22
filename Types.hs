@@ -149,16 +149,20 @@ instance (Castable s t, Castable u v)
    cast (Ag s) = Ag (cast s)
    cast (Wu s) = Wu (cast s)
 
+
 instance Castable (Agent s) VisualAgent where
    cast a = VisualAgent (a ^. name)
                         (a ^. direction)
                         (a ^. health)
                         (a ^. stamina)
+                        Nothing
+
 
 instance Castable (Wumpus s) VisualWumpus where
    cast a = VisualWumpus (a ^. name)
                          (a ^. health)
                          (a ^. stamina)
+
 
 instance Castable CellData VisualCellData where
    cast a = VCD (cast <$> a ^. entity)
@@ -169,3 +173,4 @@ instance Castable CellData VisualCellData where
                 (a ^. plant)
                 (Just $ a ^. breeze)
                 (Just $ a ^. stench)
+

@@ -28,9 +28,9 @@ type NodeSignificance = Rational
 data NodeCondition s =
    -- |\"Equal to x\".
    forall a.Eq a => NodeEQ (Traversal' s a) a
-   -- |\"Greater than (or equal to) x\" (i.e. @(NodeGT x) y <=> x <= y@).
+   -- |\"Greater than, or equal to, x\" (i.e. @(NodeGT x) y <=> x <= y@).
    | forall a.Ord a => NodeGT (Traversal' s a) a
-   -- |The reverse of 'NodeGT' (but not its negation).
+   -- |\"Lesser than, or equal to, x\"
    | forall a.Ord a => NodeLT (Traversal' s a) a
    -- These combinators are commented out under the assumption that
    -- the complexity of the detection will lie in the graph structure and
