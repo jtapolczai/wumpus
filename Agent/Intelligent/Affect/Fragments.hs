@@ -179,11 +179,11 @@ weakEnthusiasm = FI (HM.fromList graph) (HS.fromList output)
       highTemp = mkFNo (NodeGT _AMTemperature Warm) 0.1 []
       lowTemp = mkFNo (NodeLT _AMTemperature Temperate) (negate 0.1) []
       lowStamina = mkFNo (NodeLT _AMHaveStamina 0.5) (negate 0.1) []
-
       gaveGold = mkFNo (NodeIs _AMGaveGold) (negate 0.3) []
       gaveMeat = mkFNo (NodeIs _AMGaveMeat) (negate 0.45) []
       gaveFruit = mkFNo (NodeIs _AMGaveFruit) (negate 0.45) []
       plantHarvested = mkFNo (NodeIs _AMPlantHarvested) (negate 0.3) []
+      lowHealth = mkFNo (NodeLT _AMHaveHealth 0.5) 0.2 []
 
       singleFilt = [quarterHealthLoss,
                     halfHealthLoss,
@@ -193,7 +193,8 @@ weakEnthusiasm = FI (HM.fromList graph) (HS.fromList output)
                     gaveGold,
                     gaveMeat,
                     gaveFruit,
-                    plantHarvested]
+                    plantHarvested,
+                    lowHealth]
 
       -- we have 4 kinds detectors for friends:
       -- weak, normal, and strong agents.
