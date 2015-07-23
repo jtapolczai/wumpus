@@ -9,6 +9,7 @@ module Agent.Intelligent.Affect.Fragments where
 
 import Control.Arrow
 import Control.Lens
+import Control.Monad
 import Control.Monad.Supply
 import qualified Data.Graph as G
 import qualified Data.HashMap.Strict as HM
@@ -23,7 +24,9 @@ import World.Utils
 -- |A function that takes a list of coordinate-significance pairs and
 --  a starting vertex and returns a forest of filters, with
 --  a list of output nodes.
-type AreaFilter = [(Rational, RelInd)] -> Int -> ([(G.Vertex, FilterNode AgentMessage)], [G.Vertex])
+-- type AreaFilter = [(Rational, RelInd)] -> Int -> ([(G.Vertex, FilterNode AgentMessage)], [G.Vertex])
+
+type AreaFilter = [(Rational, RelInd)] -> Supply SInt ([(G.Vertex, FilterNode AgentMessage)], [G.Vertex])
 
 -- |A check that an 'AreaFilter' can perform on a cell.
 type AreaFilterCheck = (Traversal' AgentMessage RelInd, Maybe (NodeCondition AgentMessage))
@@ -41,24 +44,25 @@ sjsFragmentType x = error $ "sjsFragmentType called with unspported type " ++ x
 -- |Returns the personality fragment belonging to an emotion and
 --  a type (currently supported: weak/strong).
 personalityFragment :: EmotionName -> String -> Filter AgentMessage
-personalityFragment Anger "weak" = weakAnger
-personalityFragment Anger "strong" = strongAnger
+personalityFragment Anger "weak" = undefined -- weakAnger
+personalityFragment Anger "strong" = undefined -- strongAnger
 
-personalityFragment Fear "weak" = weakFear
-personalityFragment Fear "strong" = strongFear
+personalityFragment Fear "weak" = undefined -- weakFear
+personalityFragment Fear "strong" = undefined -- strongFear
 
-personalityFragment Enthusiasm "weak" = weakEnthusiasm
-personalityFragment Enthusiasm "strong" = strongEnthusiasm
+personalityFragment Enthusiasm "weak" = undefined -- weakEnthusiasm
+personalityFragment Enthusiasm "strong" = undefined -- strongEnthusiasm
 
-personalityFragment Contentment "weak" = weakContentment
-personalityFragment Contentment "strong" = strongContentment
+personalityFragment Contentment "weak" = undefined -- weakContentment
+personalityFragment Contentment "strong" = undefined -- strongContentment
 
 personalityFragment _ x = error $ "personalityFragment called with unsupported type "++x
 
-sympathyFragment Sympathy "hostile" = hostileSocial
-sympathyFragment Sympathy "friendly" = friendlySocial
+sympathyFragment Sympathy "hostile" = undefined -- hostileSocial
+sympathyFragment Sympathy "friendly" = undefined -- friendlySocial
 sympathyFragment _ x = error $ "sympathyFragment called with unsupported type "++x
 
+{-
 weakAnger :: Filter AgentMessage
 weakAnger = FI (HM.fromList graph) (HS.fromList output)
    where
@@ -86,7 +90,8 @@ weakAnger = FI (HM.fromList graph) (HS.fromList output)
                ++ agents
 
       output = [0..wumpusFrom] ++ wumpusOutputNodes ++ agentOutputNodes
-
+-}
+{-
 
 strongAnger :: Filter AgentMessage
 strongAnger = todo "affectFragments"
@@ -337,6 +342,10 @@ weakContentment = FI (HM.fromList graph) (HS.fromList output)
 strongContentment :: Filter AgentMessage
 strongContentment = todo "affectFragments"
 
+-}
+
+{-
+
 hostileSocial :: GestureStorage -> Filter AgentMessage
 hostileSocial = genericSocial hostileSS
    where
@@ -401,9 +410,12 @@ genericSocial ss gestures = runSupplyDef $ do
 
    return $! FI (HM.fromList graph) (HS.fromList outputNodes)
 
+-}
 
 -- Helpers
 -------------------------------------------------------------------------------
+
+{-
 
 -- |See 'entityHereFilt'. Gets wumpuses with low health.
 weakWumpusHere :: AreaFilter
@@ -415,6 +427,10 @@ weakWumpusHere circ from = entityHereFilt circ from [wumpus, lowHealth]
       lowHealth :: AreaFilterCheck
       lowHealth = (_AMVisualEntityHealth . _1, 
                    Just $ NodeLT (_AMVisualEntityHealth . _2) 0.5)
+
+-}
+
+{-
 
 -- |See 'entityHereFilt'. Gets hostile agents with low health.
 weakEnemyHere :: AreaFilter
@@ -562,35 +578,38 @@ entityHereFilt circ from checks = (nodes, outputNodes)
                      $ entityHere checks i v d
 
       nodes = concatMap (uncurry here) . zip outputNodes $ circ
-
+-}
 
 -- |Creates a graph whose output node is activated is a wumpus is at a given location.
 entityHere
             -- |Checks to perform on the cell. VisualWumpus, health, sympathy etc.
          :: [AreaFilterCheck]
          -> RelInd -- ^Coordinates to check.
-         -> G.Vertex -- ^Vertex of the target node.
          -> Rational -- ^Significance of the target node.
             -- |1 target (output) node at the end, plus the following number of source
             --  nodes: 2 for every check without a 'NodeCondition' and 3 for every
             --  check with one.
-         -> [FilterNode AgentMessage] 
-entityHere cons (RI (i, j)) tv sig = andGraph src tv t ++ [t]
+         -> Supply SInt [(G.Vertex, FilterNode AgentMessage)] 
+entityHere cons (RI (i, j)) sig = do
+   src <- concat . reverse <$> foldM mkCheck [] cons
+   trg@(ti,_) <- ind $ mkFN NodeFalse (length src) 0 sig []
+   let src' = map (second $ set neighbors [(ti, 1)]) src
+   return $! src ++ [trg]
+
    where
-      mkCons :: Traversal' AgentMessage RelInd
-             -> Maybe (NodeCondition AgentMessage)
-             -> [FilterNode AgentMessage]
-      mkCons pos cnd =
-         (case cnd of {Nothing -> id; Just cnd' -> (++[mkFNs cnd' []])})
-         [mkFNs (NodeEQ (pos . _RI . _1) i) [],
-          mkFNs (NodeEQ (pos . _RI . _2) j) []]
-
-      src = concatMap (uncurry mkCons) cons
-
-      t = mkFN NodeFalse (length src) 0 sig []
+      mkCheck :: [[(G.Vertex, FilterNode AgentMessage)]]
+              -> AreaFilterCheck
+              -> Supply SInt [[(G.Vertex, FilterNode AgentMessage)]]
+      mkCheck fs (pos, cnd) = do
+         iChk <- ind $ mkFNs (NodeEQ (pos . _RI . _1) i) []
+         jChk <- ind $ mkFNs (NodeEQ (pos . _RI . _2) j) []
+         mChk <- case cnd of Nothing   -> return Nothing
+                             Just cnd' -> Just <$> (ind $ mkFNs cnd' [])
+         return $ (iChk : jChk : (maybe [] (:[]) mChk)) : fs
 
 -- |Gives an integer-ind to a value.
 --  Useful for adding vertices to filter nodes.
 ind :: a -> Supply SInt (Int, a)
 ind a = do (SI i) <- request
            return (i, a)
+
