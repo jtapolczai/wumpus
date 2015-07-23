@@ -69,6 +69,10 @@ makeFields ''WorldMetaInfo
 makeFields ''SocialStorage
 makePrisms ''RelInd
 makeFields ''SocialSettings
+makeFields ''AngerSettings
+makeFields ''FearSettings
+makeFields ''EnthusiasmSettings
+makeFields ''ContentmentSettings
 
 -- |Lens for getting or setting a value in a tree. This function is partial;
 --  the path has to refer to an existing node.

@@ -63,16 +63,48 @@ sympathyFragment Sympathy "friendly" = undefined -- friendlySocial
 sympathyFragment _ x = error $ "sympathyFragment called with unsupported type "++x
 
 
-genericAnger :: Filter AgentMessage
-genericAnger = runSupplyDef $ do
-   wumpusDied <- ind $ mkFNo (NodeIs _AMWumpusDied) (negate 0.5) []
-   highTemp <- ind $ mkFNo (NodeGT _AMTemperature Warm) 0.1 []
-   goodHealth <- ind $ mkFNo (NodeGT _AMHaveHealth 1.0) 0.05 []
-   highHealth <- ind $ mkFNo (NodeGT _AMHaveHealth 1.5) 0.05 []
-   highStamina <- ind $ mkFNo (NodeGT _AMHaveStamina 0.75) 0.02 []
+strongAnger :: Filter AgentMessage
+strongAnger = genericAnger ss
+   where
+      ss = AngerSettings
+         (-0.5)
+         (-0.5)
+         0.1
+         0.01
+         0.01
+         0.01
+         10
+         0.5
+         10
+         0.5
 
-   (wumpuses, wumpusesOut) <- weakWumpusHere (circleAroundMeFilt 0.6 10)
-   (agents, agentsOut) <- weakEnemyHere (circleAroundMeFilt 0.6 10)
+weakAnger :: Filter AgentMessage
+weakAnger = genericAnger ss
+   where
+      ss = AngerSettings
+         (-0.65)
+         (-0.65)
+         0.03
+         0
+         0
+         0
+         7
+         0.4
+         7
+         0.4
+
+genericAnger :: AngerSettings -> Filter AgentMessage
+genericAnger ss = runSupplyDef $ do
+   wumpusDied <- ind $ mkFNo (NodeIs _AMWumpusDied) (ss ^. wumpusDiedVal) []
+   highTemp <- ind $ mkFNo (NodeGT _AMTemperature Warm) (ss ^. highTempVal) []
+   goodHealth <- ind $ mkFNo (NodeGT _AMHaveHealth 1.0) (ss ^. goodHealthVal) []
+   highHealth <- ind $ mkFNo (NodeGT _AMHaveHealth 1.5) (ss ^. highHealthVal) []
+   highStamina <- ind $ mkFNo (NodeGT _AMHaveStamina 0.75) (ss ^. highStaminaVal) []
+
+   let wCirc = circleAroundMeFilt (ss ^. wumpusIntensityVal) (ss ^. wumpusRadiusVal)
+       aCirc = circleAroundMeFilt (ss ^. agentIntensityVal) (ss ^. agentRadiusVal)
+   (wumpuses, wumpusesOut) <- weakWumpusHere wCirc
+   (agents, agentsOut) <- weakEnemyHere aCirc
 
    let singleFilt = [wumpusDied,
                      highTemp,
@@ -330,9 +362,9 @@ strongContentment = todo "affectFragments"
 -}
 
 hostileSocial :: GestureStorage -> Filter AgentMessage
-hostileSocial = genericSocial hostileSS
+hostileSocial = genericSocial ss
    where
-      hostileSS = SocialSettings
+      ss = SocialSettings
          (-0.4)
          (-0.15)
          0.1
@@ -344,9 +376,9 @@ hostileSocial = genericSocial hostileSS
          0.01
 
 friendlySocial :: GestureStorage -> Filter AgentMessage
-friendlySocial = genericSocial friendlySS
+friendlySocial = genericSocial ss
    where
-      friendlySS = SocialSettings
+      ss = SocialSettings
          (-0.3)
          (-0.1)
          0.15
