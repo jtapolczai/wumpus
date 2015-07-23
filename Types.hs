@@ -101,9 +101,8 @@ ju l = l . to fromJust
 _agentMessageCellInd :: Getter AgentMessage (Maybe RelInd)
 _agentMessageCellInd = to go
    where
-      go (AMVisualEntityName c _) = Just c
-      go (AMVisualAgent c) = Just c
-      go (AMVisualWumpus c) = Just c
+      go (AMVisualAgent c _) = Just c
+      go (AMVisualWumpus c _) = Just c
       go (AMVisualEntityHealth c _) = Just c
       go (AMVisualEntityStamina c _) = Just c
       go (AMVisualFree c) = Just c
@@ -112,6 +111,9 @@ _agentMessageCellInd = to go
       go (AMVisualMeat c _) = Just c
       go (AMVisualFruit c _) = Just c
       go (AMVisualPlant c _) = Just c
+      go (AMEmotionSympathy c _) = Just c
+      go (AMEmotionTrust c _) = Just c
+      go (AMEmotionRespect c _) = Just c
       go _ = Nothing
 
 -- |Gets the EgdeInd of an AgentMessage, for all which have one.
@@ -120,6 +122,27 @@ _agentMessageEdgeInd = to go
    where
       go (AMVisualEdgeDanger e _) = Just e
       go (AMVisualEdgeFatigue e _) = Just e
+      go _ = Nothing
+
+-- |Gets the EntityName of an AgentMessage, for all which have one.
+_agentMessageEntityName :: Getter AgentMessage (Maybe EntityName)
+_agentMessageEntityName = to go
+   where
+      go (AMGesture n _) = Just n
+      go (AMVisualAgent _ n) = Just n
+      go (AMVisualWumpus _ n) = Just n
+      go (AMAgentDied n) = Just n
+      go (AMWumpusDied n) = Just n
+      go (AMAttackedBy n) = Just n
+      go (AMAttacked n) = Just n
+      go (AMReceivedMeat n) = Just n
+      go (AMReceivedFruit n) = Just n
+      go (AMReceivedGold n) = Just n
+      go (AMGaveMeat n) = Just n
+      go (AMGaveFruit n) = Just n
+      go (AMGaveGold n) = Just n
+      go (AMKilledAgent n) = Just n
+      go (AMKilledWumpus n) = Just n 
       go _ = Nothing
 
 -- |We give "name", "health", and "stamina" fields to Entity directly so as to

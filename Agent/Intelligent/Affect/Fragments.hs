@@ -406,7 +406,7 @@ weakWumpusHere :: AreaFilter
 weakWumpusHere circ from = entityHereFilt circ from [wumpus, lowHealth]
    where
       wumpus :: AreaFilterCheck
-      wumpus = (_AMVisualWumpus, Nothing)
+      wumpus = (_AMVisualWumpus . _1, Nothing)
 
       lowHealth :: AreaFilterCheck
       lowHealth = (_AMVisualEntityHealth . _1, 
@@ -417,7 +417,7 @@ weakEnemyHere :: AreaFilter
 weakEnemyHere circ from = entityHereFilt circ from [agent, lowHealth, enemy]
    where
       agent :: AreaFilterCheck
-      agent = (_AMVisualAgent, Nothing)
+      agent = (_AMVisualAgent . _1, Nothing)
 
       lowHealth :: AreaFilterCheck
       lowHealth = (_AMVisualEntityHealth . _1,
@@ -438,7 +438,7 @@ strongWumpusHere :: AreaFilter
 strongWumpusHere circ from = entityHereFilt circ from [wumpus, highHealth]
    where
       wumpus :: AreaFilterCheck
-      wumpus = (_AMVisualWumpus, Nothing)
+      wumpus = (_AMVisualWumpus . _1, Nothing)
 
       highHealth :: AreaFilterCheck
       highHealth = (_AMVisualEntityHealth . _1,
@@ -449,7 +449,7 @@ strongEnemyHere :: Rational -- |Cut-off for what qualifies as "high health".
 strongEnemyHere v circ from = entityHereFilt circ from [agent, highHealth, enemy]
    where
       agent :: AreaFilterCheck
-      agent = (_AMVisualAgent, Nothing)
+      agent = (_AMVisualAgent . _1, Nothing)
 
       highHealth :: AreaFilterCheck
       highHealth = (_AMVisualEntityHealth . _1,
@@ -464,7 +464,7 @@ weakFriendHere :: Rational -- |Cut-off for what qualifies as "low health".
 weakFriendHere v circ from = entityHereFilt circ from [agent, lowHealth, friend]
    where
       agent :: AreaFilterCheck
-      agent = (_AMVisualAgent, Nothing)
+      agent = (_AMVisualAgent . _1, Nothing)
 
       lowHealth :: AreaFilterCheck
       lowHealth = (_AMVisualEntityHealth . _1,
@@ -503,7 +503,7 @@ plantHere v circ from = (nodesSrc ++ nodesOut', newOutputNodes)
             newT = mkTarget oldT
 
       plant :: AreaFilterCheck
-      plant = (_AMVisualAgent, Nothing)
+      plant = (_AMVisualPlant . _1, Nothing)
 
       lowHealth :: FilterNode AgentMessage
       lowHealth = mkFNs (NodeLT _AMHaveHealth v) []

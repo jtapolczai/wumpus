@@ -96,8 +96,8 @@ edgeMessage _ = Nothing
 --  an EntityName.
 socialMessage :: AgentMessage -> Maybe AgentMessage
 socialMessage x@AMGesture{} = Just x
-socialMessage x@AMVisualEntityName{} = Just x
 socialMessage x@AMVisualAgent{} = Just x
+socialMessage x@AMVisualWumpus{} = Just x
 socialMessage x@AMAttackedBy{} = Just x
 socialMessage x@AMReceivedMeat{} = Just x
 socialMessage x@AMReceivedFruit{} = Just x
@@ -124,11 +124,26 @@ sortByInd = foldl' collect (M.empty, M.empty)
           $ maybe id (const $ insert' (msgPos m) (c,m)) (cellMessage m) cs,
           maybe id (const $ insert' (msgEdg m) (c,m)) (edgeMessage m) es)
 
-      insert' :: Ord k => k -> a -> M.Map k [a] -> M.Map k [a] 
-      insert' k x = M.alter (Just . maybe [x] (x:)) k
-
       msgPos m = fromMaybe (error "no pos in sortByInd") (m ^. _agentMessageCellInd)
       msgEdg m = fromJust (m ^. _agentMessageEdgeInd)
+
+-- |Goes through a message and space and groups messages by EntityName, provided
+--  they have such fields. If we have a 'AMVisualEntityName', 'AMVisualAgent' and
+--  'AMVisualWumpus' messages with the same RelInd will be also be grouped to that
+--  entity name.
+sortByEntityName :: [AgentMessage']
+                 -> (M.Map EntityName [AgentMessage'])
+sortByEntityName = foldl' collect M.empty
+   where
+      collect es (c,m) =
+         maybe id (const $ insert' (entName m) (c,m)) (socialMessage m) es
+
+      entName m = fromMaybe (error "no entity name in sortByEntityName")
+                            (m ^. _agentMessageEntityName)
+
+
+insert' :: Ord k => k -> a -> M.Map k [a] -> M.Map k [a] 
+insert' k x = M.alter (Just . maybe [x] (x:)) k
 
 -- |Does a full outer join of two maps, where one of the maps is
 --  assumed to be collection of updates.

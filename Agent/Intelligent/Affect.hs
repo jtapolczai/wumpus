@@ -29,17 +29,19 @@ psbcEmotionMap x = M.fromList [(Anger, x), (Fear, x), (Enthusiasm, x), (Contentm
 --  Messages about the three emotions regarding detected agents will
 --  be put into the message space.
 sjsComponent :: Monad m => AgentComponent m
-sjsComponent as = return $ M.foldrWithKey sjsFold as cellMsg
+sjsComponent as = return $ foldr sjsFold as entityMsg
    where
-      (cellMsg,_) = sortByInd $ as ^. messageSpace
+      entityMsg = sortByEntityName $ as ^. messageSpace
 
-sjsFold :: RelInd -> [AgentMessage'] -> AgentState -> AgentState
-sjsFold i ms as = case constructAgentName ms' of
-   (Just name, True) -> foldr (f name) as [minBound..maxBound]
-   _                 -> as
-
+sjsFold :: [AgentMessage'] -> AgentState -> AgentState
+sjsFold ms as' = maybe as' (\name -> foldr (f name) as' [minBound .. maxBound])
+                 $ constructAgentName ms'
    where
       ms' = mapMaybe (socialMessage . snd) ms
+
+      i :: RelInd
+      i = fromMaybe (error "sjsFold: no pos found for i!")
+          $ foldr (\x -> maybe (x ^._agentMessageCellInd) Just) Nothing ms'
 
       f name en as = addSocialMessage name en $ sjsEntityEmotion ms' name en as
 
@@ -49,17 +51,16 @@ sjsFold i ms as = case constructAgentName ms' of
       sjsLens name en = sjs . _1 . at' name . sst . at' en
 
 
--- |Tries to get an entity's name from a list of messages.
+-- |Tries to get an agent's name from a list of messages.
 constructAgentName :: [AgentMessage]
-                   -> (Maybe EntityName, Bool)
+                   -> Maybe EntityName
                    -- ^An occurrence of AMVisualEntityName sets the first part
                    --  to Just x. The occurrence of AMVisualAgent sets the second
                    --  to True.
-constructAgentName = ($ (Nothing, False)) . foldl' addNameInfo id
+constructAgentName = foldl' addNameInfo Nothing
    where
-      addNameInfo f (AMVisualEntityName _ n) = (_1 ?~ n) . f
-      addNameInfo f (AMVisualAgent _) = (_2 .~ True) . f
-      addNameInfo f _ = f
+      addNameInfo _ (AMVisualAgent _ n) = Just n
+      addNameInfo n _ = n
 
 -- |Modulates an agent's social emotional state regarding another agent
 --  based on stimuli.
