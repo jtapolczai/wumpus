@@ -25,6 +25,9 @@ instance Applicative (Supply s) where
 request :: Next s => Supply s s
 request = RE (\s -> (s, inc $! s))
 
+peek :: Supply s s
+peek = RE (\s -> (s, s))
+
 requestMany :: Next s => Int -> Supply s [s]
 requestMany = sequence . flip replicate request
 

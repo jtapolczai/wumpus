@@ -548,15 +548,13 @@ itemHere it circ from = entityHereFilt circ from [item, gteOne]
       itemLens Gold = _AMVisualGold
       itemLens Meat = _AMVisualMeat
       itemLens Fruit = _AMVisualFruit
-
+-}
 
 -- |Wrapper around 'entityHere' that assignes vertices to the nodes too.
 entityHereFilt
       -- |Fields for which a check should be made, with output significance
       --  in case of success.
    :: [(Rational, RelInd)]
-      -- |The starting vertex (inclusive) 
-   -> G.Vertex
       -- |Checks for the presence of an entity, health, sympathy, etc.
       --  The first part of a check gets a message's coordinates, the second
       --  gets the data for the actual check. See, for example.
@@ -564,21 +562,14 @@ entityHereFilt
    -> [AreaFilterCheck]
       -- |A list of new nodes, and a sublist of the vertices that belong to output
       --  nodes. See 'entityHere' for the number of output nodes.
-   -> ([(Int, FilterNode AgentMessage)], [Int])
-entityHereFilt circ from checks = (nodes, outputNodes)
+   -> Supply SInt ([(G.Vertex, FilterNode AgentMessage)], [G.Vertex])
+entityHereFilt circ checks = rev <$> foldM mkCheck ([],[]) circ
    where
-      numNodes = (1 +) . sum . map (\case{(_,Just _) -> 3; _ -> 2}) $ checks
-      from' = from + 1
+      mkCheck (fs,out) (int, pos) = do nodes <- entityHere checks pos int
+                                       (SI outN) <- peek
+                                       return (nodes:fs, (outN - 1) : out)  
 
-      outputNodes :: [Int]
-      outputNodes = take (length circ) $ map ((from'+) . (numNodes*)) [1..]
-
-      here :: Int -> (Rational, RelInd) -> [(Int, FilterNode AgentMessage)]
-      here v (d,i) = zip [(v - numNodes + 1) .. v]
-                     $ entityHere checks i v d
-
-      nodes = concatMap (uncurry here) . zip outputNodes $ circ
--}
+      rev = (concat . reverse) *** reverse
 
 -- |Creates a graph whose output node is activated is a wumpus is at a given location.
 entityHere
