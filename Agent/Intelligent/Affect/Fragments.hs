@@ -334,49 +334,61 @@ weakContentment = FI (HM.fromList graph) (HS.fromList output)
                
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
 strongContentment :: Filter AgentMessage
 strongContentment = todo "affectFragments"
 
-ind :: a -> Supply SInt (Int, a)
-ind a = do (SI i) <- request
-           return (i, a)
-
-
 hostileSocial :: GestureStorage -> Filter AgentMessage
-hostileSocial gestures = runSupplyDef $ do
+hostileSocial = genericSocial hostileSS
+   where
+      hostileSS = SocialSettings
+         (-0.4)
+         (-0.15)
+         0.1
+         0.15
+         0.15
+         0.10
+         (-0.35)
+         0.10
+         0.01
+
+friendlySocial :: GestureStorage -> Filter AgentMessage
+friendlySocial = genericSocial friendlySS
+   where
+      friendlySS = SocialSettings
+         (-0.3)
+         (-0.1)
+         0.15
+         0.25
+         0.25
+         0.15
+         (-0.65)
+         0.15
+         0.02
+
+genericSocial :: SocialSettings -> GestureStorage -> Filter AgentMessage
+genericSocial ss gestures = runSupplyDef $ do
    let unfriendlyGest = gestures M.! (Sympathy, Negative)
        friendlyGest = gestures M.! (Sympathy, Positive)
 
    -- hostile actions
-   attacked <- ind $ mkFNo (NodeIs _AMAttackedBy) (negate 0.4) [] 
-   hostileGesture <- ind $ mkFNo (NodeEQ (_AMGesture . _2) unfriendlyGest) (negate 0.10) []
+   attacked <- ind $ mkFNo (NodeIs _AMAttackedBy) (ss ^. attackedVal) [] 
+   hostileGesture <- ind $ mkFNo (NodeEQ (_AMGesture . _2) unfriendlyGest) (ss ^. hostileGestureVal) []
 
       -- friendly actions
-   receivedGold <- ind $ mkFNo (NodeIs _AMReceivedGold) 0.1 []
-   receivedMeat <- ind $ mkFNo (NodeIs _AMReceivedGold) 0.15 []
-   receivedFruit <- ind $ mkFNo (NodeIs _AMReceivedGold) 0.15 []
-   friendlyGesture <- ind $ mkFNo (NodeEQ (_AMGesture . _2) friendlyGest) 0.15 []
+   receivedGold <- ind $ mkFNo (NodeIs _AMReceivedGold) (ss ^. receivedGoldVal) []
+   receivedMeat <- ind $ mkFNo (NodeIs _AMReceivedGold) (ss ^. receivedMeatVal) []
+   receivedFruit <- ind $ mkFNo (NodeIs _AMReceivedGold) (ss ^. receivedFruitVal) []
+   friendlyGesture <- ind $ mkFNo (NodeEQ (_AMGesture . _2) friendlyGest) (ss ^. friendlyGestureVal) []
 
    -- if it's above -0.5, sympathy increases by 0.01 (up to 0.15) if the agent is not attacked, i.e.
    -- small grudges are "forgotten"
    [i1,i2,i3,i4] <- (fmap runSI) <$> requestMany 4
+
    let notAttacked = [(i1, mkFNs (NodeIs _AMAttackedBy) [(i4, negate 1)]),
                       (i2, mkFNs (NodeLT (_AMEmotionSympathy . _2) 0.15) [(i4, 1)]),
                       (i3, mkFNs (NodeLT (_AMEmotionSympathy . _2) (negate 0.5)) [(i4, 1)]),
                       (i4, mkFN NodeFalse 2 0 0.01 [])]
+   
 
    let singleFilt = [attacked,
                      hostileGesture,
@@ -388,11 +400,6 @@ hostileSocial gestures = runSupplyDef $ do
        outputNodes = map fst singleFilt ++ [i4]
 
    return $! FI (HM.fromList graph) (HS.fromList outputNodes)
-
-friendlySocial :: GestureStorage -> Filter AgentMessage
-friendlySocial = todo "affectFragments"
-
-
 
 
 -- Helpers
@@ -581,3 +588,9 @@ entityHere cons (RI (i, j)) tv sig = andGraph src tv t ++ [t]
       src = concatMap (uncurry mkCons) cons
 
       t = mkFN NodeFalse (length src) 0 sig []
+
+-- |Gives an integer-ind to a value.
+--  Useful for adding vertices to filter nodes.
+ind :: a -> Supply SInt (Int, a)
+ind a = do (SI i) <- request
+           return (i, a)
