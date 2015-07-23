@@ -415,11 +415,9 @@ genericSocial ss gestures = runSupplyDef $ do
 -- Helpers
 -------------------------------------------------------------------------------
 
-{-
-
 -- |See 'entityHereFilt'. Gets wumpuses with low health.
 weakWumpusHere :: AreaFilter
-weakWumpusHere circ from = entityHereFilt circ from [wumpus, lowHealth]
+weakWumpusHere circ = entityHereFilt circ [wumpus, lowHealth]
    where
       wumpus :: AreaFilterCheck
       wumpus = (_AMVisualWumpus . _1, Nothing)
@@ -428,13 +426,9 @@ weakWumpusHere circ from = entityHereFilt circ from [wumpus, lowHealth]
       lowHealth = (_AMVisualEntityHealth . _1, 
                    Just $ NodeLT (_AMVisualEntityHealth . _2) 0.5)
 
--}
-
-{-
-
 -- |See 'entityHereFilt'. Gets hostile agents with low health.
 weakEnemyHere :: AreaFilter
-weakEnemyHere circ from = entityHereFilt circ from [agent, lowHealth, enemy]
+weakEnemyHere circ = entityHereFilt circ [agent, lowHealth, enemy]
    where
       agent :: AreaFilterCheck
       agent = (_AMVisualAgent . _1, Nothing)
@@ -449,13 +443,13 @@ weakEnemyHere circ from = entityHereFilt circ from [agent, lowHealth, enemy]
 
 -- |See 'entityHereFilt'. Gets pits in proximity.
 pitHere :: AreaFilter
-pitHere circ from = entityHereFilt circ from [pit]
+pitHere circ = entityHereFilt circ [pit]
    where
       pit :: AreaFilterCheck
       pit = (_AMVisualPit, Nothing)
 
 strongWumpusHere :: AreaFilter
-strongWumpusHere circ from = entityHereFilt circ from [wumpus, highHealth]
+strongWumpusHere circ = entityHereFilt circ [wumpus, highHealth]
    where
       wumpus :: AreaFilterCheck
       wumpus = (_AMVisualWumpus . _1, Nothing)
@@ -464,9 +458,10 @@ strongWumpusHere circ from = entityHereFilt circ from [wumpus, highHealth]
       highHealth = (_AMVisualEntityHealth . _1,
                     Just $ NodeGT (_AMVisualEntityHealth . _2) 0.75)
 
+
 strongEnemyHere :: Rational -- |Cut-off for what qualifies as "high health".
                 -> AreaFilter
-strongEnemyHere v circ from = entityHereFilt circ from [agent, highHealth, enemy]
+strongEnemyHere v circ = entityHereFilt circ [agent, highHealth, enemy]
    where
       agent :: AreaFilterCheck
       agent = (_AMVisualAgent . _1, Nothing)
@@ -481,7 +476,7 @@ strongEnemyHere v circ from = entityHereFilt circ from [agent, highHealth, enemy
 
 weakFriendHere :: Rational -- |Cut-off for what qualifies as "low health".
                -> AreaFilter
-weakFriendHere v circ from = entityHereFilt circ from [agent, lowHealth, friend]
+weakFriendHere v circ = entityHereFilt circ [agent, lowHealth, friend]
    where
       agent :: AreaFilterCheck
       agent = (_AMVisualAgent . _1, Nothing)
@@ -494,6 +489,7 @@ weakFriendHere v circ from = entityHereFilt circ from [agent, lowHealth, friend]
       friend = (_AMEmotionSympathy . _1,
                 Just $ NodeGT (_AMEmotionSympathy . _2) 0)
 
+{-
 plantHere :: Rational -- |Max. health of the agent.
           -> AreaFilter
 plantHere v circ from = (nodesSrc ++ nodesOut', newOutputNodes)
@@ -532,11 +528,12 @@ plantHere v circ from = (nodesSrc ++ nodesOut', newOutputNodes)
       --  threshold of 2, and the significance of the input node.
       mkTarget :: FilterNode AgentMessage -> FilterNode AgentMessage
       mkTarget n = mkFN NodeFalse 2 0 (n ^. significance) []
+-}
 
 -- |Gets fields which have at least 1 of a given item
 itemHere :: Item -- |Item to look for.
          -> AreaFilter
-itemHere it circ from = entityHereFilt circ from [item, gteOne]
+itemHere it circ = entityHereFilt circ [item, gteOne]
    where
       item :: AreaFilterCheck
       item = (itemLens it . _1, Nothing)
@@ -548,7 +545,6 @@ itemHere it circ from = entityHereFilt circ from [item, gteOne]
       itemLens Gold = _AMVisualGold
       itemLens Meat = _AMVisualMeat
       itemLens Fruit = _AMVisualFruit
--}
 
 -- |Wrapper around 'entityHere' that assignes vertices to the nodes too.
 entityHereFilt
