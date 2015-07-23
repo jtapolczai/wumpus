@@ -50,8 +50,8 @@ personalityFragment Anger "strong" = strongAnger
 personalityFragment Fear "weak" = weakFear
 personalityFragment Fear "strong" = strongFear
 
-personalityFragment Enthusiasm "weak" = undefined -- weakEnthusiasm
-personalityFragment Enthusiasm "strong" = undefined -- strongEnthusiasm
+personalityFragment Enthusiasm "weak" = weakEnthusiasm
+personalityFragment Enthusiasm "strong" = strongEnthusiasm
 
 personalityFragment Contentment "weak" = weakContentment
 personalityFragment Contentment "strong" = strongContentment
@@ -404,6 +404,90 @@ weakFear = genericFear ss
            (-0.2)
            2
            0.05
+
+-------------------------------------------------------------------------------
+
+strongEnthusiasm :: Filter AgentMessage
+strongEnthusiasm = genericEnthusiasm ss
+   where
+      ss = EnthusiasmSettings
+           (-0.1)
+           (-0.2)
+           0.1
+           (-0.05)
+           (-0.1) -- low stamina
+           (-0.2)
+           (-0.3)
+           (-0.3)
+           (-0.2) -- plant harvested
+           0.1
+           0.15
+           0.2
+           0.1
+           0.25 -- hunger stage 5
+           8
+           0.1
+           8
+           0.15
+           8
+           0.5 -- weak friend intensity
+           6
+           0.1
+           8
+           0.1
+           10
+           0.25
+           12
+           0.3
+           12
+           0.4 -- plant intensity, health < 0.4
+           12
+           0.4
+           12
+           0.8
+           12
+           0.8 -- fruit intensity
+
+weakEnthusiasm :: Filter AgentMessage
+weakEnthusiasm = genericEnthusiasm ss
+   where
+      ss = EnthusiasmSettings
+           (-0.15)
+           (-0.4)
+           0
+           (-0.05)
+           (-0.15) -- low stamina
+           (-0.3)
+           (-0.4)
+           (-0.4)
+           (-0.3) -- plant harvested
+           0.03
+           0.05
+           0.1
+           0.1
+           0.2 -- hunger stage 5
+           8
+           0
+           8
+           0.1
+           8
+           0.1 -- weak friend intensity
+           6
+           0.01
+           8
+           0.03
+           10
+           0.1
+           12
+           0.15
+           12
+           0.15 -- plant intensity, health < 0.4
+           10
+           0.3
+           12
+           0.5
+           12
+           0.5 -- fruit intensity
 
 -------------------------------------------------------------------------------
 
