@@ -262,53 +262,46 @@ weakEnthusiasm ss = runSupplyDef $ do
    return $! FI graph output
 
 
-strongEnthusiasm :: Filter AgentMessage
-strongEnthusiasm = todo "affectFragments"
-{-
+weakContentment :: ContentmentSettings -> Filter AgentMessage
+weakContentment ss = runSupplyDef $ do
+   quarterHealthLoss <- ind $ mkFNo (NodeGT _AMHealthDecreased 0.25) (ss ^. quarterHealthLossVal) []
+   halfHealthLoss <- ind $ mkFNo (NodeGT _AMHealthDecreased 0.5) (ss ^. halfHealthLossVal) []
+   badHealth <- ind $ mkFNo (NodeLT _AMHaveHealth 0.75) (ss ^. badHealthVal) []
+   veryBadHealth <- ind $ mkFNo (NodeLT _AMHaveHealth 0.4) (ss ^. veryBadHealthVal) []
+   criticalHealth <- ind $ mkFNo (NodeLT _AMHaveHealth 0.1) (ss ^. criticalHealthVal) []
+   staminaLoss <- ind $ mkFNo (NodeGT _AMStaminaDecreased 0.1) (ss ^. staminaLossVal) []
+   highHealth <- ind $ mkFNo (NodeGT _AMHaveHealth 1.2) (ss ^. highHealthVal) []
+   veryHighHealth <- ind $ mkFNo (NodeGT _AMHaveHealth 1.75) (ss ^. veryHighHealthVal) []
+   excellentHealth <- ind $ mkFNo (NodeGT _AMHaveHealth 1.90) (ss ^. excellentHealthVal) []
+   haveGold <- ind $ mkFNo (NodeGT _AMHaveGold 5) (ss ^. haveGoldVal) []
+   haveFruit <- ind $ mkFNo (NodeGT _AMHaveFruit 1) (ss ^. haveFruitVal) []
+   haveMuchFruit <- ind $ mkFNo (NodeGT _AMHaveFruit 5) (ss ^. haveMuchFruitVal) []
+   haveMeat <- ind $ mkFNo (NodeGT _AMHaveMeat 1) (ss ^. haveMeatVal) []
+   haveMuchMeat <- ind $ mkFNo (NodeGT _AMHaveMeat 5) (ss ^. haveMuchMeatVal) []
 
+   -- plants next to it calm the agent down and make it reluctant to move
+   let pCirc = circleAroundMeFilt (ss ^. plantIntensityVal) (ss ^. plantRadiusVal)
+   (plants, plantOut) <- plantHere 2 pCirc
 
-weakContentment :: Filter AgentMessage
-weakContentment = FI (HM.fromList graph) (HS.fromList output)
-   where
-      quarterHealthLoss = mkFNo (NodeGT _AMHealthDecreased 0.25) (negate 0.2) []
-      halfHealthLoss = mkFNo (NodeGT _AMHealthDecreased 0.5) (negate 0.5) []
-      badHealth = mkFNo (NodeLT _AMHaveHealth 0.75) (negate 0.10) []
-      veryBadHealth = mkFNo (NodeLT _AMHaveHealth 0.4) (negate 0.23) []
-      criticalHealth = mkFNo (NodeLT _AMHaveHealth 0.1) (negate 0.8) []
-      staminaLoss = mkFNo (NodeGT _AMStaminaDecreased 0.1) 0.04 []
-      highHealth = mkFNo (NodeGT _AMHaveHealth 1.2) 0.05 []
-      veryHighHealth = mkFNo (NodeGT _AMHaveHealth 1.75) 0.04 []
-      excellentHealth = mkFNo (NodeGT _AMHaveHealth 1.90) 0.07 []
-      haveGold = mkFNo (NodeGT _AMHaveGold 5) 0.03 []
-      haveFruit = mkFNo (NodeGT _AMHaveFruit 1) 0.03 []
-      haveMuchFruit = mkFNo (NodeGT _AMHaveFruit 5) 0.03 []
-      haveMeat = mkFNo (NodeGT _AMHaveMeat 1) 0.03 []
-      haveMuchMeat = mkFNo (NodeGT _AMHaveMeat 5) 0.03 []
+   let singleFilt = [quarterHealthLoss,
+                     halfHealthLoss,
+                     badHealth,
+                     veryBadHealth,
+                     criticalHealth,
+                     staminaLoss,
+                     highHealth,
+                     veryHighHealth,
+                     excellentHealth,
+                     haveGold,
+                     haveFruit,
+                     haveMuchFruit,
+                     haveMeat,
+                     haveMuchMeat]
+       graph = mconcat [HM.fromList singleFilt, plants]
+       output = mconcat [HS.fromList (map fst singleFilt), plantOut]
 
-      singleFilt = [quarterHealthLoss,
-                    halfHealthLoss,
-                    badHealth,
-                    veryBadHealth,
-                    criticalHealth,
-                    staminaLoss,
-                    highHealth,
-                    veryHighHealth,
-                    excellentHealth,
-                    haveGold,
-                    haveFruit,
-                    haveMuchFruit,
-                    haveMeat,
-                    haveMuchMeat]
+   return $! FI graph output
 
-      -- plants next to it calm the agent down and make it reluctant to move
-      plantFrom = length singleFilt - 1
-      (plants, plantOutputNodes) = plantHere 2 (circleAroundMeFilt 0.2 1) plantFrom
-
-      graph = (zip [0..] singleFilt)
-               ++ plants
-
-      output = [0..plantFrom] ++ plantOutputNodes
--}
 
 hostileSocial :: GestureStorage -> Filter AgentMessage
 hostileSocial = genericSocial ss

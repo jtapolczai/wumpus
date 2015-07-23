@@ -8,8 +8,6 @@ data PSBCFragmentType = Weak | Strong
 data SJSFragmentType = Friendly | Hostile
    deriving (Show, Eq, Ord, Read, Enum, Bounded)
 
-data ContentmentSettings = CS
-
 -- |Settings for an anger template.
 data AngerSettings = AngerSettings {
    _angerSettingsWumpusDiedVal :: Rational,
@@ -93,6 +91,26 @@ data EnthusiasmSettings = EnthusiasmSettings {
    _enthusiasmSettingsMeatIntensityVal :: Rational,
    _enthusiasmSettingsFruitRadiusVal :: Rational,
    _enthusiasmSettingsFruitIntensityVal :: Rational
+}
+
+-- |Settings for a contentment template.
+data ContentmentSettings = ContentmentSettings {
+   _contentmentSettingsQuarterHealthLossVal :: Rational,
+   _contentmentSettingsHalfHealthLossVal :: Rational,
+   _contentmentSettingsBadHealthVal :: Rational,
+   _contentmentSettingsVeryBadHealthVal :: Rational,
+   _contentmentSettingsCriticalHealthVal :: Rational,
+   _contentmentSettingsStaminaLossVal :: Rational,
+   _contentmentSettingsHighHealthVal :: Rational,
+   _contentmentSettingsVeryHighHealthVal :: Rational,
+   _contentmentSettingsExcellentHealthVal :: Rational,
+   _contentmentSettingsHaveGoldVal :: Rational,
+   _contentmentSettingsHaveFruitVal :: Rational,
+   _contentmentSettingsHaveMuchFruitVal :: Rational,
+   _contentmentSettingsHaveMeatVal :: Rational,
+   _contentmentSettingsHaveMuchMeatVal :: Rational,
+   _contentmentSettingsPlantRadiusVal :: Rational,
+   _contentmentSettingsPlantIntensityVal :: Rational
 }
 
 -- |Settings for a sympathy template.
