@@ -44,8 +44,8 @@ sjsFragmentType x = error $ "sjsFragmentType called with unspported type " ++ x
 -- |Returns the personality fragment belonging to an emotion and
 --  a type (currently supported: weak/strong).
 personalityFragment :: EmotionName -> String -> Filter AgentMessage
-personalityFragment Anger "weak" = undefined -- weakAnger
-personalityFragment Anger "strong" = undefined -- strongAnger
+personalityFragment Anger "weak" = weakAnger
+personalityFragment Anger "strong" = strongAnger
 
 personalityFragment Fear "weak" = undefined -- weakFear
 personalityFragment Fear "strong" = undefined -- strongFear
@@ -58,8 +58,8 @@ personalityFragment Contentment "strong" = undefined -- strongContentment
 
 personalityFragment _ x = error $ "personalityFragment called with unsupported type "++x
 
-sympathyFragment Sympathy "hostile" = undefined -- hostileSocial
-sympathyFragment Sympathy "friendly" = undefined -- friendlySocial
+sympathyFragment Sympathy "hostile" = hostileSocial
+sympathyFragment Sympathy "friendly" = friendlySocial
 sympathyFragment _ x = error $ "sympathyFragment called with unsupported type "++x
 
 
@@ -113,89 +113,72 @@ genericAnger ss = runSupplyDef $ do
                      highStamina]
 
        graph = singleFilt ++ wumpuses ++ agents
-       outputNodes = map fst singleFilt ++ wumpusesOut ++ agentsOut
+       output = map fst singleFilt ++ wumpusesOut ++ agentsOut
 
-   return $! FI (HM.fromList graph) (HS.fromList outputNodes)
+   return $! FI (HM.fromList graph) (HS.fromList output)
+
+genericFear :: FearSettings -> Filter AgentMessage
+genericFear ss = runSupplyDef $ do
+   quarterHealthLoss <- ind $ mkFNo (NodeGT _AMHealthDecreased 0.25) (ss ^. quarterHealthLossVal) []
+   halfHealthLoss <- ind $ mkFNo (NodeGT _AMHealthDecreased 0.5) (ss ^. halfHealthLossVal) []
+   threeQuarterHealthLoss <- ind $ mkFNo (NodeGT _AMHealthDecreased 0.5) (ss ^. threeQuarterHealthLossVal) []
+   died <- ind $ mkFNo (NodeIs _AMYouDied) (ss ^. diedVal) []
+   highTemp <- ind $ mkFNo (NodeGT _AMTemperature Warm) (ss ^. highTempVal) []
+   lowTemp <- ind $ mkFNo (NodeLT _AMTemperature Temperate)(ss ^. lowTempVal) []
+   badHealth <- ind $ mkFNo (NodeLT _AMHaveHealth 0.75) (ss ^. badHealthVal) []
+   veryBadHealth <- ind $ mkFNo (NodeLT _AMHaveHealth 0.4) (ss ^. veryBadHealthVal) []
+   criticalHealth <- ind $ mkFNo (NodeLT _AMHaveHealth 0.1) (ss ^. criticalHealthVal) []
+   goodHealth <- ind $ mkFNo (NodeLT _AMHaveHealth 1.5) (ss ^. goodHealthVal) []
+   healthGain <- ind $ mkFNo (NodeIs _AMHealthIncreased) (ss ^. healthGainVal) []
+   lowStamina <- ind $ mkFNo (NodeLT _AMHaveStamina 0.25) (ss ^. lowStaminaVal) []
+
+   --high-health wumpus detectors in a 10-large circle
+   let wCirc = circleAroundMeFilt (ss ^. wumpusIntensityVal) (ss ^. wumpusRadiusVal)
+   (wumpuses, wumpusOut) <- strongWumpusHere wCirc
+
+   -- we have 4 kinds detectors for enemies:
+   -- weak, normal, strong, and very strong agents. Given that each
+   -- is a subset of the previous one, the very strong agents
+   -- trigger the fear for strong, normal, and weak ones, resulting
+   -- in a large amount of cumulative fear.
+   let waCirc = circleAroundMeFilt (ss ^. weakEnemyIntensityVal) (ss ^. weakEnemyRadiusVal)
+       naCirc = circleAroundMeFilt (ss ^. normalEnemyIntensityVal) (ss ^. normalEnemyRadiusVal)
+       saCirc = circleAroundMeFilt (ss ^. strongEnemyIntensityVal) (ss ^. strongEnemyRadiusVal)
+       vaCirc = circleAroundMeFilt (ss ^. veryStrongEnemyIntensityVal) (ss ^. veryStrongEnemyRadiusVal)
+
+   (wAgents, wAgentOut) <- strongEnemyHere 0.3 waCirc
+   (nAgents, nAgentOut) <- strongEnemyHere 0.75 naCirc
+   (sAgents, sAgentOut) <- strongEnemyHere 1 saCirc
+   (vAgents, vAgentOut) <- strongEnemyHere 1.5 vaCirc
+
+   let fCirc = circleAroundMeFilt (ss ^. friendIntensityVal) (ss ^. friendRadiusVal)
+   (friends, friendsOut) <- friendHere fCirc
+
+   -- detectors for pits. Since pits are immobile, we are only interested
+   -- in very close ones
+   let pCirc = circleAroundMeFilt (ss ^. pitIntensityVal) (ss ^. pitRadiusVal)
+   (pits, pitOut) <- pitHere pCirc
+
+   let singleFilt = [quarterHealthLoss,
+                     halfHealthLoss,
+                     threeQuarterHealthLoss,
+                     died,
+                     highTemp,
+                     lowTemp,
+                     badHealth,
+                     veryBadHealth,
+                     criticalHealth,
+                     goodHealth,
+                     healthGain,
+                     lowStamina]
+       graph = singleFilt ++ wumpuses ++ wAgents ++ nAgents ++ sAgents
+               ++ vAgents ++ friends ++ pits
+       output = map fst singleFilt ++ wumpusOut ++ wAgentOut ++ nAgentOut ++ sAgentOut
+                ++ vAgentOut ++ friendsOut ++ pitOut
+
+   return $! FI (HM.fromList graph) (HS.fromList output)
 
 {-
-
-strongAnger :: Filter AgentMessage
-strongAnger = todo "affectFragments"
-
-weakFear :: Filter AgentMessage
-weakFear = todo "affectFragments"
-
-strongFear :: Filter AgentMessage
-strongFear = FI (HM.fromList graph) (HS.fromList output)
-   where
-      quarterHealthLoss = mkFNo (NodeGT _AMHealthDecreased 0.25) 0.2 []
-      halfHealthLoss = mkFNo (NodeGT _AMHealthDecreased 0.5) 0.4 []
-      threeQuarterHealthLoss = mkFNo (NodeGT _AMHealthDecreased 0.5) 0.6 []
-      died = mkFNo (NodeGT _AMHealthDecreased 1) 0.8 []
-      highTemp = mkFNo (NodeGT _AMTemperature Warm) (negate 0.1) []
-      lowTemp = mkFNo (NodeLT _AMTemperature Temperate) 0.05 []
-      badHealth = mkFNo (NodeLT _AMHaveHealth 0.75) 0.15 []
-      veryBadHealth = mkFNo (NodeLT _AMHaveHealth 0.4) 0.25 []
-      criticalHealth = mkFNo (NodeLT _AMHaveHealth 0.1) 0.65 []
-      goodHealth = mkFNo (NodeLT _AMHaveHealth 1.5) (negate 0.3) []
-      healthGain = mkFNo (NodeIs _AMHealthIncreased) (negate 0.08) []
-      lowStamina = mkFNo (NodeLT _AMHaveStamina 0.25) (negate 0.05) []
-
-      singleFilt = [quarterHealthLoss,
-                    halfHealthLoss,
-                    threeQuarterHealthLoss,
-                    died,
-                    highTemp,
-                    lowTemp,
-                    badHealth,
-                    veryBadHealth,
-                    criticalHealth,
-                    goodHealth,
-                    healthGain,
-                    lowStamina]
-
-      --high-health wumpus detectors in a 10-large circle
-      wumpusFrom = length singleFilt - 1
-      (wumpuses, wumpusOutputNodes) = strongWumpusHere (circleAroundMeFilt 0.6 10) wumpusFrom
-
-      -- we have 4 kinds detectors for enemies:
-      -- weak, normal, strong, and very strong agents. Given that each
-      -- is a subset of the previous one, the very strong agents
-      -- trigger the fear for strong, normal, and weak ones, resulting
-      -- in a large amount of cumulative fear.
-      wAgentFrom = last wumpusOutputNodes
-      (wAgents, wAgentOutputNodes) = strongEnemyHere 0.3 (circleAroundMeFilt 0.1 8) wAgentFrom
-
-      nAgentFrom = last wAgentOutputNodes
-      (nAgents, nAgentOutputNodes) = strongEnemyHere 0.75 (circleAroundMeFilt 0.2 10) nAgentFrom
-
-      sAgentFrom = last nAgentOutputNodes
-      (sAgents, sAgentOutputNodes) = strongEnemyHere 1 (circleAroundMeFilt 0.15 10) sAgentFrom
-
-      vAgentFrom = last sAgentOutputNodes
-      (vAgents, vAgentOutputNodes) = strongEnemyHere 1.5 (circleAroundMeFilt 0.15 12) vAgentFrom
-
-      -- detectors for pits. Since pits are immobile, we are only interested
-      -- in very close ones
-      pitFrom = last vAgentOutputNodes
-      (pits, pitOutputNodes) = pitHere (circleAroundMeFilt 0.3 2) pitFrom
-
-      graph = (zip [0..] singleFilt)
-               ++ wumpuses
-               ++ wAgents
-               ++ nAgents
-               ++ sAgents
-               ++ vAgents
-               ++ pits
-
-      output = [0..wumpusFrom]
-               ++ wumpusOutputNodes
-               ++ wAgentOutputNodes
-               ++ nAgentOutputNodes
-               ++ sAgentOutputNodes
-               ++ vAgentOutputNodes
-               ++ pitOutputNodes
-
 weakEnthusiasm :: Filter AgentMessage
 weakEnthusiasm = FI (HM.fromList graph) (HS.fromList output)
    where
@@ -353,12 +336,6 @@ weakContentment = FI (HM.fromList graph) (HS.fromList output)
                ++ plants
 
       output = [0..plantFrom] ++ plantOutputNodes
-               
-
-
-strongContentment :: Filter AgentMessage
-strongContentment = todo "affectFragments"
-
 -}
 
 hostileSocial :: GestureStorage -> Filter AgentMessage
@@ -398,7 +375,7 @@ genericSocial ss gestures = runSupplyDef $ do
    attacked <- ind $ mkFNo (NodeIs _AMAttackedBy) (ss ^. attackedVal) [] 
    hostileGesture <- ind $ mkFNo (NodeEQ (_AMGesture . _2) unfriendlyGest) (ss ^. hostileGestureVal) []
 
-      -- friendly actions
+   -- friendly actions
    receivedGold <- ind $ mkFNo (NodeIs _AMReceivedGold) (ss ^. receivedGoldVal) []
    receivedMeat <- ind $ mkFNo (NodeIs _AMReceivedGold) (ss ^. receivedMeatVal) []
    receivedFruit <- ind $ mkFNo (NodeIs _AMReceivedGold) (ss ^. receivedFruitVal) []
@@ -421,9 +398,9 @@ genericSocial ss gestures = runSupplyDef $ do
                      receivedFruit,
                      friendlyGesture]
        graph = singleFilt ++ notAttacked
-       outputNodes = map fst singleFilt ++ [i4]
+       output = map fst singleFilt ++ [i4]
 
-   return $! FI (HM.fromList graph) (HS.fromList outputNodes)
+   return $! FI (HM.fromList graph) (HS.fromList output)
 
 
 -- Helpers
@@ -498,6 +475,16 @@ weakFriendHere v circ = entityHereFilt circ [agent, lowHealth, friend]
       lowHealth :: AreaFilterCheck
       lowHealth = (_AMVisualEntityHealth . _1,
                     Just $ NodeLT (_AMVisualEntityHealth . _2) v)
+      
+      friend :: AreaFilterCheck
+      friend = (_AMEmotionSympathy . _1,
+                Just $ NodeGT (_AMEmotionSympathy . _2) 0)
+
+friendHere :: AreaFilter
+friendHere circ = entityHereFilt circ [agent, friend]
+   where
+      agent :: AreaFilterCheck
+      agent = (_AMVisualAgent . _1, Nothing)
       
       friend :: AreaFilterCheck
       friend = (_AMEmotionSympathy . _1,

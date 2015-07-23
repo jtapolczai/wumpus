@@ -8,11 +8,10 @@ data PSBCFragmentType = Weak | Strong
 data SJSFragmentType = Friendly | Hostile
    deriving (Show, Eq, Ord, Read, Enum, Bounded)
 
-data FearSettings = FS
 data EnthusiasmSettings = ES
 data ContentmentSettings = CS
 
--- |Settings for a sympathy template.
+-- |Settings for an anger template.
 data AngerSettings = AngerSettings {
    _angerSettingsWumpusDiedVal :: Rational,
    _angerSettingsAgentDiedVal :: Rational,
@@ -25,6 +24,37 @@ data AngerSettings = AngerSettings {
    _angerSettingsAgentRadiusVal :: Rational,
    _angerSettingsAgentIntensityVal :: Rational
 } 
+
+-- |Settings for a fear template.
+data FearSettings = FearSettings {
+   _fearSettingsQuarterHealthLossVal :: Rational,
+   _fearSettingsHalfHealthLossVal :: Rational,
+   _fearSettingsThreeQuarterHealthLossVal :: Rational,
+   _fearSettingsDiedVal :: Rational,
+   _fearSettingsHighTempVal :: Rational,
+   _fearSettingsLowTempVal :: Rational,
+   _fearSettingsLowHealthVal :: Rational, 
+   _fearSettingsBadHealthVal :: Rational, 
+   _fearSettingsVeryBadHealthVal :: Rational,
+   _fearSettingsCriticalHealthVal :: Rational,
+   _fearSettingsGoodHealthVal :: Rational,
+   _fearSettingsHealthGainVal :: Rational,
+   _fearSettingsLowStaminaVal :: Rational,
+   _fearSettingsWumpusRadiusVal :: Rational,
+   _fearSettingsWumpusIntensityVal :: Rational,  
+   _fearSettingsWeakEnemyRadiusVal :: Rational,
+   _fearSettingsWeakEnemyIntensityVal :: Rational,
+   _fearSettingsNormalEnemyRadiusVal :: Rational,
+   _fearSettingsNormalEnemyIntensityVal :: Rational,
+   _fearSettingsStrongEnemyRadiusVal :: Rational,
+   _fearSettingsStrongEnemyIntensityVal :: Rational,
+   _fearSettingsVeryStrongEnemyRadiusVal :: Rational,
+   _fearSettingsVeryStrongEnemyIntensityVal :: Rational,
+   _fearSettingsFriendRadiusVal :: Rational,
+   _fearSettingsFriendIntensityVal :: Rational,
+   _fearSettingsPitRadiusVal :: Rational,
+   _fearSettingsPitIntensityVal :: Rational
+}
 
 -- |Settings for a sympathy template.
 data SocialSettings = SocialSettings {
