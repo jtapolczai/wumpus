@@ -344,8 +344,6 @@ strongContentment = todo "affectFragments"
 
 -}
 
-{-
-
 hostileSocial :: GestureStorage -> Filter AgentMessage
 hostileSocial = genericSocial hostileSS
    where
@@ -410,7 +408,6 @@ genericSocial ss gestures = runSupplyDef $ do
 
    return $! FI (HM.fromList graph) (HS.fromList outputNodes)
 
--}
 
 -- Helpers
 -------------------------------------------------------------------------------
