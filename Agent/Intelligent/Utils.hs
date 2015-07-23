@@ -93,7 +93,7 @@ edgeMessage x@AMVisualEdgeFatigue{} = Just x
 edgeMessage _ = Nothing
 
 -- |Sieves out social messages. Social messages are all those that contain
---  an EntityName, plus 'AMVisualAgent'
+--  an EntityName.
 socialMessage :: AgentMessage -> Maybe AgentMessage
 socialMessage x@AMGesture{} = Just x
 socialMessage x@AMVisualEntityName{} = Just x
@@ -183,3 +183,8 @@ subIndex (MI i) (MI j) = go i j
     go [] _ = True
     go _ _ = False
 
+
+-- |Hamming distance between two strings. undefined if the
+--  length of the strings doesn't match.
+hamming :: String -> String -> Int
+hamming xs = sum . zipWith (\x y -> if x == y then 0 else 1) xs
