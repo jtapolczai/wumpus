@@ -47,14 +47,14 @@ personalityFragment :: EmotionName -> String -> Filter AgentMessage
 personalityFragment Anger "weak" = weakAnger
 personalityFragment Anger "strong" = strongAnger
 
-personalityFragment Fear "weak" = undefined -- weakFear
-personalityFragment Fear "strong" = undefined -- strongFear
+personalityFragment Fear "weak" = weakFear
+personalityFragment Fear "strong" = strongFear
 
 personalityFragment Enthusiasm "weak" = undefined -- weakEnthusiasm
 personalityFragment Enthusiasm "strong" = undefined -- strongEnthusiasm
 
-personalityFragment Contentment "weak" = undefined -- weakContentment
-personalityFragment Contentment "strong" = undefined -- strongContentment
+personalityFragment Contentment "weak" = weakContentment
+personalityFragment Contentment "strong" = strongContentment
 
 personalityFragment _ x = error $ "personalityFragment called with unsupported type "++x
 
@@ -339,6 +339,8 @@ weakAnger = genericAnger ss
            7
            0.4
 
+-------------------------------------------------------------------------------
+
 strongFear :: Filter AgentMessage
 strongFear = genericFear ss
    where
@@ -402,6 +404,52 @@ weakFear = genericFear ss
            (-0.2)
            2
            0.05
+
+-------------------------------------------------------------------------------
+
+strongContentment :: Filter AgentMessage
+strongContentment = genericContentment ss
+   where
+      ss = ContentmentSettings
+           (-0.2)
+           (-0.1)
+           (-0.05)
+           (-0.1)
+           (-0.4) -- critical health
+           0.05
+           0.05
+           0.05
+           0.1
+           0.03 -- have gold
+           0.03
+           0.02
+           0.03
+           0.02
+           2 -- plant radius
+           0.4
+
+weakContentment :: Filter AgentMessage
+weakContentment = genericContentment ss
+   where
+      ss = ContentmentSettings
+           (-0.25)
+           (-0.15)
+           (-0.1)
+           (-0.15)
+           (-0.5) -- critical health
+           0.03
+           0.02
+           0.01
+           0.02
+           0 -- have gold
+           0.01
+           0
+           0.01
+           0
+           2 -- plant radius
+           0.2
+
+-------------------------------------------------------------------------------
 
 hostileSocial :: GestureStorage -> Filter AgentMessage
 hostileSocial = genericSocial ss
