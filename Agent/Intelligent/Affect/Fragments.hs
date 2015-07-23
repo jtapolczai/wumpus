@@ -14,7 +14,6 @@ import Control.Monad.Supply
 import qualified Data.Graph as G
 import qualified Data.HashMap.Strict as HM
 import qualified Data.HashSet as HS
-import Data.List (partition)
 import qualified Data.Map as M
 
 import Agent.Intelligent.Filter
@@ -26,7 +25,8 @@ import World.Utils
 --  a list of output nodes.
 -- type AreaFilter = [(Rational, RelInd)] -> Int -> ([(G.Vertex, FilterNode AgentMessage)], [G.Vertex])
 
-type AreaFilter = [(Rational, RelInd)] -> Supply SInt ([(G.Vertex, FilterNode AgentMessage)], [G.Vertex])
+type AreaFilter = [(Rational, RelInd)] -> Supply SInt (HM.HashMap G.Vertex (FilterNode AgentMessage),
+                                                       HS.HashSet G.Vertex)
 
 -- |A check that an 'AreaFilter' can perform on a cell.
 type AreaFilterCheck = (Traversal' AgentMessage RelInd, Maybe (NodeCondition AgentMessage))
@@ -112,10 +112,10 @@ genericAnger ss = runSupplyDef $ do
                      highHealth,
                      highStamina]
 
-       graph = singleFilt ++ wumpuses ++ agents
-       output = map fst singleFilt ++ wumpusesOut ++ agentsOut
+       graph = mconcat [HM.fromList singleFilt, wumpuses, agents]
+       output = mconcat [HS.fromList (map fst singleFilt), wumpusesOut, agentsOut]
 
-   return $! FI (HM.fromList graph) (HS.fromList output)
+   return $! FI graph output
 
 genericFear :: FearSettings -> Filter AgentMessage
 genericFear ss = runSupplyDef $ do
@@ -171,12 +171,11 @@ genericFear ss = runSupplyDef $ do
                      goodHealth,
                      healthGain,
                      lowStamina]
-       graph = singleFilt ++ wumpuses ++ wAgents ++ nAgents ++ sAgents
-               ++ vAgents ++ friends ++ pits
-       output = map fst singleFilt ++ wumpusOut ++ wAgentOut ++ nAgentOut ++ sAgentOut
-                ++ vAgentOut ++ friendsOut ++ pitOut
+       graph = mconcat [HM.fromList singleFilt, wumpuses, wAgents, nAgents, sAgents, vAgents, friends, pits]
+       output = mconcat [HS.fromList (map fst singleFilt), wumpusOut, wAgentOut, nAgentOut,
+                         sAgentOut, vAgentOut, friendsOut, pitOut]
 
-   return $! FI (HM.fromList graph) (HS.fromList output)
+   return $! FI graph output
 
 {-
 weakEnthusiasm :: Filter AgentMessage
@@ -493,7 +492,21 @@ friendHere circ = entityHereFilt circ [agent, friend]
 {-
 plantHere :: Rational -- |Max. health of the agent.
           -> AreaFilter
-plantHere v circ from = (nodesSrc ++ nodesOut', newOutputNodes)
+plantHere v circ = do
+   plantFilt <- entityHereFilt circ [plant]
+
+
+
+   where
+      plant :: AreaFilterCheck
+      plant = (_AMVisualPlant . _1, Nothing)
+
+
+
+
+
+
+   (nodesSrc ++ nodesOut', newOutputNodes)
    where
       (nodes, outputNodes) = entityHereFilt circ from [plant]
 
@@ -519,8 +532,7 @@ plantHere v circ from = (nodesSrc ++ nodesOut', newOutputNodes)
          where
             newT = mkTarget oldT
 
-      plant :: AreaFilterCheck
-      plant = (_AMVisualPlant . _1, Nothing)
+
 
       lowHealth :: FilterNode AgentMessage
       lowHealth = mkFNs (NodeLT _AMHaveHealth v) []
@@ -529,6 +541,7 @@ plantHere v circ from = (nodesSrc ++ nodesOut', newOutputNodes)
       --  threshold of 2, and the significance of the input node.
       mkTarget :: FilterNode AgentMessage -> FilterNode AgentMessage
       mkTarget n = mkFN NodeFalse 2 0 (n ^. significance) []
+
 -}
 
 -- |Gets fields which have at least 1 of a given item
@@ -559,14 +572,12 @@ entityHereFilt
    -> [AreaFilterCheck]
       -- |A list of new nodes, and a sublist of the vertices that belong to output
       --  nodes. See 'entityHere' for the number of output nodes.
-   -> Supply SInt ([(G.Vertex, FilterNode AgentMessage)], [G.Vertex])
-entityHereFilt circ checks = rev <$> foldM mkCheck ([],[]) circ
+   -> Supply SInt (HM.HashMap G.Vertex (FilterNode AgentMessage), HS.HashSet G.Vertex)
+entityHereFilt circ checks = foldM mkCheck mempty circ
    where
       mkCheck (fs,out) (int, pos) = do nodes <- entityHere checks pos int
                                        (SI outN) <- peek
-                                       return (nodes:fs, (outN - 1) : out)  
-
-      rev = (concat . reverse) *** reverse
+                                       return (fs `HM.union` nodes, HS.insert (outN - 1) out)  
 
 -- |Creates a graph whose output node is activated is a wumpus is at a given location.
 entityHere
@@ -574,26 +585,27 @@ entityHere
          :: [AreaFilterCheck]
          -> RelInd -- ^Coordinates to check.
          -> Rational -- ^Significance of the target node.
-            -- |1 target (output) node at the end, plus the following number of source
+            -- |1 target (output) node, plus the following number of source
             --  nodes: 2 for every check without a 'NodeCondition' and 3 for every
             --  check with one.
-         -> Supply SInt [(G.Vertex, FilterNode AgentMessage)] 
+         -> Supply SInt (HM.HashMap G.Vertex (FilterNode AgentMessage))
 entityHere cons (RI (i, j)) sig = do
-   src <- concat . reverse <$> foldM mkCheck [] cons
-   trg@(ti,_) <- ind $ mkFN NodeFalse (length src) 0 sig []
-   let src' = map (second $ set neighbors [(ti, 1)]) src
-   return $! src' ++ [trg]
+   src <- foldM mkCheck mempty cons
+   (ti,tn) <- ind $ mkFN NodeFalse (length src) 0 sig []
+   let src' = (neighbors .~ [(ti, 1)]) <$> src
+   return $! HM.insert ti tn src'
 
    where
-      mkCheck :: [[(G.Vertex, FilterNode AgentMessage)]]
+      mkCheck :: HM.HashMap G.Vertex (FilterNode AgentMessage)
               -> AreaFilterCheck
-              -> Supply SInt [[(G.Vertex, FilterNode AgentMessage)]]
+              -> Supply SInt (HM.HashMap G.Vertex (FilterNode AgentMessage))
       mkCheck fs (pos, cnd) = do
          iChk <- ind $ mkFNs (NodeEQ (pos . _RI . _1) i) []
          jChk <- ind $ mkFNs (NodeEQ (pos . _RI . _2) j) []
          mChk <- case cnd of Nothing   -> return Nothing
                              Just cnd' -> Just <$> (ind $ mkFNs cnd' [])
-         return $ (iChk : jChk : (maybe [] (:[]) mChk)) : fs
+
+         return $! HM.union fs $! HM.fromList $! iChk : jChk : (maybe [] (:[]) mChk)
 
 -- |Takes an inital value @mx@ and a radius @r@ and returns all fields within
 --  distance @r@, with an intensity that's linearly interpolated between @mx@
@@ -608,4 +620,3 @@ circleAroundMeFilt mx r = (linearFunc (0,mx) (r,0.01) . dist (0,0) &&& RI) <$> g
 ind :: a -> Supply SInt (Int, a)
 ind a = do (SI i) <- request
            return (i, a)
-
