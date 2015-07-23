@@ -438,6 +438,7 @@ pitHere circ = entityHereFilt circ [pit]
       pit :: AreaFilterCheck
       pit = (_AMVisualPit, Nothing)
 
+-- |See 'entityHereFilt'. Gets wumpuses with at least 0.75 health in proximity.
 strongWumpusHere :: AreaFilter
 strongWumpusHere circ = entityHereFilt circ [wumpus, highHealth]
    where
@@ -449,6 +450,8 @@ strongWumpusHere circ = entityHereFilt circ [wumpus, highHealth]
                     Just $ NodeGT (_AMVisualEntityHealth . _2) 0.75)
 
 
+-- |See 'entityHereFilt'. Gets enemies with more than the given
+--  amount of health in proximity.
 strongEnemyHere :: Rational -- |Cut-off for what qualifies as "high health".
                 -> AreaFilter
 strongEnemyHere v circ = entityHereFilt circ [agent, highHealth, enemy]
@@ -464,6 +467,8 @@ strongEnemyHere v circ = entityHereFilt circ [agent, highHealth, enemy]
       enemy = (_AMEmotionSympathy . _1,
                Just $ NodeLT (_AMEmotionSympathy . _2) $ negate 0.1)
 
+-- |See 'entityHereFilt'. Gets friends with less than the given
+--  amount of health in proximity.
 weakFriendHere :: Rational -- |Cut-off for what qualifies as "low health".
                -> AreaFilter
 weakFriendHere v circ = entityHereFilt circ [agent, lowHealth, friend]
@@ -479,6 +484,7 @@ weakFriendHere v circ = entityHereFilt circ [agent, lowHealth, friend]
       friend = (_AMEmotionSympathy . _1,
                 Just $ NodeGT (_AMEmotionSympathy . _2) 0)
 
+-- |See 'entityHereFilt'. Gets friends in proximity.
 friendHere :: AreaFilter
 friendHere circ = entityHereFilt circ [agent, friend]
    where
@@ -489,60 +495,25 @@ friendHere circ = entityHereFilt circ [agent, friend]
       friend = (_AMEmotionSympathy . _1,
                 Just $ NodeGT (_AMEmotionSympathy . _2) 0)
 
-{-
+
+-- |See 'entityHereFilt'. Gets plants in proximity, but
+--  only if the agent has less than a given amount of health.
+--  In addition to the nodes from 'entityHereFilt', we create
+--  one addition health-node that's connected to all output nodes.
+--  The output nodes need this health-node to activate.
+--  The threshold of the output nodes is increased by one (to necessiate the
+--  health-node's contribution).
 plantHere :: Rational -- |Max. health of the agent.
           -> AreaFilter
 plantHere v circ = do
-   plantFilt <- entityHereFilt circ [plant]
-
-
+   (nodes, outNodes) <- entityHereFilt circ [plant]
+   (li, lowHealth) <- ind $ mkFNs (NodeLT _AMHaveHealth v) $ map (,1) $ HS.toList outNodes
+   let nodes' = fmap (threshold +~ 1) nodes
+   return $! (HM.insert li lowHealth nodes', outNodes)
 
    where
       plant :: AreaFilterCheck
       plant = (_AMVisualPlant . _1, Nothing)
-
-
-
-
-
-
-   (nodesSrc ++ nodesOut', newOutputNodes)
-   where
-      (nodes, outputNodes) = entityHereFilt circ from [plant]
-
-      (nodesOut, nodesSrc) = partition (flip elem outputNodes . fst) nodes
-
-      -- we "replace" the output nodes given by 'entityHereFilt' by our
-      -- new ones. Each old output node is put into an AND-coupling with a
-      -- new health check and a fresh target node. The __number__ of output nodes
-      -- doesn't change, however.
-      lowHealthNodes = take (length nodesOut) [maximum outputNodes + 1 .. ]
-      newOutputNodes = map (+ length nodesOut) [maximum outputNodes + 1 .. ]
-
-      nodesOut' = concat
-                  $ map mkAnd
-                  $ zip3 nodesOut lowHealthNodes newOutputNodes
-
-      -- takes an old vertex/node-pair plus two indices
-      -- and creates three nodes. The old target and a lowHealth-node
-      -- will both go via AND to a new target node
-      mkAnd :: ((G.Vertex, FilterNode AgentMessage), G.Vertex, G.Vertex) -> [(G.Vertex, FilterNode AgentMessage)]
-      mkAnd ((i, oldT), lh, no) = zip [i, lh, no]
-                                  $ andGraph [oldT, lowHealth] no newT ++ [newT]
-         where
-            newT = mkTarget oldT
-
-
-
-      lowHealth :: FilterNode AgentMessage
-      lowHealth = mkFNs (NodeLT _AMHaveHealth v) []
-
-      -- |Creates an output node with NodeFalse as condition,
-      --  threshold of 2, and the significance of the input node.
-      mkTarget :: FilterNode AgentMessage -> FilterNode AgentMessage
-      mkTarget n = mkFN NodeFalse 2 0 (n ^. significance) []
-
--}
 
 -- |Gets fields which have at least 1 of a given item
 itemHere :: Item -- |Item to look for.
