@@ -62,36 +62,8 @@ sympathyFragment Sympathy "hostile" = hostileSocial
 sympathyFragment Sympathy "friendly" = friendlySocial
 sympathyFragment _ x = error $ "sympathyFragment called with unsupported type "++x
 
-
-strongAnger :: Filter AgentMessage
-strongAnger = genericAnger ss
-   where
-      ss = AngerSettings
-         (-0.5)
-         (-0.5)
-         0.1
-         0.01
-         0.01
-         0.01
-         10
-         0.5
-         10
-         0.5
-
-weakAnger :: Filter AgentMessage
-weakAnger = genericAnger ss
-   where
-      ss = AngerSettings
-         (-0.65)
-         (-0.65)
-         0.03
-         0
-         0
-         0
-         7
-         0.4
-         7
-         0.4
+-- Generic templates
+-------------------------------------------------------------------------------
 
 genericAnger :: AngerSettings -> Filter AgentMessage
 genericAnger ss = runSupplyDef $ do
@@ -178,12 +150,8 @@ genericFear ss = runSupplyDef $ do
    return $! FI graph output
 
 
-
-
-
-
-weakEnthusiasm :: EnthusiasmSettings -> Filter AgentMessage
-weakEnthusiasm ss = runSupplyDef $ do
+genericEnthusiasm :: EnthusiasmSettings -> Filter AgentMessage
+genericEnthusiasm ss = runSupplyDef $ do
    quarterHealthLoss <- ind $ mkFNo (NodeGT _AMHealthDecreased 0.25) (ss ^. quarterHealthLossVal) []
    halfHealthLoss <- ind $ mkFNo (NodeGT _AMHealthDecreased 0.5) (ss ^. halfHealthLossVal) []
    highTemp <- ind $ mkFNo (NodeGT _AMTemperature Warm) (ss ^. highTempVal) []
@@ -262,8 +230,8 @@ weakEnthusiasm ss = runSupplyDef $ do
    return $! FI graph output
 
 
-weakContentment :: ContentmentSettings -> Filter AgentMessage
-weakContentment ss = runSupplyDef $ do
+genericContentment :: ContentmentSettings -> Filter AgentMessage
+genericContentment ss = runSupplyDef $ do
    quarterHealthLoss <- ind $ mkFNo (NodeGT _AMHealthDecreased 0.25) (ss ^. quarterHealthLossVal) []
    halfHealthLoss <- ind $ mkFNo (NodeGT _AMHealthDecreased 0.5) (ss ^. halfHealthLossVal) []
    badHealth <- ind $ mkFNo (NodeLT _AMHaveHealth 0.75) (ss ^. badHealthVal) []
@@ -302,35 +270,6 @@ weakContentment ss = runSupplyDef $ do
 
    return $! FI graph output
 
-
-hostileSocial :: GestureStorage -> Filter AgentMessage
-hostileSocial = genericSocial ss
-   where
-      ss = SocialSettings
-         (-0.4)
-         (-0.15)
-         0.1
-         0.15
-         0.15
-         0.10
-         (-0.35)
-         0.10
-         0.01
-
-friendlySocial :: GestureStorage -> Filter AgentMessage
-friendlySocial = genericSocial ss
-   where
-      ss = SocialSettings
-         (-0.3)
-         (-0.1)
-         0.15
-         0.25
-         0.25
-         0.15
-         (-0.65)
-         0.15
-         0.02
-
 genericSocial :: SocialSettings -> GestureStorage -> Filter AgentMessage
 genericSocial ss gestures = runSupplyDef $ do
    let unfriendlyGest = gestures M.! (Sympathy, Negative)
@@ -366,6 +305,131 @@ genericSocial ss gestures = runSupplyDef $ do
        output = map fst singleFilt ++ [i4]
 
    return $! FI (HM.fromList graph) (HS.fromList output)
+
+-- Instantiations of the generic templates
+-------------------------------------------------------------------------------
+
+strongAnger :: Filter AgentMessage
+strongAnger = genericAnger ss
+   where
+      ss = AngerSettings
+           (-0.5)
+           (-0.5)
+           0.1
+           0.01
+           0.01
+           0.01
+           10
+           0.5
+           10
+           0.5
+
+weakAnger :: Filter AgentMessage
+weakAnger = genericAnger ss
+   where
+      ss = AngerSettings
+           (-0.65)
+           (-0.65)
+           0.03
+           0
+           0
+           0
+           7
+           0.4
+           7
+           0.4
+
+strongFear :: Filter AgentMessage
+strongFear = genericFear ss
+   where
+      ss = FearSettings
+           0.2
+           0.4
+           0.6
+           0.8
+           0 --high temp
+           0.05
+           0.15
+           0.25
+           0.1
+           0.2
+           (-0.02) --good health
+           (-0.04)
+           0.05
+           10
+           0.8 -- wumpus intensity
+           8
+           0.15
+           10
+           0.2
+           10
+           0.15
+           12
+           0.2
+           4 -- friend radius
+           (-0.08)
+           2
+           0.3
+
+weakFear :: Filter AgentMessage
+weakFear = genericFear ss
+   where
+      ss = FearSettings
+           0.15
+           0.3
+           0.5
+           0.6
+           (-0.02) --high temp
+           0
+           0.01
+           0.08
+           0.1
+           0.2
+           (-0.04) -- good health
+           (-0.1)
+           0.01
+           8
+           0.4 -- wumpus intensity
+           6
+           0.05
+           6
+           0.05
+           8
+           0.15
+           10
+           0.1
+           4 -- friend radius
+           (-0.2)
+           2
+           0.05
+
+hostileSocial :: GestureStorage -> Filter AgentMessage
+hostileSocial = genericSocial ss
+   where
+      ss = SocialSettings
+           (-0.4)
+           (-0.15)
+           0.1
+           0.15
+           0.15
+           0.10
+           (-0.35)
+           0.10
+           0.01
+
+friendlySocial :: GestureStorage -> Filter AgentMessage
+friendlySocial = genericSocial ss
+   where
+      ss = SocialSettings
+           (-0.3)
+           (-0.1)
+           0.15
+           0.25
+           0.25
+           0.15
+           (-0.65)
+           0.15
+           0.02
 
 
 -- Helpers
