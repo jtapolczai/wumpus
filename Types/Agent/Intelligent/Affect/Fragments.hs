@@ -8,7 +8,6 @@ data PSBCFragmentType = Weak | Strong
 data SJSFragmentType = Friendly | Hostile
    deriving (Show, Eq, Ord, Read, Enum, Bounded)
 
-data EnthusiasmSettings = ES
 data ContentmentSettings = CS
 
 -- |Settings for an anger template.
@@ -54,6 +53,46 @@ data FearSettings = FearSettings {
    _fearSettingsFriendIntensityVal :: Rational,
    _fearSettingsPitRadiusVal :: Rational,
    _fearSettingsPitIntensityVal :: Rational
+}
+
+-- |Settings for an enthusiasm template.
+data EnthusiasmSettings = EnthusiasmSettings {
+   _enthusiasmSettingsQuarterHealthLossVal :: Rational,
+   _enthusiasmSettingsHalfHealthLossVal :: Rational,
+   _enthusiasmSettingsHighTempVal :: Rational,
+   _enthusiasmSettingsLowTempVal :: Rational,
+   _enthusiasmSettingsLowStaminaVal :: Rational,
+   _enthusiasmSettingsGaveGoldVal :: Rational,
+   _enthusiasmSettingsGaveMeatVal :: Rational,
+   _enthusiasmSettingsGaveFruitVal :: Rational,
+   _enthusiasmSettingsPlantHarvestedVal :: Rational,
+   _enthusiasmSettingsHunger1Val :: Rational,
+   _enthusiasmSettingsHunger2Val :: Rational,
+   _enthusiasmSettingsHunger3Val :: Rational,
+   _enthusiasmSettingsHunger4Val :: Rational,
+   _enthusiasmSettingsHunger5Val :: Rational,
+   _enthusiasmSettingsStrongFriendRadiusVal :: Rational,
+   _enthusiasmSettingsStrongFriendIntensityVal :: Rational,
+   _enthusiasmSettingsNormalFriendRadiusVal :: Rational,
+   _enthusiasmSettingsNormalFriendIntensityVal :: Rational,
+   _enthusiasmSettingsWeakFriendRadiusVal :: Rational,
+   _enthusiasmSettingsWeakFriendIntensityVal :: Rational,
+   _enthusiasmSettingsPlant1RadiusVal :: Rational,
+   _enthusiasmSettingsPlant1IntensityVal :: Rational,
+   _enthusiasmSettingsPlant2RadiusVal :: Rational,
+   _enthusiasmSettingsPlant2IntensityVal :: Rational,
+   _enthusiasmSettingsPlant3RadiusVal :: Rational,
+   _enthusiasmSettingsPlant3IntensityVal :: Rational,
+   _enthusiasmSettingsPlant4RadiusVal :: Rational,
+   _enthusiasmSettingsPlant4IntensityVal :: Rational,
+   _enthusiasmSettingsPlant5RadiusVal :: Rational,
+   _enthusiasmSettingsPlant5IntensityVal :: Rational,
+   _enthusiasmSettingsGoldRadiusVal :: Rational,
+   _enthusiasmSettingsGoldIntensityVal :: Rational,
+   _enthusiasmSettingsMeatRadiusVal :: Rational,
+   _enthusiasmSettingsMeatIntensityVal :: Rational,
+   _enthusiasmSettingsFruitRadiusVal :: Rational,
+   _enthusiasmSettingsFruitIntensityVal :: Rational
 }
 
 -- |Settings for a sympathy template.

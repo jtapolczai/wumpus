@@ -177,121 +177,94 @@ genericFear ss = runSupplyDef $ do
 
    return $! FI graph output
 
-{-
-weakEnthusiasm :: Filter AgentMessage
-weakEnthusiasm = FI (HM.fromList graph) (HS.fromList output)
-   where
-      quarterHealthLoss = mkFNo (NodeGT _AMHealthDecreased 0.25) (negate 0.2) []
-      halfHealthLoss = mkFNo (NodeGT _AMHealthDecreased 0.5) (negate 0.4) []
-      highTemp = mkFNo (NodeGT _AMTemperature Warm) 0.1 []
-      lowTemp = mkFNo (NodeLT _AMTemperature Temperate) (negate 0.1) []
-      lowStamina = mkFNo (NodeLT _AMHaveStamina 0.5) (negate 0.1) []
-      gaveGold = mkFNo (NodeIs _AMGaveGold) (negate 0.3) []
-      gaveMeat = mkFNo (NodeIs _AMGaveMeat) (negate 0.45) []
-      gaveFruit = mkFNo (NodeIs _AMGaveFruit) (negate 0.45) []
-      plantHarvested = mkFNo (NodeIs _AMPlantHarvested) (negate 0.3) []
 
-      singleFilt = [quarterHealthLoss,
-                    halfHealthLoss,
-                    highTemp,
-                    lowTemp,
-                    lowStamina,
-                    gaveGold,
-                    gaveMeat,
-                    gaveFruit,
-                    plantHarvested]
 
-      -- Special detectors for hunger, basically.
-      -- Only the planner gives us 'You are Here' messages.
-      -- The presence of these indicates that we have to take our health
-      -- into account as hunger.
-      --
-      -- This is a star formation with an 'AMYouAreHere' at the center, which
-      -- is necessary to activate the outer health-detectors.
-      youAreHereFrom = length singleFilt
-      youAreHereT = [mkFN (NodeLT _AMHaveHealth 0.8) 2 1 0.1 [],
-                     mkFN (NodeLT _AMHaveHealth 0.6) 2 1 0.15 [],
-                     mkFN (NodeLT _AMHaveHealth 0.4) 2 1 0.2 [],
-                     mkFN (NodeLT _AMHaveHealth 0.2) 2 1 0.1 [],
-                     mkFN (NodeLT _AMHaveHealth 0.1) 2 1 0.2 []]
-      youAreHereOutputNodes = take (length youAreHereT) [youAreHereFrom ..]
-      youAreHereS = mkFNs (NodeIs _AMYouAreHere) $ map (,1) youAreHereOutputNodes
 
-      youAreHere = (youAreHereFrom, youAreHereS) : zip youAreHereOutputNodes youAreHereT
-      
-      -- we have 4 kinds detectors for friends:
-      -- weak, normal, and strong agents.
-      -- Weak friendly agents (the first) elicit a lot of helpful feeling, healthy
-      -- ones less so.
-      sAgentFrom = last youAreHereOutputNodes
-      (sAgents, sAgentOutputNodes) = weakFriendHere 1.5 (circleAroundMeFilt 0.1 8) sAgentFrom
 
-      nAgentFrom = last sAgentOutputNodes
-      (nAgents, nAgentOutputNodes) = weakFriendHere 0.8 (circleAroundMeFilt 0.1 8) nAgentFrom
 
-      wAgentFrom = last nAgentOutputNodes
-      (wAgents, wAgentOutputNodes) = weakFriendHere 0.3 (circleAroundMeFilt 0.2 8) wAgentFrom
+weakEnthusiasm :: EnthusiasmSettings -> Filter AgentMessage
+weakEnthusiasm ss = runSupplyDef $ do
+   quarterHealthLoss <- ind $ mkFNo (NodeGT _AMHealthDecreased 0.25) (ss ^. quarterHealthLossVal) []
+   halfHealthLoss <- ind $ mkFNo (NodeGT _AMHealthDecreased 0.5) (ss ^. halfHealthLossVal) []
+   highTemp <- ind $ mkFNo (NodeGT _AMTemperature Warm) (ss ^. highTempVal) []
+   lowTemp <- ind $ mkFNo (NodeLT _AMTemperature Temperate) (ss ^. lowTempVal) []
+   lowStamina <- ind $ mkFNo (NodeLT _AMHaveStamina 0.5) (ss ^. lowStaminaVal) []
+   gaveGold <- ind $ mkFNo (NodeIs _AMGaveGold) (ss ^. gaveGoldVal) []
+   gaveMeat <- ind $ mkFNo (NodeIs _AMGaveMeat) (ss ^. gaveMeatVal) []
+   gaveFruit <- ind $ mkFNo (NodeIs _AMGaveFruit) (ss ^. gaveFruitVal) []
+   plantHarvested <- ind $ mkFNo (NodeIs _AMPlantHarvested) (ss ^. plantHarvestedVal) []
 
-      -- 5 detectors for plants: the lower our healths, the more enthusiasm plants generate.
-      plantFrom = last wAgentOutputNodes
-      (plants, plantOutputNodes) = plantHere 2 (circleAroundMeFilt 0.1 6) plantFrom
+   -- Special detectors for hunger, basically.
+   -- Only the planner gives us 'You are Here' messages.
+   -- The presence of these indicates that we have to take our health
+   -- into account as hunger.
+   --
+   -- This is a star formation with an 'AMYouAreHere' at the center, which
+   -- is necessary to activate the outer health-detectors.
+   youAreHereT <- mapM ind [mkFN (NodeLT _AMHaveHealth 0.8) 2 1 0.1 [],
+                            mkFN (NodeLT _AMHaveHealth 0.6) 2 1 0.15 [],
+                            mkFN (NodeLT _AMHaveHealth 0.4) 2 1 0.2 [],
+                            mkFN (NodeLT _AMHaveHealth 0.2) 2 1 0.1 [],
+                            mkFN (NodeLT _AMHaveHealth 0.1) 2 1 0.2 []]
+   let youAreHereOut = map fst youAreHereT
+   youAreHereS <- ind $ mkFNs (NodeIs _AMYouAreHere) $ map (,1) youAreHereOut
+   let youAreHere = uncurry HM.insert youAreHereS $ HM.fromList youAreHereT
+   
+   -- we have 4 kinds detectors for friends:
+   -- weak, normal, and strong agents.
+   -- Weak friendly agents (the first) elicit a lot of helpful feeling, healthy
+   -- ones less so.
+   let saCirc = circleAroundMeFilt (ss ^. strongFriendIntensityVal) (ss ^. strongFriendRadiusVal)
+       naCirc = circleAroundMeFilt (ss ^. normalFriendIntensityVal) (ss ^. normalFriendRadiusVal)
+       waCirc = circleAroundMeFilt (ss ^. weakFriendIntensityVal) (ss ^. weakFriendRadiusVal)
+   (sAgents, sAgentOut) <- weakFriendHere 1.5 saCirc
+   (nAgents, nAgentOut) <- weakFriendHere 0.8 naCirc
+   (wAgents, wAgentOut) <- weakFriendHere 0.3 waCirc
 
-      plantFrom2 = last plantOutputNodes
-      (plants2, plant2OutputNodes) = plantHere 1.5 (circleAroundMeFilt 0.1 8) plantFrom2
+   -- 5 detectors for plants: the lower our healths, the more enthusiasm plants generate.
+   let p1Circ = circleAroundMeFilt (ss ^. plant1IntensityVal) (ss ^. plant1RadiusVal)
+       p2Circ = circleAroundMeFilt (ss ^. plant2IntensityVal) (ss ^. plant2RadiusVal)
+       p3Circ = circleAroundMeFilt (ss ^. plant3IntensityVal) (ss ^. plant3RadiusVal)
+       p4Circ = circleAroundMeFilt (ss ^. plant4IntensityVal) (ss ^. plant4RadiusVal)
+       p5Circ = circleAroundMeFilt (ss ^. plant5IntensityVal) (ss ^. plant5RadiusVal)
+   (plants, plantOut) <- plantHere 2 p1Circ
+   (plants2, plant2Out) <- plantHere 1.5 p2Circ
+   (plants3, plant3Out) <- plantHere 1 p3Circ
+   (plants4, plant4Out) <- plantHere 0.75 p4Circ
+   (plants5, plant5Out) <- plantHere 0.4 p5Circ
 
-      plantFrom3 = last plant2OutputNodes
-      (plants3, plant3OutputNodes) = plantHere 1 (circleAroundMeFilt 0.25 10) plantFrom3
+   -- detectors for items
+   -- items lying on the ground are pretty valuable, so they elicit strong
+   -- enthusiasm
+   let igCirc = circleAroundMeFilt (ss ^. goldIntensityVal) (ss ^. goldRadiusVal)
+       imCirc = circleAroundMeFilt (ss ^. meatIntensityVal) (ss ^. meatRadiusVal)
+       ifCirc = circleAroundMeFilt (ss ^. fruitIntensityVal) (ss ^. fruitRadiusVal)
+   (gold, goldOut) <- itemHere Gold igCirc
+   (meat, meatOut) <- itemHere Meat imCirc
+   (fruit, fruitOut) <- itemHere Meat ifCirc
 
-      plantFrom4 = last plant3OutputNodes
-      (plants4, plant4OutputNodes) = plantHere 0.75 (circleAroundMeFilt 0.3 12) plantFrom4
+   let singleFilt = [quarterHealthLoss,
+                     halfHealthLoss,
+                     highTemp,
+                     lowTemp,
+                     lowStamina,
+                     gaveGold,
+                     gaveMeat,
+                     gaveFruit,
+                     plantHarvested]
+       graph = mconcat [HM.fromList singleFilt, youAreHere, sAgents, nAgents, wAgents,
+                        plants, plants2, plants3, plants4, plants5, gold, meat, fruit]
 
-      plantFrom5 = last plant4OutputNodes
-      (plants5, plant5OutputNodes) = plantHere 0.4 (circleAroundMeFilt 0.4 12) plantFrom5
+       output = mconcat [HS.fromList (map fst singleFilt), HS.fromList youAreHereOut, sAgentOut, nAgentOut,
+                         wAgentOut, plantOut, plant2Out, plant3Out, plant4Out, plant5Out, goldOut,
+                         meatOut, fruitOut]
 
-      -- detectors for items
-      -- items lying on the ground are pretty valuable, so they elicit strong
-      -- enthusiasm
-      goldFrom = last plant5OutputNodes
-      (gold, goldOutputNodes) = itemHere Gold (circleAroundMeFilt 0.4 12) goldFrom
-
-      meatFrom = last goldOutputNodes
-      (meat, meatOutputNodes) = itemHere Meat (circleAroundMeFilt 0.8 12) meatFrom
-
-      fruitFrom = last meatOutputNodes
-      (fruit, fruitOutputNodes) = itemHere Meat (circleAroundMeFilt 0.8 12) fruitFrom
-
-      graph = (zip [0..] singleFilt)
-               ++ youAreHere
-               ++ sAgents
-               ++ nAgents
-               ++ wAgents
-               ++ plants
-               ++ plants2
-               ++ plants3
-               ++ plants4
-               ++ plants5
-               ++ gold
-               ++ meat
-               ++ fruit
-
-      output = [0..youAreHereFrom]
-               ++ youAreHereOutputNodes
-               ++ sAgentOutputNodes
-               ++ nAgentOutputNodes
-               ++ wAgentOutputNodes
-               ++ plantOutputNodes
-               ++ plant2OutputNodes
-               ++ plant3OutputNodes
-               ++ plant4OutputNodes
-               ++ plant5OutputNodes
-               ++ goldOutputNodes
-               ++ meatOutputNodes
-               ++ fruitOutputNodes
+   return $! FI graph output
 
 
 strongEnthusiasm :: Filter AgentMessage
 strongEnthusiasm = todo "affectFragments"
-
+{-
 
 
 weakContentment :: Filter AgentMessage
@@ -494,7 +467,6 @@ friendHere circ = entityHereFilt circ [agent, friend]
       friend :: AreaFilterCheck
       friend = (_AMEmotionSympathy . _1,
                 Just $ NodeGT (_AMEmotionSympathy . _2) 0)
-
 
 -- |See 'entityHereFilt'. Gets plants in proximity, but
 --  only if the agent has less than a given amount of health.
