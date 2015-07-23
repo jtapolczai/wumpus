@@ -120,20 +120,24 @@ readAgents dir = readFile (dir ++ "/agents.txt")
                      psbcFragmentType c,
                      sjsFragmentType s)
 
-            go = defaultAgent $ AS
-                    num
-                    (M.fromList [(Anger, (0, personalityFragment Anger a)),
-                                 (Fear, (0, personalityFragment Fear f)),
-                                 (Enthusiasm, (0, personalityFragment Enthusiasm e)),
-                                 (Contentment, (0, personalityFragment Contentment c))])
-                    (M.empty, M.fromList [(Sympathy, sympathyFragment Sympathy s),
-                                          (Trust, def),
-                                          (Respect, def)])
-                    (T.Node (M.empty, M.empty) [])
-                    []
-                    []
-                    (M.fromList [((Sympathy, Positive), symG),
-                                 ((Sympathy, Negative), antG)])
+            go = let
+               gest = (M.fromList [((Sympathy, Positive), symG),
+                                  ((Sympathy, Negative), antG)])
+               in
+                  defaultAgent $ AS
+                     num
+                     (M.fromList [(Anger, (0, personalityFragment Anger a)),
+                                  (Fear, (0, personalityFragment Fear f)),
+                                  (Enthusiasm, (0, personalityFragment Enthusiasm e)),
+                                  (Contentment, (0, personalityFragment Contentment c))])
+                     (M.empty, M.fromList [(Sympathy, sympathyFragment Sympathy s gest),
+                                           (Trust, def),
+                                           (Respect, def)])
+                     (T.Node (M.empty, M.empty) [])
+                     []
+                     []
+                     gest
+                    
       mkAgent _ = error "mkAgent: incorrect number of fields!"
 
 

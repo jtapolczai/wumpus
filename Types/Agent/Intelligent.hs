@@ -131,6 +131,10 @@ data AgentMessage =
    | AMPlanEmotion EmotionName
    -- |Changes in emotional states as a result of hypothetical actions.
    | AMPlanEmotionChanged MemoryIndex EmotionName Rational
+   -- |Indicates that the other messages only pertain to the
+   --  agent's current cell. This is useful when the planner
+   --  gives the messages of each cell separately to the agent
+   | AMYouAreHere
    deriving (Show, Eq, Ord)
 
 newtype MemoryIndex = MI{runMI::[Int]}

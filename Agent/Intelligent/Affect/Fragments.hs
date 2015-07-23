@@ -13,6 +13,7 @@ import qualified Data.Graph as G
 import qualified Data.HashMap.Strict as HM
 import qualified Data.HashSet as HS
 import Data.List (partition)
+import qualified Data.Map as M
 
 import Agent.Intelligent.Filter
 import Types
@@ -350,10 +351,48 @@ strongContentment = todo "affectFragments"
 
 
 
-hostileSocial :: Filter AgentMessage
-hostileSocial = todo "affectFragments"
+hostileSocial :: GestureStorage -> Filter AgentMessage
+hostileSocial gestures = FI (HM.fromList graph) (HS.fromList output)
+   where
+      unfriendlyGest = gestures M.! (Sympathy, Negative)
+      friendlyGest = gestures M.! (Sympathy, Positive)
 
-friendlySocial :: Filter AgentMessage
+      -- hostile actions
+      attacked = mkFNo (NodeIs _AMAttackedBy) (negate 0.4) []
+      hostileGesture = mkFNo (NodeEQ (_AMGesture . _2) unfriendlyGest) (negate 0.10) []
+
+      -- friendly actions
+      receivedGold = mkFNo (NodeIs _AMReceivedGold) 0.1 []
+      receivedMeat = mkFNo (NodeIs _AMReceivedGold) 0.15 []
+      receivedFruit = mkFNo (NodeIs _AMReceivedGold) 0.15 []
+      friendlyGesture = mkFNo (NodeEQ (_AMGesture . _2) friendlyGest) 0.15 []
+
+      singleFilt = [attacked,
+                    hostileGesture,
+                    receivedGold,
+                    receivedMeat,
+                    receivedFruit,
+                    friendlyGesture]
+
+      -- if it's above -0.5, sympathy increases by 0.01 (up to 0.15) if the agent is not attacked, i.e.
+      -- small grudges are "forgotten"
+      notAttackedFrom = length singleFilt - 1
+      notAttacked = [(notAttackedFrom + 1, mkFNs (NodeIs _AMAttackedBy)
+                                                 [(notAttackedFrom + 4, negate 1)]),
+                     (notAttackedFrom + 2, mkFNs (NodeLT (_AMEmotionSympathy . _2) 0.15)
+                                                 [(notAttackedFrom + 4, 1)]),
+                     (notAttackedFrom + 3, mkFNs (NodeGT (_AMEmotionSympathy . _2) (negate 0.5))
+                                                 [(notAttackedFrom + 4, 1)]),
+                     (notAttackedFrom + 4, mkFN NodeFalse 2 0 0.01 [])]
+      notAttackedOutputNode = notAttackedFrom + 3
+
+      graph = (zip [0..] singleFilt)
+               ++ notAttacked
+
+      output = [0..notAttackedFrom] ++ [notAttackedOutputNode]
+
+
+friendlySocial :: GestureStorage -> Filter AgentMessage
 friendlySocial = todo "affectFragments"
 
 
@@ -386,7 +425,7 @@ weakEnemyHere circ from = entityHereFilt circ from [agent, lowHealth, enemy]
       
       enemy :: AreaFilterCheck
       enemy = (_AMEmotionSympathy . _1,
-               Just $ NodeLT (_AMEmotionSympathy . _2) 0)
+               Just $ NodeLT (_AMEmotionSympathy . _2) $ negate 0.1)
 
 -- |See 'entityHereFilt'. Gets pits in proximity.
 pitHere :: AreaFilter
@@ -418,7 +457,7 @@ strongEnemyHere v circ from = entityHereFilt circ from [agent, highHealth, enemy
       
       enemy :: AreaFilterCheck
       enemy = (_AMEmotionSympathy . _1,
-               Just $ NodeLT (_AMEmotionSympathy . _2) 0)
+               Just $ NodeLT (_AMEmotionSympathy . _2) $ negate 0.1)
 
 weakFriendHere :: Rational -- |Cut-off for what qualifies as "low health".
                -> AreaFilter
