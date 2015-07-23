@@ -62,35 +62,29 @@ sympathyFragment Sympathy "hostile" = undefined -- hostileSocial
 sympathyFragment Sympathy "friendly" = undefined -- friendlySocial
 sympathyFragment _ x = error $ "sympathyFragment called with unsupported type "++x
 
-{-
-weakAnger :: Filter AgentMessage
-weakAnger = FI (HM.fromList graph) (HS.fromList output)
-   where
-      wumpusDied = mkFNo (NodeIs _AMWumpusDied) (negate 0.5) []
-      highTemp = mkFNo (NodeGT _AMTemperature Warm) 0.1 []
-      goodHealth = mkFNo (NodeGT _AMHaveHealth 1.0) 0.05 []
-      highHealth = mkFNo (NodeGT _AMHaveHealth 1.5) 0.05 []
-      highStamina = mkFNo (NodeGT _AMHaveStamina 0.75) 0.02 []
 
-      singleFilt = [wumpusDied,
-                    highTemp,
-                    goodHealth,
-                    highHealth,
-                    highStamina]
-      
-      --low-health wumpus detectors in a 10-large circle
-      wumpusFrom = length singleFilt - 1
-      (wumpuses, wumpusOutputNodes) = weakWumpusHere (circleAroundMeFilt 0.6 10) wumpusFrom
+genericAnger :: Filter AgentMessage
+genericAnger = runSupplyDef $ do
+   wumpusDied <- ind $ mkFNo (NodeIs _AMWumpusDied) (negate 0.5) []
+   highTemp <- ind $ mkFNo (NodeGT _AMTemperature Warm) 0.1 []
+   goodHealth <- ind $ mkFNo (NodeGT _AMHaveHealth 1.0) 0.05 []
+   highHealth <- ind $ mkFNo (NodeGT _AMHaveHealth 1.5) 0.05 []
+   highStamina <- ind $ mkFNo (NodeGT _AMHaveStamina 0.75) 0.02 []
 
-      agentFrom = last wumpusOutputNodes
-      (agents, agentOutputNodes) = weakEnemyHere (circleAroundMeFilt 0.6 10) agentFrom
+   (wumpuses, wumpusesOut) <- weakWumpusHere (circleAroundMeFilt 0.6 10)
+   (agents, agentsOut) <- weakEnemyHere (circleAroundMeFilt 0.6 10)
 
-      graph = (zip [0..] singleFilt)
-               ++ wumpuses
-               ++ agents
+   let singleFilt = [wumpusDied,
+                     highTemp,
+                     goodHealth,
+                     highHealth,
+                     highStamina]
 
-      output = [0..wumpusFrom] ++ wumpusOutputNodes ++ agentOutputNodes
--}
+       graph = singleFilt ++ wumpuses ++ agents
+       outputNodes = map fst singleFilt ++ wumpusesOut ++ agentsOut
+
+   return $! FI (HM.fromList graph) (HS.fromList outputNodes)
+
 {-
 
 strongAnger :: Filter AgentMessage
@@ -169,15 +163,6 @@ strongFear = FI (HM.fromList graph) (HS.fromList output)
                ++ sAgentOutputNodes
                ++ vAgentOutputNodes
                ++ pitOutputNodes
-
--- |Takes an inital value @mx@ and a radius @r@ and returns all fields within
---  distance @r@, with an intensity that's linearly interpolated between @mx@
---  and 0.01.
-circleAroundMeFilt :: Rational -- Initial value.
-                   -> Rational -- Radius.
-                   -> [(Rational, RelInd)]
-circleAroundMeFilt mx r = (linearFunc (0,mx) (r,0.01) . dist (0,0) &&& RI) <$> getCircle (0,0) r
-
 
 weakEnthusiasm :: Filter AgentMessage
 weakEnthusiasm = FI (HM.fromList graph) (HS.fromList output)
@@ -578,7 +563,7 @@ entityHere cons (RI (i, j)) sig = do
    src <- concat . reverse <$> foldM mkCheck [] cons
    trg@(ti,_) <- ind $ mkFN NodeFalse (length src) 0 sig []
    let src' = map (second $ set neighbors [(ti, 1)]) src
-   return $! src ++ [trg]
+   return $! src' ++ [trg]
 
    where
       mkCheck :: [[(G.Vertex, FilterNode AgentMessage)]]
@@ -590,6 +575,14 @@ entityHere cons (RI (i, j)) sig = do
          mChk <- case cnd of Nothing   -> return Nothing
                              Just cnd' -> Just <$> (ind $ mkFNs cnd' [])
          return $ (iChk : jChk : (maybe [] (:[]) mChk)) : fs
+
+-- |Takes an inital value @mx@ and a radius @r@ and returns all fields within
+--  distance @r@, with an intensity that's linearly interpolated between @mx@
+--  and 0.01.
+circleAroundMeFilt :: Rational -- Initial value.
+                   -> Rational -- Radius.
+                   -> [(Rational, RelInd)]
+circleAroundMeFilt mx r = (linearFunc (0,mx) (r,0.01) . dist (0,0) &&& RI) <$> getCircle (0,0) r
 
 -- |Gives an integer-ind to a value.
 --  Useful for adding vertices to filter nodes.
