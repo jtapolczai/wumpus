@@ -30,8 +30,8 @@ type ActionSelector a =
    -> a
 
 -- |Adds 'AMPlanLocalBudget' and 'AMPlanGlobalBudget' messages.
-decisionInitComponent :: Monad m => AgentComponent m
-decisionInitComponent = return . addMessages msg
+initialDecisionMakerComponent :: Monad m => AgentComponent m
+initialDecisionMakerComponent = return . addMessages msg
    where
       msg = [(True, AMPlanLocalBudget cAGENT_PLAN_LIMIT),
              (True, AMPlanGlobalBudget $ cAGENT_GLOBAL_PLAN_LIMIT)]
