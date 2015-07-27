@@ -134,6 +134,10 @@ data AgentMessage =
    --  agent's current cell. This is useful when the planner
    --  gives the messages of each cell separately to the agent
    | AMYouAreHere
+   -- |Indicates how many actions the agent may still add to the current plan.
+   | AMPlanLocalBudget Int
+   -- |Indicates how many actions the agent may still plan altogether.
+   | AMPlanGlobalBudget Int
    deriving (Show, Eq, Ord)
 
 newtype MemoryIndex = MI{runMI::[Int]}

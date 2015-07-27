@@ -1,5 +1,6 @@
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE ImpredicativeTypes #-}
+{-# LANGUAGE FlexibleContexts #-}
 
 module Agent.Intelligent.DecisionMaker where
 
@@ -15,6 +16,7 @@ import System.Random (randomRIO)
 
 import Agent.Intelligent.Affect
 import Agent.Intelligent.Memory
+import Agent.Intelligent.MessageHandling
 import Agent.Intelligent.Utils
 import Types
 import World.Constants
@@ -27,32 +29,38 @@ type ActionSelector a =
    -> CellInd -- ^The target cell's position
    -> a
 
+-- |Adds 'AMPlanLocalBudget' and 'AMPlanGlobalBudget' messages.
+decisionInitComponent :: Monad m => AgentComponent m
+decisionInitComponent = return . addMessages msg
+   where
+      msg = [(True, AMPlanLocalBudget cAGENT_PLAN_LIMIT),
+             (True, AMPlanGlobalBudget $ cAGENT_GLOBAL_PLAN_LIMIT)]
+
 -- |Makes a decision based on the affective evaluation of the world.
 --  Chooses a next planned step and inserts the corresponding memory and
 --  imaginary 'AMPlannedAction' into the message space.
-
-
 decisionMakerComponent :: AgentComponent IO
 decisionMakerComponent asInit =
    -- if there's no plan, start one.
-   if null plannedActions then do
+   if null plannedActions || noBudget then do
       -- randomly choose an emotion-appropriate action
       act <- getNextAction dominantEmotion
       let newMsg = isImag [AMPlannedAction act mempty False,
                            AMPlanEmotion dominantEmotion]
 
-      return $ as & newMessages %~ (newMsg++)
+      return $ budgetAddStep $ as & newMessages %~ (newMsg++)
    -- if there is one, continue/abandon/OK the plan
    else do 
       if strongestOverruling planEmotion allChanges > 0 then
          do numSteps <- randomRIO (1,length . runMI . leftMemIndex $ as)
-            return $ retractSteps (leftMemIndex as) numSteps as
+            return $ budgetRetractSteps numSteps
+                   $ retractSteps (leftMemIndex as) numSteps as
       else if targetEmotionSatisfied' allChanges >= 1 then
          return $ finalizeAction (MI []) as
       else do
          act <- getNextAction planEmotion
          let newMsg = [(True, AMPlannedAction act (leftMemIndex as) False)]
-         return $ as & newMessages %~ (newMsg++)
+         return $ budgetAddStep $ as & newMessages %~ (newMsg++)
    where
       -- chooses another action related to the given emotion
       getNextAction :: EmotionName -> IO Action
@@ -89,7 +97,20 @@ decisionMakerComponent asInit =
       strongEnough :: Rational -> Bool
       strongEnough = (> cAGENT_EMOTION_IMMEDIATE)
 
-      isImag = map $ if strongEnough dominantEmotionLevel then (True,) else (False,)
+      localBudget = fromJust $ firstWhere _AMPlanLocalBudget $ as ^. messageSpace
+      globalBudget = fromJust $ firstWhere _AMPlanGlobalBudget $ as ^. messageSpace
+
+      -- Reduces the local and global budgets in the newMessages container.
+      budgetAddStep = newMessages %~ fmap ((_2 . _AMPlanLocalBudget -~ 1) .
+                                            (_2 . _AMPlanGlobalBudget -~ 1))
+
+      -- Adds to the local (BUT NOT TO THE GLOBAL) budget in the newmessages container.
+      budgetRetractSteps n = newMessages %~ fmap (_2 . _AMPlanLocalBudget +~ n)
+
+      isImag = map $ if strongEnough dominantEmotionLevel || noBudget
+                     then (False,) else (True,)
+
+      noBudget = min localBudget globalBudget <= 0
 
 -- |Returns the amount by which the strongest conflicting emotion is stronger
 --  than a given one. If no confliction emotion is stronger, 0 is returned. 
@@ -150,7 +171,12 @@ planStartEmotions = foldl' f M.empty . map snd . msgWhereAny psbcPrisms . view m
 reinsertablePlanMsg :: AgentState -> [AgentMessage']
 reinsertablePlanMsg = filter (f.snd) . view messageSpace
    where
-      f = (\x y z -> x || y || z) <$> isP _AMPlannedAction <*> isP _AMPlanEmotion <*> isP _AMPlanEmotionChanged
+      f = (\x y z u v -> x || y || z
+                           || u || v) <$> isP _AMPlannedAction
+                                      <*> isP _AMPlanEmotion
+                                      <*> isP _AMPlanEmotionChanged
+                                      <*> isP _AMPlanGlobalBudget
+                                      <*> isP _AMPlanLocalBudget
       
 -- |Getters for the four PSBC-emotions.
 --psbcPrisms :: [Prism' ]
