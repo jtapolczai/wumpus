@@ -72,6 +72,8 @@ genericAnger ss = runSupplyDef $ do
    goodHealth <- ind $ mkFNo (NodeGT _AMHaveHealth 1.0) (ss ^. goodHealthVal) []
    highHealth <- ind $ mkFNo (NodeGT _AMHaveHealth 1.5) (ss ^. highHealthVal) []
    highStamina <- ind $ mkFNo (NodeGT _AMHaveStamina 0.75) (ss ^. highStaminaVal) []
+   stench1 <- ind $ mkFNo (NodeGT _AMLocalStench 0.1) (ss ^. stench1Val) []
+   stench2 <- ind $ mkFNo (NodeGT _AMLocalStench 0.5) (ss ^. stench2Val) []
 
    let wCirc = circleAroundMeFilt (ss ^. wumpusIntensityVal) (ss ^. wumpusRadiusVal)
        aCirc = circleAroundMeFilt (ss ^. agentIntensityVal) (ss ^. agentRadiusVal)
@@ -82,7 +84,9 @@ genericAnger ss = runSupplyDef $ do
                      highTemp,
                      goodHealth,
                      highHealth,
-                     highStamina]
+                     highStamina,
+                     stench1,
+                     stench2]
 
        graph = mconcat [HM.fromList singleFilt, wumpuses, agents]
        output = mconcat [HS.fromList (map fst singleFilt), wumpusesOut, agentsOut]
@@ -103,6 +107,10 @@ genericFear ss = runSupplyDef $ do
    goodHealth <- ind $ mkFNo (NodeLT _AMHaveHealth 1.5) (ss ^. goodHealthVal) []
    healthGain <- ind $ mkFNo (NodeIs _AMHealthIncreased) (ss ^. healthGainVal) []
    lowStamina <- ind $ mkFNo (NodeLT _AMHaveStamina 0.25) (ss ^. lowStaminaVal) []
+   stench1 <- ind $ mkFNo (NodeGT _AMLocalStench 0.1) (ss ^. stench1Val) []
+   stench2 <- ind $ mkFNo (NodeGT _AMLocalStench 0.5) (ss ^. stench2Val) []
+   breeze1 <- ind $ mkFNo (NodeGT _AMLocalBreeze 0.1) (ss ^. breeze1Val) []
+   breeze2 <- ind $ mkFNo (NodeGT _AMLocalBreeze 0.5) (ss ^. breeze2Val) []
 
    --high-health wumpus detectors in a 10-large circle
    let wCirc = circleAroundMeFilt (ss ^. wumpusIntensityVal) (ss ^. wumpusRadiusVal)
@@ -142,7 +150,11 @@ genericFear ss = runSupplyDef $ do
                      criticalHealth,
                      goodHealth,
                      healthGain,
-                     lowStamina]
+                     lowStamina,
+                     stench1,
+                     stench2,
+                     breeze1,
+                     breeze2]
        graph = mconcat [HM.fromList singleFilt, wumpuses, wAgents, nAgents, sAgents, vAgents, friends, pits]
        output = mconcat [HS.fromList (map fst singleFilt), wumpusOut, wAgentOut, nAgentOut,
                          sAgentOut, vAgentOut, friendsOut, pitOut]
@@ -323,6 +335,8 @@ strongAnger = genericAnger ss
            0.5
            10
            0.5
+           0.03
+           0.05
 
 weakAnger :: Filter AgentMessage
 weakAnger = genericAnger ss
@@ -338,6 +352,8 @@ weakAnger = genericAnger ss
            0.4
            7
            0.4
+           0
+           0.02
 
 -------------------------------------------------------------------------------
 
@@ -372,6 +388,10 @@ strongFear = genericFear ss
            (-0.08)
            2
            0.3
+           0.02
+           0.04
+           0.02
+           0.1
 
 weakFear :: Filter AgentMessage
 weakFear = genericFear ss
@@ -403,6 +423,10 @@ weakFear = genericFear ss
            4 -- friend radius
            (-0.2)
            2
+           0.05
+           0
+           0.02
+           0
            0.05
 
 -------------------------------------------------------------------------------

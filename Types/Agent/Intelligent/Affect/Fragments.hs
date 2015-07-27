@@ -19,7 +19,9 @@ data AngerSettings = AngerSettings {
    _angerSettingsWumpusRadiusVal :: Rational,
    _angerSettingsWumpusIntensityVal :: Rational,   
    _angerSettingsAgentRadiusVal :: Rational,
-   _angerSettingsAgentIntensityVal :: Rational
+   _angerSettingsAgentIntensityVal :: Rational,
+   _angerSettingsStench1Val :: Rational,
+   _angerSettingsStench2Val :: Rational
 } 
 
 -- |Settings for a fear template.
@@ -50,7 +52,11 @@ data FearSettings = FearSettings {
    _fearSettingsFriendRadiusVal :: Rational,
    _fearSettingsFriendIntensityVal :: Rational,
    _fearSettingsPitRadiusVal :: Rational,
-   _fearSettingsPitIntensityVal :: Rational
+   _fearSettingsPitIntensityVal :: Rational,
+   _fearSettingsStench1Val :: Rational,
+   _fearSettingsStench2Val :: Rational,
+   _fearSettingsBreeze1Val :: Rational,
+   _fearSettingsBreeze2Val :: Rational
 }
 
 -- |Settings for an enthusiasm template.
