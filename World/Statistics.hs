@@ -5,6 +5,8 @@
 module World.Statistics where
 
 import Control.Lens
+import qualified Data.Foldable as F
+import Data.List (intercalate)
 import qualified Data.Map as M
 
 import Types
@@ -47,3 +49,29 @@ mkStats wmi w = M.foldr recordEntity mempty $ w ^. cellData
       recordEntity CD{_cellDataEntity=Just (Wu _)} w = w & numWumpuses +~ 1
       recordEntity CD{_cellDataEntity=Just (Ag a)} w = w & numAgents . ix ind +~ 1
          where ind = wmi ^. agentPersonalities . at' (a ^. name)
+
+showStats :: WorldStats -> String
+showStats ws =
+      "agents:   " ++ show (F.sum $ ws ^. numAgents) ++ "\n"
+   ++ concat (printAgents $ ws ^. numAgents)
+   ++ "wumpuses: " ++ show (ws ^. numWumpuses) ++ "\n"
+   ++ "harvests: " ++ show (ws ^. numHarvests) ++ "\n"
+   ++ "items given: " ++ show (F.sum $ ws ^. numItemsGiven) ++ "\n"
+   ++ "   gold: " ++ show (ws ^. numItemsGiven . at' Gold) ++ "\n"
+   ++ "   meat: " ++ show (ws ^. numItemsGiven . at' Meat) ++ "\n"
+   ++ "   fruit: " ++ show (ws ^. numItemsGiven . at' Fruit) ++ "\n"
+   ++ "gestures: " ++ show (ws ^. numGesturesSent) ++ "\n"
+   ++ "attacks: " ++ show (ws ^. numAttacksPerformed) ++ "\n"
+
+   where
+      showFT Weak = "w"
+      showFT Strong = "s"
+
+      showST Friendly = "f"
+      showST Hostile = "h"
+
+      showInd :: AgentIndex -> String
+      showInd (a,f,e,c,s) = "(" ++ intercalate "," (map showFT [a,f,e,c]) ++ ";" ++ showST s ++ ")"
+
+      printAgents :: M.Map AgentIndex Int -> [String]
+      printAgents = map (\(k,v) -> "   " ++ showInd k ++ ": " ++ show v ++ "\n") . M.toList
