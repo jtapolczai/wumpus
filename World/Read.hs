@@ -11,6 +11,7 @@ import Control.Monad
 import qualified Data.ByteString as BS
 import Data.Char (isSpace)
 import Data.Default
+import Data.List (intercalate)
 import Data.List.Split (splitOn)
 import qualified Data.Map as M
 import Data.Functor.Monadic
@@ -21,6 +22,7 @@ import Math.Geometry.Grid.SquareInternal (SquareDirection(..))
 
 import Agent.Intelligent.Affect.Fragments
 import Agent.Intelligent()
+import Agent.Intelligent.Utils (choose)
 import Agent.Wumpus
 import Types
 import World.Constants
@@ -50,6 +52,11 @@ getRed (r,_,_) = r
 --                   blue channel being the agent's ID. The agent's mind can
 --                   can be stored in an @agent_ID.txt@ file.
 --                   @#646400@ represents a pit.
+--  * agents.txt - a CSV, separated by ';', with 8 columns. The first is the
+--                 agent's name (word8), the next 4 are weak/strong, standing
+--                 for the four emotions (anger, fear, enthusiasm, contentment).
+--                 the next one hostile/friendly (w.r.t sympathy), and the last two
+--                 are the friendly and hostile gesture.
 readWorld :: String -> IO (World, WorldMetaInfo)
 readWorld dir = do
    topography <- M.fromList . map (second def) . filter ((==) white.snd) <$> readBitmap (dir ++ "/topography.bmp")
@@ -169,3 +176,20 @@ readBitmap = readBMP >=> (return.toArr.fromRight)
             pixels _ 0 _ = []
             pixels i n xs = (toCoord i, (xs ! 0, xs ! 1, xs ! 2))
                             : pixels (i+1) (n-1) (BS.drop 4 xs)
+
+-- |Randomly generates a line that can be used in an agents-file in CSV-format.
+generateAgentLine :: Word8 -> IO String
+generateAgentLine w = do
+   [a,f,e,c] <- sequence $ replicate 4 (choose ["weak", "strong"])
+   s <- choose ["friendly", "hostile"]
+   let symG = "love"
+       antG = "hate"
+   return $ intercalate ";" [show w, a,f,e,c,s,symG,antG]
+
+-- |Creates a given number of agent-lines.
+generateAgents :: Word8 -> IO [String]
+generateAgents n = mapM generateAgentLine [0..n]
+
+-- |Generates an agent-file with the given name and the given number of agents.
+generateAgentsFile :: Word8 -> String -> IO ()
+generateAgentsFile n fn = generateAgents n >>= writeFile fn . unlines
