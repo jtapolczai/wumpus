@@ -20,7 +20,6 @@ module Types (
    ) where
 
 import Control.Lens
-import Data.Maybe
 import qualified Data.Tree as T
 
 import Types.Agent.Dummy
@@ -36,7 +35,16 @@ todo :: String -> a
 todo = error . (++) "TODO: implement "
 
 -- |Unsafe version of 'at'.
-at' x = at x . to fromJust
+at' x = at x . to (maybe err id)
+   where
+      err = error $ "Nothing in lens at' for value " ++ show x
+
+-- |Applies 'fromJust' to a Getter that delivers a Maybe.
+ju :: (Contravariant f, Profunctor p)
+   => (p (Maybe a) (f (Maybe a)) -> c) -> p a (f a) -> c
+ju l = l . to (maybe err id)
+   where
+      err = error "Nothing in lens 'ju'!"
 
 -- |Returns the given element if the first argument is True and
 --  the monoid's neutral element otherwise.
@@ -96,11 +104,6 @@ _agentStateLens = lens _agentState (\a x -> a{_agentState = x})
 -- |See '_agentStateLens'.
 _wumpusStateLens :: Lens (Wumpus a) (Wumpus b) a b
 _wumpusStateLens = lens _wumpusState (\a x -> a{_wumpusState = x})
-
--- |Applies 'fromJust' to a Getter that delivers a Maybe.
-ju :: (Contravariant f, Profunctor p)
-   => (p (Maybe a) (f (Maybe a)) -> c) -> p a (f a) -> c
-ju l = l . to fromJust
 
 -- |Gets the CellInd of an AgentMessage, for all which have one (except AMPosition).
 _agentMessageCellInd :: Getter AgentMessage (Maybe RelInd)
