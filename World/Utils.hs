@@ -17,6 +17,7 @@ import Math.Geometry.Grid.Square
 import Math.Geometry.Grid.SquareInternal (SquareDirection(..))
 
 import Types
+import Debug.Trace
 
 -- |Returns True iff the given cell exists and has neither a Wumpus nor an
 --  agent on it.
@@ -270,8 +271,8 @@ makeEntityIndex :: (HasEntity c (Maybe (Entity s t)),
                 => M.Map CellInd c
                 -> M.Map EntityName CellInd
 makeEntityIndex = M.foldrWithKey
-   (\k cd -> if isJust (cd ^? entity)
-             then M.insert (cd ^. ju entity . name) k
+   (\k cd -> if maybe False isAgent (cd ^. entity)
+             then M.insert (cd ^. entity . to (maybe (error $ show k ++ "MEI nothing!!!") id) . name) k
              else id) M.empty
 
 -- |Gets a given entity's name and location, if it exists. Partial.

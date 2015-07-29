@@ -28,6 +28,8 @@ import Types
 import World.Constants
 import World.Utils
 
+import Debug.Trace
+
 -- |An RGB pixel.
 type Pixel = (Word8,Word8,Word8)
 
@@ -64,6 +66,17 @@ readWorld dir = do
    entities <- M.fromList <$> readBitmap (dir ++ "/entities.bmp")
    agents <- readAgents dir
 
+   traceM "topography"
+   readBitmap (dir ++ "/topography.bmp") >>= (return. show) >>= traceM
+
+   traceM "items"
+   readBitmap (dir ++ "/items.bmp") >>= (return. show) >>= traceM
+
+   traceM "entities"
+   readBitmap (dir ++ "/entities.bmp") >>= (return. show) >>= traceM
+
+   traceM "--------------------------------------------------"
+
    let -- create topography
        cd = M.foldrWithKey (\k v t -> t & ix k %~ addItem v) topography items
        -- add entities
@@ -85,16 +98,22 @@ readWorld dir = do
        --  cell directly to the left and the cell directly above.
        edges = M.foldrWithKey addEdges M.empty topography
 
+       entityIndex = makeEntityIndex cd'
+
        world = World (WD cSTART_TIME $ light' cSTART_TIME)
                      UnboundedSquareGrid
                      edges
                      cd'
-                     (makeEntityIndex cd')
+                     entityIndex
        
        -- the index of agent personalities, for the WorldMetaInfo object
-       index = M.fromList $ fmap (show *** snd) $ M.toList agents
+       index = M.intersectionWith (const id) entityIndex
+               $ M.fromList $ fmap (show *** snd) $ M.toList agents
        -- the finished world in which we give minds to the Wumpuses
        world' = world & cellData .~ cd''
+
+   traceM "intersected agent list:"
+   traceM (show index)
 
    return (world', WMI index)
 
@@ -106,7 +125,7 @@ readWorld dir = do
 
       -- adds and entity. Wumpuses will get undefined minds (to avoid an infinite regress!)
       addEntity :: M.Map Word8 (Agent SomeMind, a) -> Int -> CellInd -> Pixel -> CellData -> CellData
-      addEntity _ n i (255,0,0) c = c & entity ?~ Wu (Wumpus (SM $ WumpusMind undefined i) (show n) cDEFAULT_WUMPUS_HEALTH cMAX_AGENT_STAMINA)
+      addEntity _ n i (255,0,0) c = c & entity ?~ Wu (Wumpus (SM $ WumpusMind (error "tried to access undefined wumpusMind!") i) (show n) cDEFAULT_WUMPUS_HEALTH cMAX_AGENT_STAMINA)
       addEntity _ _ _ (0,255,0) c = c & plant .~ Just cPLANT_MAX
       addEntity a _ _ (0,0,v) c| v > 0 = c & entity ?~ Ag (fst (a M.! v))
       addEntity _ _ _ _ c = c
@@ -188,7 +207,7 @@ generateAgentLine w = do
 
 -- |Creates a given number of agent-lines.
 generateAgents :: Word8 -> IO [String]
-generateAgents n = mapM generateAgentLine [0..n]
+generateAgents n = mapM generateAgentLine [1..n]
 
 -- |Generates an agent-file with the given name and the given number of agents.
 generateAgentsFile :: Word8 -> String -> IO ()
