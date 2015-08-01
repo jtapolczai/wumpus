@@ -9,6 +9,8 @@ import Control.Monad
 
 import Types
 
+import Debug.Trace
+
 -- |Calls a list of components in succession. Each component receives the same
 --  messages. Components may modify the agent state and communicate with each other
 --  by putting messages into 'newMessages'. Each component receives in its message space
@@ -30,6 +32,7 @@ callComponents comps initAs = putMsg <$> foldM f (initAs, mempty) comps
       -- run the component with the initial messages.
       -- collect the newly added messages separately.
       f (curAs, ms) g = do
+         traceM $ "[CC] msg: " ++ (show $ view messageSpace initAs ++ ms)
          newAs <- g $ curAs & messageSpace .~ (view messageSpace initAs ++ ms)
          return (newAs & newMessages .~ mempty,
                  newAs ^. newMessages ++ ms)
