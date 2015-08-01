@@ -27,6 +27,8 @@ import World.Utils
 
 import Data.MList
 
+import Debug.Trace
+
 type IntensityMap = M.Map CellInd Rational
 
 -- add new constructors for:
@@ -85,17 +87,18 @@ simulateStepReader world =
       -- "updating an agent" means giving it its perceptions and performing
       -- its action. We also update the wumpus stench to have accurate stench
       -- information.
-      updateAgent world ent = wumpusStench <$> doEntityAction world' ent
-         where world' = giveEntityPerceptions world (fst ent)
+      updateAgent world i = trace "[updateAgent]" $ wumpusStench <$> doEntityAction world' (i, ent)
+         where world' = giveEntityPerceptions world i
+               ent = entityAt i world'
+
 
       -- perform local changes to agents/plants
       advanceLocalData = increaseStamina . increaseHunger . regrowPlants
 
-sendBodyMessage :: World -> (CellInd, Entity') -> World
-sendBodyMessage w (_,Wu _) = w
-sendBodyMessage w (i,Ag a) = onCell i (onAgent $ sendMsg msg) w
+sendBodyMessage :: World -> CellInd -> World
+sendBodyMessage w i = onCell i (onAgent $ \a -> sendMsg (msg a) a) w
    where
-      msg = MsgBody (a ^. health) (a ^. stamina) (a ^. inventory)
+      msg a = MsgBody (a ^. health) (a ^. stamina) (a ^. inventory)
 
 -- |Gives an entity its perceptions based on the current world, and updates
 --  the world accordingly.
@@ -103,12 +106,21 @@ giveEntityPerceptions :: World
                       -> CellInd
                       -> World
 giveEntityPerceptions world i =
-   world & cellData . ix i . entity %~ fmap (state %~ pullMessages world i)
+   trace "[World.giveEntityPerceptions]" $
+      -- trace ("   agent name: " ++ (world ^. cellData . at' i . ju entity . name)) $
+      -- trace ("cellData names: " ++ show (str world)) $
+      -- trace ("ixed named: " ++ show str') $
+   world & cellData . ix i . entity . _Just . state %~ (pullMessages world i)
+
+
+prnNames :: World -> [(CellInd, String)]
+prnNames = map (\(k,Just v) -> (k,v)) . filter (isJust . snd) . M.toList . fmap (maybe Nothing (Just . view name) . view entity) . view cellData
 
 -- |Gets all agents and Wumpuses in the worlds.
 --  The Wumpuses will be in the front of the list.
-worldAgents :: World -> [(CellInd, Entity')]
-worldAgents world = uncurry (++)
+worldAgents :: World -> [CellInd]
+worldAgents world = map fst
+                    $ uncurry (++)
                     $ partition (^. to snd . to isWumpus)
                     $ mapMaybe (\(i,c) -> (c ^. entity) >$> (i,))
                     $ world ^. cellData . to M.assocs
@@ -123,7 +135,10 @@ doEntityAction :: (MonadReader WorldMetaInfo m, MonadWriter (WorldStats -> World
 doEntityAction world (i, ag) = if cellFree i world
    then return world
    else case ag of
-      Ag agent -> do (action, ag') <- liftIO $ getAction (agent ^. state)
+      Ag agent -> do traceM "[doEntityAction]"
+                     traceM (show $ agent ^. name)
+                     traceM (show $ prnNames world)
+                     (action, ag') <- liftIO $ getAction (agent ^. state)
                      let agent' = Ag (agent & state .~ ag')
                          world' = world & cellData . ix i . entity ?~ agent'
                      doAction i action world'

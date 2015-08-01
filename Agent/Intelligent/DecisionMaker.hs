@@ -22,6 +22,8 @@ import Types
 import World.Constants
 import World.Utils
 
+import Debug.Trace
+
 -- |A function which returns actions associated with a given action.
 type ActionSelector a =
    GestureStorage -- ^The agent's gesture storage.
@@ -40,24 +42,33 @@ initialDecisionMakerComponent = return . addMessages msg
 --  Chooses a next planned step and inserts the corresponding memory and
 --  imaginary 'AMPlannedAction' into the message space.
 decisionMakerComponent :: AgentComponent IO
-decisionMakerComponent asInit =
+decisionMakerComponent asInit = trace "dmComp" $
    -- if there's no plan, start one.
    if null plannedActions || noBudget then do
+      traceM "no plan"
+      traceM $ "dominantEmotion: " ++ show dominantEmotion
       -- randomly choose an emotion-appropriate action
       act <- getNextAction dominantEmotion
+      traceM (show act)
       let newMsg = isImag [AMPlannedAction act mempty False,
                            AMPlanEmotion dominantEmotion]
 
+      traceM "mkStep"
+      traceM $ "newMsg: " ++ show newMsg
       return $ budgetAddStep $ as & newMessages %~ (newMsg++)
    -- if there is one, continue/abandon/OK the plan
-   else do 
+   else do
+      traceM "has plan"
       if strongestOverruling planEmotion allChanges > 0 then
-         do numSteps <- randomRIO (1,length . runMI . leftMemIndex $ as)
+         do traceM "retract step"
+            numSteps <- randomRIO (1,length . runMI . leftMemIndex $ as)
             return $ budgetRetractSteps numSteps
                    $ retractSteps (leftMemIndex as) numSteps as
-      else if targetEmotionSatisfied' allChanges >= 1 then
+      else if targetEmotionSatisfied' allChanges >= 1 then do
+         traceM "finalize plan"
          return $ finalizeAction (MI []) as
       else do
+         traceM "contine plan"
          act <- getNextAction planEmotion
          let newMsg = [(True, AMPlannedAction act (leftMemIndex as) False)]
          return $ budgetAddStep $ as & newMessages %~ (newMsg++)
@@ -65,6 +76,12 @@ decisionMakerComponent asInit =
       -- chooses another action related to the given emotion
       getNextAction :: EmotionName -> IO Action
       getNextAction emotion =
+         trace "getNextAction" $
+         traceShow emotion $
+         traceShow (as ^. gestures) $
+         traceShow (as ^. messageSpace) $
+         traceShow myPos $
+         traceShow (makeAbs myPos $ strongestEmotionCell emotion as) $
          choose $ emotionAction emotion
                                 (as ^. gestures)
                                 myPos

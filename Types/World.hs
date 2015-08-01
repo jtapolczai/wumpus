@@ -3,15 +3,19 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE LambdaCase #-}
 
 -- |General stuff on which other modules depend.
 module Types.World where
 
 import Data.Default
 import qualified Data.Foldable as F
+import Data.List (intercalate)
 import qualified Data.Map as M
 import Math.Geometry.Grid.Square
 import Math.Geometry.Grid.SquareInternal (SquareDirection(..))
+
+import Debug.Trace
 
 instance Ord SquareDirection where
    x <= y = fromEnum x <= fromEnum y
@@ -39,7 +43,7 @@ type EntityName = String
 type GestureName = String
 
 -- |Enumeration for entity types.
-data EntityType = TyAgent | TyWumpus
+data EntityType = TyAgent | TyWumpus deriving (Show, Eq, Ord, Read)
 
 -- Agent data
 -------------------------------------------------------------------------------
@@ -189,7 +193,7 @@ data Temperature = Freezing | Cold | Temperate | Warm | Hot
 data WorldData = WD {
    _worldDataTime :: Int,
    _worldDataTemperature :: Temperature
-}
+} deriving (Eq, Ord, Show)
 
 data World = World {
    _worldWorldData :: WorldData,
@@ -235,6 +239,22 @@ data Message =
    | MsgBody Rational Rational (M.Map Item Int)
    -- |Plant harvested
    | MsgPlantHarvested
+
+instance Show Message
+   where show = \case MsgVisualPerception e d -> "MsgVisualPerception " ++ intercalate " " [show e,show d]
+                      MsgLocalPerception _ -> "MsgLocalPerception"
+                      MsgGlobalPerception d -> "MsgGlobalPerception " ++ show d
+                      MsgPositionPerception p -> "MsgPositionPerception " ++ show p
+                      MsgGesture e g -> "MsgGesture " ++ intercalate " " [show e,show g]
+                      MsgHealthChanged r -> "MsgHealthChanged " ++ show r
+                      MsgStaminaChanged r -> "MsgStaminaChanged " ++ show r
+                      MsgAttackedBy e d -> "MsgAttackedBy "  ++ intercalate " " [show e,show d]
+                      MsgReceivedItem e i -> "MsgReceivedItem " ++ intercalate " " [show e,show i]
+                      MsgLostItem i -> "MsgLostItem " ++ show i
+                      MsgDied e d -> "MsgDied " ++ intercalate " " [show e, show d]
+                      MsgAttacked e -> "MsgAttacked " ++ show e
+                      MsgBody h s i -> "MsgBody " ++ intercalate " " [show h, show s, show i]
+                      MsgPlantHarvested -> "MsgPlantHarvested"
 
 -- |The class of agents.
 --  An agent is a object that can receive messages (percepts) from its
@@ -284,7 +304,7 @@ class AgentMind a where
 data SomeMind = forall m.AgentMind m => SM m
 
 instance AgentMind SomeMind where
-   pullMessages w i (SM m) = SM (pullMessages w i m)
+   pullMessages w i (SM m) = trace "SM.pullMessages" $ SM (pullMessages w i m)
    receiveMessage x (SM m) = SM (receiveMessage x m)
    getAction (SM m) = do (a,m') <- getAction m
                          return (a, SM m')

@@ -183,6 +183,7 @@ hasMemNode (MI (x:xs)) (T.Node _ ts)
 
 -- |Randomly and uniformly chooses an element from a list.
 choose :: [a] -> IO a
+choose [] = error "choose: empty list given!"
 choose xs = randomRIO (0, length xs - 1) >$> (xs !!)
 
 -- |Creates a map from a list of keys and a value generating function.

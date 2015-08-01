@@ -20,6 +20,8 @@ import Agent.Intelligent.Filter
 import Types
 import World.Utils
 
+import Debug.Trace
+
 -- |A function that takes a list of coordinate-significance pairs and
 --  a starting vertex and returns a forest of filters, with
 --  a list of output nodes.

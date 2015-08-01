@@ -20,14 +20,17 @@ import Agent.Intelligent.Utils
 import Types
 import World.Perception
 
+import Debug.Trace
+
 instance AgentMind AgentState where
-   pullMessages w i = receiveMessages msg
+   pullMessages w i = trace "[pullMessages]" $
+                      traceShow msg $ receiveMessages msg
       where
          msg = getLocalPerceptions w i dir
          me = w ^. cellData . ju (at i) . ju entity
          dir = fromJust (me ^? _Ag . direction)
 
-   receiveMessage msg as = as & messageSpace %~ (msg'++)
+   receiveMessage msg as = trace "[receiveMessage]" $ as & messageSpace %~ (msg'++)
       where
         msg' = zip (repeat False) (perception myPos msg)
         myPos = myPosition $ view messageSpace as
@@ -35,7 +38,10 @@ instance AgentMind AgentState where
    getAction = getAction'
 
 getAction' :: AgentState -> IO (Action, AgentState)
-getAction' as = do action <- callComponents [initialMemoryComponent,
+getAction' as = do traceM $ "[getAction] " ++ (as ^. name)
+                   traceM $ "[getAction] " ++ (show $ as ^. messageSpace)
+                   action <- callComponents [persistentMessagesComponent,
+                                             initialMemoryComponent,
                                              initialDecisionMakerComponent] as
                              >>= loop action (callComponents components)
                    return (action, as & messageSpace .~ [])
@@ -47,7 +53,8 @@ getAction' as = do action <- callComponents [initialMemoryComponent,
       action :: AgentState -> Maybe Action
       action = fmap (view (_2._1)) . LS.head . filter (not.fst) . msgWhere _AMPlannedAction . view messageSpace
 
-      components = [psbcComponent,
+      components = [persistentMessagesComponent,
+                    psbcComponent,
                     sjsComponent, 
                     memoryComponent,
                     decisionMakerComponent,

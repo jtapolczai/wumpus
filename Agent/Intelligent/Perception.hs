@@ -12,11 +12,14 @@ import Data.Maybe
 import Types
 import World.Utils
 
+import Debug.Trace
+
 -- |Processes and breaks up messages from the outside world into smaller
 --  ones that the other sub-systems of the agent can process.
 perception :: CellInd -- |The agent's current position, for creating relative coordinates.
            -> Message
            -> [AgentMessage]
+perception pos msg | traceShow msg $ False = error "shouldn't be here"
 perception pos (MsgVisualPerception iAbs d) =
    [AMVisualGold i (d ^. gold),
     AMVisualMeat i (d ^. meat),

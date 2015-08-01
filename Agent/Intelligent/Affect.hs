@@ -20,6 +20,8 @@ import Types
 import World.Constants
 import World.Utils
 
+import Debug.Trace
+
 -- |A map of all the emotions..
 --  Useful as an initial dictionary and for folding over lists of values.
 psbcEmotionMap :: a -> M.Map EmotionName a
@@ -85,7 +87,7 @@ sjsEntityEmotion ms other emo as = as & sjs . _1 . at other %~ changeLvl
 -- |Modulates an agent's emotional state based on stimuli.
 --  Messages about the four new emotional states are inserted.
 psbcComponent :: Monad m => AgentState -> m AgentState
-psbcComponent as = return $
+psbcComponent as = trace "[psbcComponent]" $ return $
    foldr (\en as' -> addEmotionMessage en $ psbcEmotion msg en as') as [minBound..maxBound]
    where
       msg = map snd $ as ^. messageSpace
@@ -101,10 +103,10 @@ psbcEmotion :: [AgentMessage]
             -> EmotionName
             -> AgentState
             -> AgentState
-psbcEmotion ms emo as = as & psbc . ix emo .~ (new_lvl , filt)
+psbcEmotion ms emo as = trace ("[psbcEmotion: " ++ show emo ++ "]") $ as & psbc . ix emo .~ (new_lvl , filt)
    where
       (lvl, filt) = as ^. psbc . at emo . to fromJust
-      val = emotionValue ms filt
+      val = trace ("calling with EV " ++ show emo) $ emotionValue ms filt
 
       new_lvl = avg [lvl, val]
 
@@ -112,7 +114,7 @@ psbcEmotion ms emo as = as & psbc . ix emo .~ (new_lvl , filt)
 emotionValue :: [AgentMessage]
              -> Filter AgentMessage
              -> Rational -- ^The strength of the emotional response (-1 to 1).
-emotionValue ms filt = runFilter ms cAGENT_FILTER_ROUNDS filt
+emotionValue ms filt = trace "[emotionValue]" $ runFilter ms cAGENT_FILTER_ROUNDS filt
 
 -- |Returns whether the second emotion is stronger, provided that the two
 --  conflict along the approach/avoidance, axis. If they don't conflict, the returns False.

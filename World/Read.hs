@@ -125,7 +125,7 @@ readWorld dir = do
 
       -- adds and entity. Wumpuses will get undefined minds (to avoid an infinite regress!)
       addEntity :: M.Map Word8 (Agent SomeMind, a) -> Int -> CellInd -> Pixel -> CellData -> CellData
-      addEntity _ n i (255,0,0) c = c & entity ?~ Wu (Wumpus (SM $ WumpusMind (error "tried to access undefined wumpusMind!") i) (show n) cDEFAULT_WUMPUS_HEALTH cMAX_AGENT_STAMINA)
+      addEntity _ n i (255,0,0) c = c & entity ?~ Wu (Wumpus (SM $ WumpusMind (error "tried to access undefined wumpusMind!") i) ("w" ++ show n) cDEFAULT_WUMPUS_HEALTH cMAX_AGENT_STAMINA)
       addEntity _ _ _ (0,255,0) c = c & plant .~ Just cPLANT_MAX
       addEntity a _ _ (0,0,v) c| v > 0 = c & entity ?~ Ag (fst (a M.! v))
       addEntity _ _ _ _ c = c
