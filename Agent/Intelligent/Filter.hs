@@ -35,6 +35,8 @@ import Data.Maybe
 
 import Types
 
+import Debug.Trace
+
 -- |Creates an empty filter.
 instance Default (Filter s) where
    def = FI (HM.empty) (HS.empty)
@@ -178,11 +180,13 @@ runFilter :: [AgentMessage]
           -> Int -- ^The upper limit on the number of rounds. 0 means that nothing is done.
           -> Filter AgentMessage
           -> Rational -- ^Capped sum of the significances of activated output nodes.
-runFilter _ 0 f = activatedSum $ activateNodes f
+runFilter _ 0 f = trace "[runFilter (base case)]" $ activatedSum $ activateNodes f
 -- Messages are only given to the nodes once. If no activations are caused,
 -- we can just abort the process. Otherwise, we repeat it and see whether the
 -- excitement sent out before causes new nodes to become active.
-runFilter ms limit filt = if HM.null newActiveNodes then activatedSum filt
+runFilter ms limit filt = trace ("runFilter (step case, limit = " ++ show limit ++ ")]") $
+                          trace ("___activatedNodes: " ++ show (activatedNodes)) $
+                          if null activatedNodes then activatedSum filt
                           else runFilter [] (limit - 1) filt''
    where
       -- sends all the given messages to a node
@@ -193,11 +197,11 @@ runFilter ms limit filt = if HM.null newActiveNodes then activatedSum filt
       -- each node gets all the messages in sequence.
       filt' = activateNodes (filt & graph %~ fmap sendMessages)
 
-      newActiveNodes = HM.filter (^. active) (filt' ^. graph)
+      curActiveNodes = HM.filter (^. active) (filt' ^. graph)
       oldActiveNodes = HM.filter (^. active) (filt ^. graph)
 
       -- newly activated nodes send excitement along their outgoing edges.
-      activatedNodes = HM.keys $ HM.difference newActiveNodes oldActiveNodes
+      activatedNodes = HM.keys $ HM.difference curActiveNodes oldActiveNodes
 
       -- lastly, send out excitement from the newly activated nodes
       filt'' = sendExcitementFrom activatedNodes filt'
