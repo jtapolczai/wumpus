@@ -15,7 +15,8 @@ persistentMessagesComponent :: Monad m => AgentComponent m
 persistentMessagesComponent as = return $
    addMessages (filter prisms $ view messageSpace as) as
    where
-      prisms (True,_) = True
-      prisms (False, x) = isP _AMPosition x
-                          || isP _AMTime x
-                          || isP _AMTemperature x 
+      prisms (False,_) = True
+      prisms (_, x) =
+         isP _AMPosition x
+         || isP _AMTime x
+         || isP _AMTemperature x 

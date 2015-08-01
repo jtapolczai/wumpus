@@ -76,12 +76,13 @@ decisionMakerComponent asInit = trace "dmComp" $
       -- chooses another action related to the given emotion
       getNextAction :: EmotionName -> IO Action
       getNextAction emotion =
-         trace "getNextAction" $
+         trace "[getNextAction]" $
          traceShow emotion $
          traceShow (as ^. gestures) $
          traceShow (as ^. messageSpace) $
          traceShow myPos $
          traceShow (makeAbs myPos $ strongestEmotionCell emotion as) $
+         traceShow "___getNextAction traces done" $
          choose $ emotionAction emotion
                                 (as ^. gestures)
                                 myPos
@@ -245,13 +246,16 @@ sumEmotionChanges goalMI = foldl' f (psbcEmotionMap 0)
 
 -- |Gets the cell that evokes the highest value for a given emotion.
 strongestEmotionCell :: EmotionName -> AgentState-> RelInd
-strongestEmotionCell en = fst . head . sortBy (flip $ comparing f) . M.toList . evaluateCells
+strongestEmotionCell en = trace "[strongestEmotionCell]"
+   $ fst . head . sortBy (flip $ comparing f) . M.toList . evaluateCells
    where
       f = view (at' en) . snd
 
 -- |Performs affective evaluation separately on every cell.
 evaluateCells :: AgentState -> M.Map RelInd (M.Map EmotionName Rational)
-evaluateCells as = fmap evaluateCell cells
+evaluateCells as = trace "[evaluateCells]" 
+   $ trace ("___cells: " ++ (show $ map fst $ M.toList cells))
+   $ fmap evaluateCell cells
    where
       ms = as ^. messageSpace
 
