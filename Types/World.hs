@@ -93,6 +93,9 @@ data VisualAgent = VisualAgent {
    }
    deriving (Show, Eq, Ord)
 
+instance Default VisualAgent where
+   def = VisualAgent "" North 0 0 Nothing
+
 -- Wumpus data
 -------------------------------------------------------------------------------
 
@@ -114,6 +117,9 @@ data VisualWumpus = VisualWumpus {
    _visualWumpusStamina :: Rational
    }
    deriving (Show, Eq, Ord)
+
+instance Default VisualWumpus where
+   def = VisualWumpus "" 0 0
 
 
 -- Entities
