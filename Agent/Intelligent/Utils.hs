@@ -162,9 +162,9 @@ fjoin :: Ord k
 fjoin x m n = M.mergeWithKey (\_ f x -> Just (f x)) (const M.empty) id m
               $ M.union n (fmap (const x) m)
 
--- |Gets the agent's latest position. Unsafe if there's no position message.
-myPosition :: [AgentMessage'] -> CellInd
-myPosition = fromMaybe (error "myPosition: Nothing!") . lastWhere _AMPosition
+-- |Gets the agent's latest position.
+myPosition :: [AgentMessage'] -> Maybe CellInd
+myPosition = lastWhere _AMPosition
 
 -- |Adds a new node as the last child of node specified by the path.
 --  

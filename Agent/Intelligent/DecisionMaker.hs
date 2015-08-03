@@ -89,7 +89,7 @@ decisionMakerComponent asInit = trace "dmComp" $
                                 myPos
                                 (makeAbs myPos $ strongestEmotionCell emotion as)
 
-      myPos = myPosition $ as ^. messageSpace
+      myPos = fromMaybe (error "[decisionMakerComponent.myPos] Nothing!") $ myPosition $ as ^. messageSpace
 
       -- first, we reinsert all the planning-related messages
       as :: AgentState

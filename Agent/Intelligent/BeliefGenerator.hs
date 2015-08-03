@@ -42,7 +42,7 @@ simulateConsequences
    -> IO (World, [AgentMessage])
 simulateConsequences act mi as = do
    let currentWorld = reconstructWorld act mi as
-       myPos = myPosition $ view messageSpace as
+       myPos = fromMaybe (error "[simulateConsequences.myPos] Nothing!") $ myPosition $ view messageSpace as
    nextWorld <- simulateStep currentWorld
    -- get the messages from the agent at its new position.
    -- the agent not being present means that it has died, so create an

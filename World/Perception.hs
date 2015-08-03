@@ -18,7 +18,7 @@ getLocalPerceptions :: World
                     -> CellInd -- ^The agent's position.
                     -> SquareDirection -- ^The agent's direction.
                     -> [Message]
-getLocalPerceptions world i d = trace "[getLocalPerception]" $ local : global : location : visual
+getLocalPerceptions world i d = trace "[getLocalPerception]" $ location : local : global : visual
    where
       local = MsgLocalPerception $ cellAt i world
       global = MsgGlobalPerception $ world ^. worldData

@@ -30,10 +30,13 @@ instance AgentMind AgentState where
          me = w ^. cellData . ju (at i) . ju entity
          dir = fromMaybe (error "[AgentState.pullMessages.dir]: Nothing") (me ^? _Ag . direction)
 
-   receiveMessage msg as = trace "[receiveMessage]" $ as & messageSpace %~ (msg'++)
+   receiveMessage msg as = trace ("[receiveMessage] " ++ show msg
+                                  ++ "\n___msg space: " ++ show (as ^. messageSpace))
+                           $ trace ("___[receiveMessage] msg space: " ++ show (as ^. messageSpace))
+                           $ as & messageSpace %~ (msg'++)
       where
         msg' = zip (repeat False) (perception myPos msg)
-        myPos = myPosition $ view messageSpace as
+        myPos = fromMaybe (error "[receiveMessage.myPos] Nothing!") $ myPosition $ view messageSpace as
 
    getAction = getAction'
 

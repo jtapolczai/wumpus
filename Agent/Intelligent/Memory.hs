@@ -209,7 +209,7 @@ makeWorldUpdates :: [AgentMessage']
                      M.Map EdgeInd (EdgeData -> EdgeData))
 makeWorldUpdates xs = (cellUpdates, edgeUpdates)
    where
-      myPos = myPosition xs
+      myPos = fromMaybe (error "[makeWorldUpdates.myPos] Nothing!") $ myPosition xs
 
       -- put the edge- and cell-related messages into bags indexed by
       -- cell/edge index.
