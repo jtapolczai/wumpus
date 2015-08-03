@@ -63,7 +63,8 @@ data FilterNode s = FN {
    _filterNodeNeighbors :: [(Vertex, Rational)]
    }
 
-data Filter s = FI {
-   _filterGraph :: HM.HashMap Vertex (FilterNode s),
-   _filterOutputNodes :: HS.HashSet Vertex
+data FilterMsg sn ri s = FI {
+   _filterMsgGraph :: HM.HashMap Vertex (FilterNode s),
+   _filterMsgOutputNodes :: HS.HashSet Vertex,
+   _filterMsgNodeIndex :: HM.HashMap sn (HM.HashMap (Maybe ri) [Vertex])
 }

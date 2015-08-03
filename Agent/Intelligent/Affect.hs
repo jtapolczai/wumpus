@@ -112,7 +112,7 @@ psbcEmotion ms emo as = {- trace ("[psbcEmotion: " ++ show emo ++ "]") $ -} as &
 
 -- |Runs a stimulus through a filter and gets the resultant emotional response.
 emotionValue :: [AgentMessage]
-             -> Filter AgentMessage
+             -> Filter
              -> Rational -- ^The strength of the emotional response (-1 to 1).
 emotionValue ms filt = {- trace "[emotionValue]" $ -} runFilter ms cAGENT_FILTER_ROUNDS filt
 

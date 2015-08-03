@@ -75,7 +75,7 @@ simulateStep = rwsBracket . simulateStepReader
 --  In addition, statistical data is written out.
 simulateStepReader :: (MonadReader WorldMetaInfo m, MonadWriter (WorldStats -> WorldStats) m, MonadIO m)
                    => World -> m World
-simulateStepReader world =
+simulateStepReader world = trace "simulateStepReader" $ trace (replicate 80 '=') $
    (worldData %~ advanceGlobalData)
    . (cellData %~ fmap advanceLocalData)
    . sendBodyMessages

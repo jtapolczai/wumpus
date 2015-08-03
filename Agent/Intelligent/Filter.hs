@@ -1,4 +1,6 @@
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 
 module Agent.Intelligent.Filter (
    -- *Running filters
@@ -23,12 +25,17 @@ module Agent.Intelligent.Filter (
    mkGraphSchema,
    andEdgeStrength,
    orEdgeStrength,
+   -- * Building the node index
+   -- | Building the index is necessary for runFilter, which uses is to efficiently
+   --   send messages only to relevant nodes.
+   mkFilterIndex,
    ) where
 
 import Control.Lens
 import Data.Default
 import qualified Data.Foldable as F
 import qualified Data.Graph as G
+import Data.List (foldl')
 import qualified Data.HashMap.Strict as HM
 import qualified Data.HashSet as HS
 import Data.Maybe
@@ -38,8 +45,8 @@ import Types
 import Debug.Trace
 
 -- |Creates an empty filter.
-instance Default (Filter s) where
-   def = FI (HM.empty) (HS.empty)
+instance Default (FilterMsg sn ri s) where
+   def = FI (HM.empty) (HS.empty) (HM.empty)
 
 -- Making graphs
 -------------------------------------------------------------------------------
@@ -151,16 +158,16 @@ exciteNode x = cond' (\fn -> runCondition (fn ^. condition) x)
 -- |Sends excitation along one edge to a neighbor.
 exciteNeighbor :: G.Vertex -- ^Target node.
                -> Rational -- ^Edge strength to target node.
-               -> Filter a
-               -> Filter a
+               -> Filter
+               -> Filter
 exciteNeighbor nk es f = f & graph . ix nk %~ exInc
    where
       exInc n = n & excitement +~ round (fromIntegral (n ^. threshold) * es)
 
 -- send excitement to every neighbor of a node.
 exciteNeighbors :: G.Vertex
-                -> Filter a
-                -> Filter a
+                -> Filter
+                -> Filter
 exciteNeighbors k f = foldr excite f neighbors'
    where
       excite (nk, es) f' = exciteNeighbor nk es f'
@@ -169,16 +176,16 @@ exciteNeighbors k f = foldr excite f neighbors'
 -- |Takes a list of nodes (presumably those who are newly activated) and
 --  sends excitement to all their neighbors via 'excitNeighbors'.
 sendExcitementFrom :: [G.Vertex]
-                   -> Filter a
-                   -> Filter a
+                   -> Filter
+                   -> Filter
 sendExcitementFrom = flip (F.foldl' (flip exciteNeighbors))
 
 -- |Inputs a list of messages into filter and returns the sum of the
 --  signifcances of actived output nodes (how "strongly" the filter responds
 --  to the messages).
-runFilter :: Ord s => [s]
+runFilter :: [AgentMessage]
           -> Int -- ^The upper limit on the number of rounds. 0 means that nothing is done.
-          -> Filter s
+          -> Filter
           -> Rational -- ^Capped sum of the significances of activated output nodes.
 runFilter _ 0 f = {- trace "[runFilter (base case)]" $ -} activatedSum $ activateNodes f
 -- Messages are only given to the nodes once. If no activations are caused,
@@ -189,13 +196,16 @@ runFilter ms limit filt = -- trace ("runFilter (step case, limit = " ++ show lim
                           if null activatedNodes then activatedSum filt
                           else runFilter [] (limit - 1) filt''
    where
+      processMsg f m = foldl' (\f' n -> f' & graph . ix n %~ exciteNode m) f $ candidateNodes m f
+      filt' = activateNodes $ foldl' processMsg filt ms
+
       -- sends all the given messages to a node
       -- (s is the strength to add to the excitement value in case of a match).
-      sendMessages n = foldr exciteNode n ms
+      -- sendMessages n = foldr exciteNode n ms
 
       -- send messages to all nodes and update excitement levels.
       -- each node gets all the messages in sequence.
-      filt' = activateNodes (filt & graph %~ fmap sendMessages)
+      -- filt' = activateNodes (filt & graph %~ fmap sendMessages)
 
       curActiveNodes = HM.filter (^. active) (filt' ^. graph)
       oldActiveNodes = HM.filter (^. active) (filt ^. graph)
@@ -209,14 +219,39 @@ runFilter ms limit filt = -- trace ("runFilter (step case, limit = " ++ show lim
 
 -- |Returns the sum of the significances of all activated output nodes,
 --  capped to -1/1.
-activatedSum :: Filter a -> Rational
+activatedSum :: Filter -> Rational
 activatedSum filt = max (-1) $ min 1 $ F.foldl' add 0 $ HM.filterWithKey isOutput $ filt ^. graph
    where
       isOutput k _ = filt ^. outputNodes . to (HS.member k)
       add acc n = if n ^. active then acc + (n ^. significance) else acc
 
 -- |Sets the 'activated' flag on nodes with sufficiently high excitement.
-activateNodes :: Filter a -> Filter a
+activateNodes :: Filter -> Filter
 activateNodes = graph %~ fmap activate
    where
       activate = cond' (\n -> n ^. excitement >= n ^. threshold) (active .~ True)
+
+-- |Overwrites a filter's filterIndex, creating a new one based on a list of index entries.
+mkFilterIndex :: [(AgentMessageName, Maybe RelInd, G.Vertex)] -> Filter -> Filter
+mkFilterIndex xs = nodeIndex .~ foldl' f HM.empty xs
+   where
+      f :: HM.HashMap AgentMessageName (HM.HashMap (Maybe RelInd) [G.Vertex])
+        -> (AgentMessageName, Maybe RelInd, G.Vertex)
+        -> HM.HashMap AgentMessageName (HM.HashMap (Maybe RelInd) [G.Vertex])
+      f hm (msg, ri, v) = HM.insertWith comb msg (HM.singleton ri [v]) hm
+         where
+            comb :: HM.HashMap (Maybe RelInd) [G.Vertex]
+                 -> HM.HashMap (Maybe RelInd) [G.Vertex]
+                 -> HM.HashMap (Maybe RelInd) [G.Vertex]
+            comb _ = HM.insertWith (\_ -> (v:)) ri [v]
+
+-- |Gets the list of nodes that can respond to a message. Returns an empty list
+--  if none are found. Nodes that can respond are those which have the same RelInd
+--  as the given message, or which need no specific RelInd.
+candidateNodes :: AgentMessage -> Filter -> [G.Vertex]
+candidateNodes msg (FI _ _ i) = trace "[candidateNodes]"
+   $ maybe (trace "[candidateNodes] no nodes." [])
+           (\m1 -> let noCI = fromMaybe [] $ HM.lookup Nothing m1
+                       hasCI = fromMaybe [] $ maybe Nothing (`HM.lookup` m1) (Just $ msg ^. _agentMessageCellInd)
+                   in noCI ++ hasCI)
+           (HM.lookup (cast msg) i)

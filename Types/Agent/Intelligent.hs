@@ -1,6 +1,10 @@
+{-# LANGUAGE DeriveGeneric #-}
+
 module Types.Agent.Intelligent where
 
 import Data.Default
+import GHC.Generics (Generic)
+import Data.Hashable
 import qualified Data.Map as M
 import qualified Data.Tree as T
 import Math.Geometry.Grid.SquareInternal (SquareDirection)
@@ -21,7 +25,10 @@ type IsImaginary = Bool
 
 type Discharged = Bool
 
-newtype RelInd = RI{runRelInd :: CellInd} deriving (Show, Eq, Ord)
+newtype RelInd = RI{runRelInd :: CellInd} deriving (Show, Eq, Ord, Generic)
+
+instance Hashable RelInd
+
 type RelEdgeInd = (RelInd, SquareDirection)
 
 -- |A component of an agent that modifies the agent's state.
@@ -141,6 +148,74 @@ data AgentMessage =
    | AMPlanGlobalBudget Int
    deriving (Show, Eq, Ord)
 
+data AgentMessageName =
+   AMNTemperature
+   | AMNTime
+   | AMNGesture
+   | AMNPosition
+   | AMNVisualAgent
+   | AMNVisualWumpus
+   | AMNVisualEntityHealth
+   | AMNVisualEntityStamina
+   | AMNVisualFree
+   | AMNVisualPit
+   | AMNVisualGold
+   | AMNVisualMeat
+   | AMNVisualFruit
+   | AMNVisualPlant
+   | AMNVisualEdgeDanger
+   | AMNVisualEdgeFatigue
+   | AMNLocalStench
+   | AMNLocalBreeze
+   | AMNLocalAgent
+   | AMNEmotionAnger
+   | AMNEmotionFear
+   | AMNEmotionEnthusiasm
+   | AMNEmotionContentment
+   | AMNEmotionChanged
+   | AMNEmotionSympathy
+   | AMNEmotionTrust
+   | AMNEmotionRespect
+   | AMNHealthDecreased
+   | AMNHealthIncreased
+   | AMNStaminaDecreased
+   | AMNStaminaIncreased
+   | AMNAgentDied
+   | AMNWumpusDied
+   | AMNYouDied
+   | AMNHaveHealth
+   | AMNHaveStamina
+   | AMNAttackedBy
+   | AMNAttackedFrom
+   | AMNAttacked
+   | AMNReceivedMeat
+   | AMNReceivedFruit
+   | AMNReceivedGold
+   | AMNGainedMeat
+   | AMNGainedFruit
+   | AMNGainedGold
+   | AMNGaveMeat
+   | AMNGaveFruit
+   | AMNGaveGold
+   | AMNLostMeat
+   | AMNLostFruit
+   | AMNLostGold
+   | AMNPlantHarvested
+   | AMNHaveMeat
+   | AMNHaveFruit
+   | AMNHaveGold
+   | AMNKilledAgent
+   | AMNKilledWumpus
+   | AMNPlannedAction
+   | AMNPlanEmotion
+   | AMNPlanEmotionChanged
+   | AMNYouAreHere
+   | AMNPlanLocalBudget
+   | AMNPlanGlobalBudget
+   deriving (Show, Eq, Ord, Enum, Bounded, Generic)
+
+instance Hashable AgentMessageName
+
 newtype MemoryIndex = MI{runMI::[Int]}
    deriving (Show, Eq, Ord)
 
@@ -150,13 +225,15 @@ instance Monoid MemoryIndex where
 
 type AgentMessage' = (IsImaginary, AgentMessage)
 
-type PSBCFilters = M.Map EmotionName (HormoneLevel, Filter AgentMessage)
+type Filter = FilterMsg AgentMessageName RelInd AgentMessage
+
+type PSBCFilters = M.Map EmotionName (HormoneLevel, Filter)
 newtype SocialStorage = SST {_socialStorageSst :: M.Map SocialEmotionName HormoneLevel}
 
 instance Default SocialStorage where
    def = SST $ M.fromList [(Sympathy, 0), (Respect, 0), (Trust, 0)]
 
-type SJSFilters = (M.Map EntityName SocialStorage, M.Map SocialEmotionName (Filter AgentMessage))
+type SJSFilters = (M.Map EntityName SocialStorage, M.Map SocialEmotionName Filter)
 
 type Memory = (M.Map CellInd VisualCellData, M.Map EdgeInd EdgeData)
 

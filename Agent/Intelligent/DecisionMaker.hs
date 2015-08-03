@@ -42,11 +42,12 @@ initialDecisionMakerComponent = return . addMessages msg
 --  Chooses a next planned step and inserts the corresponding memory and
 --  imaginary 'AMPlannedAction' into the message space.
 decisionMakerComponent :: AgentComponent IO
-decisionMakerComponent asInit = trace "dmComp" $
+decisionMakerComponent asInit = trace "dmComp" $ trace (replicate 80 '-') $
    -- if there's no plan, start one.
    if null plannedActions || noBudget then do
       traceM "no plan"
       traceM $ "dominantEmotion: " ++ show dominantEmotion
+      traceM $ "dominantEmotionLevel: " ++ show dominantEmotionLevel
       -- randomly choose an emotion-appropriate action
       act <- getNextAction dominantEmotion
       traceM (show act)
@@ -96,7 +97,7 @@ decisionMakerComponent asInit = trace "dmComp" $
       as = asInit & newMessages .~ reinsertablePlanMsg asInit
 
       planStartEmotion = planStartEmotions as M.! planEmotion
-      targetEmotionSatisfied' = targetEmotionSatisfied planStartEmotion planEmotion
+      targetEmotionSatisfied' = trace "[decisionMakerComponent.targetEmotionSatisfied]" $ targetEmotionSatisfied planStartEmotion planEmotion
 
       -- the changes in emotional states since the beginning of the planning
       allChanges :: M.Map EmotionName Rational
@@ -134,7 +135,7 @@ decisionMakerComponent asInit = trace "dmComp" $
 -- |Returns the amount by which the strongest conflicting emotion is stronger
 --  than a given one. If no confliction emotion is stronger, 0 is returned. 
 strongestOverruling :: EmotionName -> M.Map EmotionName Rational -> Rational
-strongestOverruling en m = fromMaybe 0 $ do
+strongestOverruling en m = trace "[strongestOverruling]" fromMaybe 0 $ do
    enVal <- m ^. at en
    confVals <- mapM (\e -> m ^. at e) (conflictingEmotions en)
    return . max 0 . maximum . map (subtract enVal) $ confVals
@@ -229,10 +230,14 @@ targetEmotionSatisfied :: Rational -- ^The strength of the emotion at the start 
                        -> EmotionName
                        -> M.Map EmotionName Rational -- ^Map of emotional changes since the start of planning.
                        -> Rational -- ^The degree to which the decrease limit was reached. In [0,1].
-targetEmotionSatisfied start n m = (*) (1/lim) $ max 0 $ min lim (cur / start)
+targetEmotionSatisfied start n m = trace "[targetEmotionSatisfied]"
+   $ trace ("___start = " ++ show start ++ "; cur = " ++ show cur ++ "; n = " ++ show n)
+   $ (*) (1/lim) $ max 0 $ min lim ratio
    where
       lim = cAGENT_EMOTION_DECREASE_GOAL
       cur = m M.! n
+
+      ratio = if start == 0 then 0 else cur / start
 
 -- |Returns the summed emotional changes along a path in a plan.
 sumEmotionChanges :: MemoryIndex

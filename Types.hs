@@ -5,6 +5,7 @@
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE LambdaCase #-}
 
 -- |General stuff on which other modules depend.
 module Types (
@@ -58,7 +59,7 @@ cond' :: (a -> Bool) -> (a -> a) -> a -> a
 cond' p f x = if p x then f x else x
 
 makeFields ''FilterNode
-makeFields ''Filter
+makeFields ''FilterMsg
 makeFields ''Agent
 makeFields ''VisualAgent
 makeFields ''Wumpus
@@ -206,3 +207,68 @@ instance Castable CellData VisualCellData where
                 (Just $ a ^. breeze)
                 (Just $ a ^. stench)
 
+instance Castable AgentMessage AgentMessageName where
+   cast = \case
+      AMTemperature{} -> AMNTemperature
+      AMTime{} -> AMNTime
+      AMGesture{} -> AMNGesture
+      AMPosition{} -> AMNPosition
+      AMVisualAgent{} -> AMNVisualAgent
+      AMVisualWumpus{} -> AMNVisualWumpus
+      AMVisualEntityHealth{} -> AMNVisualEntityHealth
+      AMVisualEntityStamina{} -> AMNVisualEntityStamina
+      AMVisualFree{} -> AMNVisualFree
+      AMVisualPit{} -> AMNVisualPit
+      AMVisualGold{} -> AMNVisualGold
+      AMVisualMeat{} -> AMNVisualMeat
+      AMVisualFruit{} -> AMNVisualFruit
+      AMVisualPlant{} -> AMNVisualPlant
+      AMVisualEdgeDanger{} -> AMNVisualEdgeDanger
+      AMVisualEdgeFatigue{} -> AMNVisualEdgeFatigue
+      AMLocalStench{} -> AMNLocalStench
+      AMLocalBreeze{} -> AMNLocalBreeze
+      AMLocalAgent{} -> AMNLocalAgent
+      AMEmotionAnger{} -> AMNEmotionAnger
+      AMEmotionFear{} -> AMNEmotionFear
+      AMEmotionEnthusiasm{} -> AMNEmotionEnthusiasm
+      AMEmotionContentment{} -> AMNEmotionContentment
+      AMEmotionChanged{} -> AMNEmotionChanged
+      AMEmotionSympathy{} -> AMNEmotionSympathy
+      AMEmotionTrust{} -> AMNEmotionTrust
+      AMEmotionRespect{} -> AMNEmotionRespect
+      AMHealthDecreased{} -> AMNHealthDecreased
+      AMHealthIncreased{} -> AMNHealthIncreased
+      AMStaminaDecreased{} -> AMNStaminaDecreased
+      AMStaminaIncreased{} -> AMNStaminaIncreased
+      AMAgentDied{} -> AMNAgentDied
+      AMWumpusDied{} -> AMNWumpusDied
+      AMYouDied{} -> AMNYouDied
+      AMHaveHealth{} -> AMNHaveHealth
+      AMHaveStamina{} -> AMNHaveStamina
+      AMAttackedBy{} -> AMNAttackedBy
+      AMAttackedFrom{} -> AMNAttackedFrom
+      AMAttacked{} -> AMNAttacked
+      AMReceivedMeat{} -> AMNReceivedMeat
+      AMReceivedFruit{} -> AMNReceivedFruit
+      AMReceivedGold{} -> AMNReceivedGold
+      AMGainedMeat{} -> AMNGainedMeat
+      AMGainedFruit{} -> AMNGainedFruit
+      AMGainedGold{} -> AMNGainedGold
+      AMGaveMeat{} -> AMNGaveMeat
+      AMGaveFruit{} -> AMNGaveFruit
+      AMGaveGold{} -> AMNGaveGold
+      AMLostMeat{} -> AMNLostMeat
+      AMLostFruit{} -> AMNLostFruit
+      AMLostGold{} -> AMNLostGold
+      AMPlantHarvested{} -> AMNPlantHarvested
+      AMHaveMeat{} -> AMNHaveMeat
+      AMHaveFruit{} -> AMNHaveFruit
+      AMHaveGold{} -> AMNHaveGold
+      AMKilledAgent{} -> AMNKilledAgent
+      AMKilledWumpus{} -> AMNKilledWumpus
+      AMPlannedAction{} -> AMNPlannedAction
+      AMPlanEmotion{} -> AMNPlanEmotion
+      AMPlanEmotionChanged{} -> AMNPlanEmotionChanged
+      AMYouAreHere{} -> AMNYouAreHere
+      AMPlanLocalBudget{} -> AMNPlanLocalBudget
+      AMPlanGlobalBudget{} -> AMNPlanGlobalBudget

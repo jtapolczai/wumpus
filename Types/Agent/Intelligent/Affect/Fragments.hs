@@ -70,6 +70,7 @@ data EnthusiasmSettings = EnthusiasmSettings {
    _enthusiasmSettingsGaveMeatVal :: Rational,
    _enthusiasmSettingsGaveFruitVal :: Rational,
    _enthusiasmSettingsPlantHarvestedVal :: Rational,
+   _enthusiasmSettingsHealthIncreasedVal :: Rational,
    _enthusiasmSettingsHunger1Val :: Rational,
    _enthusiasmSettingsHunger2Val :: Rational,
    _enthusiasmSettingsHunger3Val :: Rational,
