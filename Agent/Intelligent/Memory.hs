@@ -36,6 +36,7 @@ module Agent.Intelligent.Memory (
 
 import Control.Arrow (first)
 import Control.Lens
+import Data.Default
 import Data.List
 import qualified Data.Map as M
 import Data.Maybe
@@ -52,6 +53,8 @@ import Agent.Omni()
 import Types
 import World
 import World.Utils
+
+import Debug.Trace
 
 -- |Resets the agent's memory to a root node, based on the agent's perceptions.
 --  This should only be called when the agent begins its thought process.
@@ -179,15 +182,15 @@ resetMemory as xs = as & memory .~ T.Node mem []
 constructMemory :: [AgentMessage'] -> Maybe Memory -> Memory
 constructMemory xs mem = (fjoin vcd cu c, fjoin ed eu e)
    where
-      vcd = VCD (vcdErr "entity") (vcdErr "pit") (vcdErr "gold") (vcdErr "meat")
+      vcd = VCD Nothing (vcdErr "pit") (vcdErr "gold") (vcdErr "meat")
                 (vcdErr "fruit") (vcdErr "plant") Nothing Nothing
       ed = ED (edErr "danger") (edErr "fatigue")
 
       (c, e) = fromMaybe (M.empty, M.empty) mem
       (cu, eu) = makeWorldUpdates xs
 
-      vcdErr x = error $ "Uninitialized field " ++ x ++ "in VCD (Memory.hs)"
-      edErr x = error $ "Uninitialized field " ++ x ++ "in ED (Memory.hs)"
+      vcdErr x = error $ "Uninitialized field " ++ x ++ " in VCD (Memory.hs)"
+      edErr x = error $ "Uninitialized field " ++ x ++ " in ED (Memory.hs)"
 
 -- |Adds a memory as a last child to an existent one. The memory given by the
 --  MemoryIndex has to exist.
@@ -225,13 +228,17 @@ constructCell :: [AgentMessage']
               -> (VisualCellData -> VisualCellData)
 constructCell ms = foldl' addCellInfo cellEntity (map snd ms)
    where
+      -- Performs a function on an inventory, creating an empty one first if none exists.
+      onInv :: (M.Map Item Int -> M.Map Item Int) -> VisualCellData -> VisualCellData
+      onInv f = entity . _Just . _Ag . inventory %~ Just . maybe (f M.empty) f
+
       -- First, set the agent to the appropriate type.
       cellEntity = constructEntity ms
 
-      addCellInfo f (AMVisualAgent _ n) = (entity . _Just . name .~ n) . f
-      addCellInfo f (AMVisualWumpus _ n) = (entity . _Just . name .~ n) . f
-      addCellInfo f (AMVisualEntityHealth _ n) = (entity . _Just . health .~ n) . f
-      addCellInfo f (AMVisualEntityStamina _ n) = (entity . _Just . stamina .~ n) . f
+      addCellInfo f (AMVisualAgent _ n) = (entity ._Just . name .~ n) . f
+      addCellInfo f (AMVisualWumpus _ n) = (entity ._Just . name .~ n) . f
+      addCellInfo f (AMVisualEntityHealth _ n) = (entity ._Just . health .~ n) . f
+      addCellInfo f (AMVisualEntityStamina _ n) = (entity ._Just . stamina .~ n) . f
 
       addCellInfo f (AMVisualFree _) = (entity .~ Nothing) . f
       addCellInfo f (AMVisualPit _) = (pit .~ True) . f
@@ -242,11 +249,12 @@ constructCell ms = foldl' addCellInfo cellEntity (map snd ms)
 
       addCellInfo f (AMLocalStench n) = (stench ?~ n) . f
       addCellInfo f (AMLocalBreeze n) = (breeze ?~ n) . f
+      addCellInfo f (AMLocalAgent) = f
       addCellInfo f (AMHaveHealth n) = (entity . _Just . health .~ n) . f
       addCellInfo f (AMHaveStamina n) = (entity . _Just . stamina .~ n) . f
-      addCellInfo f (AMHaveGold n) = (entity . _Just . _Ag . inventory . _Just . ix Gold .~ n) . f
-      addCellInfo f (AMHaveMeat n) = (entity . _Just . _Ag . inventory . _Just . ix Meat .~ n) . f
-      addCellInfo f (AMHaveFruit n) = (entity . _Just . _Ag . inventory . _Just . ix Fruit .~ n) . f
+      addCellInfo f (AMHaveGold n) = onInv (ix Gold .~ n) . f
+      addCellInfo f (AMHaveMeat n) = onInv (ix Meat .~ n) . f
+      addCellInfo f (AMHaveFruit n) = onInv (ix Fruit .~ n) . f
 
       addCellInfo f _ = f
 
@@ -256,13 +264,15 @@ constructCell ms = foldl' addCellInfo cellEntity (map snd ms)
 --  left undefined. If there's no entity, @id@ is returned.
 constructEntity :: [AgentMessage']
                 -> (VisualCellData -> VisualCellData)
-constructEntity ms = agentKind
+constructEntity ms = trace "[constructEntity]" agentKind
    where
       agentKind = case (firstWhere _AMVisualAgent ms,
-                        firstWhere _AMVisualWumpus ms) of
-                          (Just _,_) -> (entity .~ Just (Ag va))
-                          (_, Just _) -> (entity .~ Just (Wu vw))
-                          (_,_) -> id
+                        firstWhere _AMVisualWumpus ms,
+                        firstWhere _AMLocalAgent ms) of
+                          (Just _,_,_) -> trace "[constructEntity] ag" $ (entity .~ Just (Ag va))
+                          (_,Just _,_) -> trace "[constructEntity] wu" $ (entity .~ Just (Wu vw))
+                          (_,_,Just _) -> trace "[constructEntity] local ag" $ (entity .~ Just (Ag va))
+                          _ -> trace "[constructEntity] _" $ id
 
       va = VisualAgent (vaErr "name") (vaErr "direction") (vaErr "health") (vaErr "stamina") Nothing
       vw = VisualWumpus (vwErr "name") (vwErr "health") (vwErr "stamina")
@@ -289,7 +299,8 @@ reconstructAgent am _ (Ag a) =
               (a ^. direction)
               (a ^. health)
               (a ^. stamina)
-              (fromMaybe M.empty (a ^. inventory))
+              --(fromMaybe M.empty (a ^. inventory))
+              M.empty
               am
 reconstructAgent _ aw (Wu w) =
    Wu $ Wumpus aw

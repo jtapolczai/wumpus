@@ -60,6 +60,7 @@ data AgentMessage =
    -- |Local perceptions
    | AMLocalStench Rational
    | AMLocalBreeze Rational
+   | AMLocalAgent
    -- |Emotions of the PSBC
    | AMEmotionAnger Rational
    | AMEmotionFear Rational

@@ -86,7 +86,7 @@ searchPaths world costUpd costPred = go mempty
          else do next <- neighbours (world ^. graph) cur
                  let cellData = cells ^. at next
                  guard $ isJust cellData
-                 let nextCost = costUpd curCost next $ fromJust cellData
+                 let nextCost = costUpd curCost next $ fromMaybe (error "[searchPaths.nextCost]: Nothing") cellData
                  guard $ not $ costPred nextCost
                  rest <- go nextCost next t
                  return (cur : rest)
@@ -240,7 +240,7 @@ agentAt i = fromAgent . entityAt i
 
 -- |Gets the cell with a given index. Fails if the cell does not exist.
 cellAt :: CellInd -> World -> CellData
-cellAt i world = world ^. cellData . at i . to fromJust
+cellAt i world = world ^. cellData . at i . to (fromMaybe $ error "[cellAt]: Nothing")
 
 -- |Applies a function to a given cell.
 onCell :: CellInd -> (CellData -> CellData) -> World -> World
@@ -254,7 +254,7 @@ onCellM i f world = maybe (return world)
 
 -- |Moves an index by 1 in a given direction.
 inDirection :: CellInd -> SquareDirection -> CellInd
-inDirection i d = fromJust $ neighbour UnboundedSquareGrid i d
+inDirection i d = fromMaybe (error "[inDirection]: Nothing") $ neighbour UnboundedSquareGrid i d
 
 -- |Gets the direction in which j lies from i.
 getDirection :: CellInd -> CellInd -> SquareDirection

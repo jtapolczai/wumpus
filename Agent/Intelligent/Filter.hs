@@ -164,7 +164,7 @@ exciteNeighbors :: G.Vertex
 exciteNeighbors k f = foldr excite f neighbors'
    where
       excite (nk, es) f' = exciteNeighbor nk es f'
-      neighbors' = f ^. graph . at k . to fromJust . neighbors
+      neighbors' = f ^. graph . at k . to (fromMaybe $ error "[exciteNeighbors]: Nothing") . neighbors
 
 -- |Takes a list of nodes (presumably those who are newly activated) and
 --  sends excitement to all their neighbors via 'excitNeighbors'.
@@ -176,16 +176,16 @@ sendExcitementFrom = flip (F.foldl' (flip exciteNeighbors))
 -- |Inputs a list of messages into filter and returns the sum of the
 --  signifcances of actived output nodes (how "strongly" the filter responds
 --  to the messages).
-runFilter :: [AgentMessage]
+runFilter :: Ord s => [s]
           -> Int -- ^The upper limit on the number of rounds. 0 means that nothing is done.
-          -> Filter AgentMessage
+          -> Filter s
           -> Rational -- ^Capped sum of the significances of activated output nodes.
-runFilter _ 0 f = trace "[runFilter (base case)]" $ activatedSum $ activateNodes f
+runFilter _ 0 f = {- trace "[runFilter (base case)]" $ -} activatedSum $ activateNodes f
 -- Messages are only given to the nodes once. If no activations are caused,
 -- we can just abort the process. Otherwise, we repeat it and see whether the
 -- excitement sent out before causes new nodes to become active.
-runFilter ms limit filt = trace ("runFilter (step case, limit = " ++ show limit ++ ")]") $
-                          trace ("___activatedNodes: " ++ show (activatedNodes)) $
+runFilter ms limit filt = -- trace ("runFilter (step case, limit = " ++ show limit ++ ")]") $
+                          -- trace ("___activatedNodes: " ++ show (activatedNodes)) $
                           if null activatedNodes then activatedSum filt
                           else runFilter [] (limit - 1) filt''
    where

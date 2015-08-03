@@ -81,6 +81,7 @@ decisionMakerComponent asInit = trace "dmComp" $
          traceShow (as ^. gestures) $
          traceShow (as ^. messageSpace) $
          traceShow myPos $
+         trace ("[getNextAction.SEC] " ++ show (strongestEmotionCell emotion as)) $
          traceShow (makeAbs myPos $ strongestEmotionCell emotion as) $
          traceShow "___getNextAction traces done" $
          choose $ emotionAction emotion
@@ -108,15 +109,15 @@ decisionMakerComponent asInit = trace "dmComp" $
          head $ map snd $ msgWhereAny psbcPrisms $ as ^. messageSpace
 
       plannedActions = as ^. messageSpace . to (msgWhere _AMPlannedAction)
-      planEmotion = fromJust $ firstWhere _AMPlanEmotion $ as ^. messageSpace
+      planEmotion = fromMaybe (error "[decisionMakerComponent.planEmotion]: Nothing") $ firstWhere _AMPlanEmotion $ as ^. messageSpace
 
       -- |Returns whether an emotion is strong enough to lead to an immediate choice
       --  (instead of planning).
       strongEnough :: Rational -> Bool
       strongEnough = (> cAGENT_EMOTION_IMMEDIATE)
 
-      localBudget = fromJust $ firstWhere _AMPlanLocalBudget $ as ^. messageSpace
-      globalBudget = fromJust $ firstWhere _AMPlanGlobalBudget $ as ^. messageSpace
+      localBudget = fromMaybe (error "[decisionMakerComponent.localBudget]: Nothing") $ firstWhere _AMPlanLocalBudget $ as ^. messageSpace
+      globalBudget = fromMaybe (error "[decisionMakerComponent.globalBudget]: Nothing") $ firstWhere _AMPlanGlobalBudget $ as ^. messageSpace
 
       -- Reduces the local and global budgets in the newMessages container.
       budgetAddStep = newMessages %~ fmap ((_2 . _AMPlanLocalBudget -~ 1) .
@@ -246,15 +247,25 @@ sumEmotionChanges goalMI = foldl' f (psbcEmotionMap 0)
 
 -- |Gets the cell that evokes the highest value for a given emotion.
 strongestEmotionCell :: EmotionName -> AgentState-> RelInd
-strongestEmotionCell en = trace "[strongestEmotionCell]"
-   $ fst . head . sortBy (flip $ comparing f) . M.toList . evaluateCells
+strongestEmotionCell en as = trace "[strongestEmotionCell]"
+   $ trace ("[strongestEmotionCell.evCells] " ++ (show evCells))
+   $ trace ("[strongestEmotionCell.sortedCells] " ++ (show sortedCells))
+   $ trace ("___[strongestEmotionCell.returnValue] " ++ show ret)
+   $ ret
    where
+      evCells = evaluateCells as
+      sortedCells = sortBy (flip $ comparing f) $ M.toList evCells
+      ret = fst $ head sortedCells
+
+      --ret = fst . head . sortBy (flip $ comparing f) . M.toList . evaluateCells
+
       f = view (at' en) . snd
 
 -- |Performs affective evaluation separately on every cell.
 evaluateCells :: AgentState -> M.Map RelInd (M.Map EmotionName Rational)
 evaluateCells as = trace "[evaluateCells]" 
    $ trace ("___cells: " ++ (show $ map fst $ M.toList cells))
+   $ trace ("___cell vals: " ++ show (fmap evaluateCell cells))
    $ fmap evaluateCell cells
    where
       ms = as ^. messageSpace

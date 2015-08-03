@@ -28,7 +28,7 @@ instance AgentMind AgentState where
       where
          msg = getLocalPerceptions w i dir
          me = w ^. cellData . ju (at i) . ju entity
-         dir = fromJust (me ^? _Ag . direction)
+         dir = fromMaybe (error "[AgentState.pullMessages.dir]: Nothing") (me ^? _Ag . direction)
 
    receiveMessage msg as = trace "[receiveMessage]" $ as & messageSpace %~ (msg'++)
       where

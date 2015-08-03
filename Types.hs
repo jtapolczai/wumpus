@@ -20,6 +20,7 @@ module Types (
    ) where
 
 import Control.Lens
+import Data.Maybe (fromMaybe)
 import qualified Data.Tree as T
 
 import Types.Agent.Dummy
@@ -35,14 +36,14 @@ todo :: String -> a
 todo = error . (++) "TODO: implement "
 
 -- |Unsafe version of 'at'.
-at' x = at x . to (maybe err id)
+at' x = at x . to (fromMaybe err)
    where
       err = error $ "Nothing in lens at' for value " ++ show x
 
 -- |Applies 'fromJust' to a Getter that delivers a Maybe.
 ju :: (Contravariant f, Profunctor p)
    => (p (Maybe a) (f (Maybe a)) -> c) -> p a (f a) -> c
-ju l = l . to (maybe err id)
+ju l = l . to (fromMaybe err)
    where
       err = error "Nothing in lens 'ju'!"
 

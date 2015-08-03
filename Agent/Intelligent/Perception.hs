@@ -25,7 +25,7 @@ perception pos (MsgVisualPerception iAbs d) =
     AMVisualMeat i (d ^. meat),
     AMVisualFruit i (d ^. fruit)]
    ++ cond (d ^. pit) (AMVisualPit i)
-   ++ cond (d ^. plant . to isJust) (AMVisualPlant i $ d ^. plant . to fromJust)
+   ++ cond (d ^. plant . to isJust) (AMVisualPlant i $ d ^. plant . to (fromMaybe $ error "[Agent.perception.plant]: Nothing"))
    ++ cond (d ^. entity . is isAgent) (AMVisualAgent i $ d ^. ju entity . name)
    ++ cond (d ^. entity . is isWumpus) (AMVisualWumpus i $ d ^. ju entity . name)
    ++ cond (d ^. entity . to isJust) (AMVisualEntityHealth i $ d ^. ju entity . health)
@@ -41,7 +41,8 @@ perception _ (MsgLocalPerception d) =
     AMVisualMeat (RI (0,0)) (d ^. meat),
     AMVisualFruit (RI (0,0)) (d ^. fruit),
     AMLocalBreeze (d ^. breeze),
-    AMLocalStench (d ^. stench)]
+    AMLocalStench (d ^. stench),
+    AMLocalAgent]
 
 perception _ (MsgGlobalPerception d) =
    [AMTemperature $ d ^. temperature,

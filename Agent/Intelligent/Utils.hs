@@ -124,8 +124,8 @@ sortByInd = foldl' collect (M.empty, M.empty)
           $ maybe id (const $ insert' (msgPos m) (c,m)) (cellMessage m) cs,
           maybe id (const $ insert' (msgEdg m) (c,m)) (edgeMessage m) es)
 
-      msgPos m = fromMaybe (error "no pos in sortByInd") (m ^. _agentMessageCellInd)
-      msgEdg m = fromJust (m ^. _agentMessageEdgeInd)
+      msgPos m = fromMaybe (error "[sortByInd.msgPos]: Nothing") (m ^. _agentMessageCellInd)
+      msgEdg m = fromMaybe (error "[sortByInd.msgEdg]: Nothing") (m ^. _agentMessageEdgeInd)
 
 -- |Goes through a message and space and groups messages by EntityName, provided
 --  they have such fields. If we have a 'AMVisualEntityName', 'AMVisualAgent' and
@@ -164,7 +164,7 @@ fjoin x m n = M.mergeWithKey (\_ f x -> Just (f x)) (const M.empty) id m
 
 -- |Gets the agent's latest position. Unsafe if there's no position message.
 myPosition :: [AgentMessage'] -> CellInd
-myPosition = fromJust . lastWhere _AMPosition
+myPosition = fromMaybe (error "myPosition: Nothing!") . lastWhere _AMPosition
 
 -- |Adds a new node as the last child of node specified by the path.
 --  

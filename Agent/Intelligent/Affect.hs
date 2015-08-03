@@ -103,10 +103,10 @@ psbcEmotion :: [AgentMessage]
             -> EmotionName
             -> AgentState
             -> AgentState
-psbcEmotion ms emo as = trace ("[psbcEmotion: " ++ show emo ++ "]") $ as & psbc . ix emo .~ (new_lvl , filt)
+psbcEmotion ms emo as = {- trace ("[psbcEmotion: " ++ show emo ++ "]") $ -} as & psbc . ix emo .~ (new_lvl , filt)
    where
-      (lvl, filt) = as ^. psbc . at emo . to fromJust
-      val = trace ("calling with EV " ++ show emo) $ emotionValue ms filt
+      (lvl, filt) = as ^. psbc . at emo . to (fromMaybe $ error "[psbcEmotion.lvl/fil]: Nothing")
+      val = {- trace ("calling with EV " ++ show emo) $ -} emotionValue ms filt
 
       new_lvl = avg [lvl, val]
 
@@ -114,7 +114,7 @@ psbcEmotion ms emo as = trace ("[psbcEmotion: " ++ show emo ++ "]") $ as & psbc 
 emotionValue :: [AgentMessage]
              -> Filter AgentMessage
              -> Rational -- ^The strength of the emotional response (-1 to 1).
-emotionValue ms filt = trace "[emotionValue]" $ runFilter ms cAGENT_FILTER_ROUNDS filt
+emotionValue ms filt = {- trace "[emotionValue]" $ -} runFilter ms cAGENT_FILTER_ROUNDS filt
 
 -- |Returns whether the second emotion is stronger, provided that the two
 --  conflict along the approach/avoidance, axis. If they don't conflict, the returns False.
