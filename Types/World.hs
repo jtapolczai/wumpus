@@ -293,7 +293,7 @@ class AgentMind a where
    -- receiveMessages ms a = foldr receiveMessage a ms
    -- @
    receiveMessages :: F.Foldable f => f Message -> a -> a
-   receiveMessages = flip (F.foldr receiveMessage)
+   receiveMessages = flip (F.foldl' (flip receiveMessage))
 
    -- |Get the agent's action, given its current state.
    getAction :: a -> IO (Action, a)
