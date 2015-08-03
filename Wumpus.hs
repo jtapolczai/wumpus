@@ -8,9 +8,9 @@ import World.Statistics
 import Types
 import World
 
-main :: IO ()
-main = do
-   (world, wmi) <- readWorld "world2"
+main' :: String -> IO ()
+main' w = do
+   (world, wmi) <- readWorld w
    --world `seq` putStrLn "WumpusWorld!"
    --print $ M.size $ world ^. cellData
    print wmi
@@ -20,3 +20,6 @@ main = do
    putStrLn $ showStats worldStats
    putStrLn (replicate 40 '-')
    return ()
+
+main :: IO ()
+main = main' "world4"
