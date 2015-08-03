@@ -109,7 +109,8 @@ lineDistance :: CellInd -- V
              -> CellInd -- W
              -> CellInd -- D
              -> Rational
-lineDistance v@(x1,y1) w@(x2,y2) (dx,dy) = if dist v w == 0 then 0 else fromIntegral (abs nom) / dist v w
+lineDistance v@(x1,y1) w@(x2,y2) (dx,dy) = if dist v w == 0 then trace "[lineDistance] zero distance!" 0
+                                                            else fromIntegral (abs nom) / dist v w
    where
       nom = (y2 - y1)*dx - (x2-x1)*dy + x2*y1 + y2*x1
 
@@ -124,7 +125,8 @@ angle i@(x1,y1) j@(x2,y2) = case (x1 <= x2, y1 <= y2) of
    where
       -- |Gets an angle from 0 to pi/4 based on delta y.
       angle' :: Float
-      angle' = asin $ (fromIntegral $ abs (y1-y2)) / fromRational (dist i j)
+      angle' = if dist i j == 0 then trace "[angle] zero distance!" 0
+                                else asin $ (fromIntegral $ abs (y1-y2)) / fromRational (dist i j)
 
 -- |Creates a function that goes linearly between to points.
 linearFunc :: (Rational, Rational) -- Point 1 (x,y)
