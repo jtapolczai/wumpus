@@ -249,8 +249,8 @@ mkFilterIndex xs = nodeIndex .~ foldl' f HM.empty xs
 --  if none are found. Nodes that can respond are those which have the same RelInd
 --  as the given message, or which need no specific RelInd.
 candidateNodes :: AgentMessage -> Filter -> [G.Vertex]
-candidateNodes msg (FI _ _ i) = trace "[candidateNodes]"
-   $ maybe (trace "[candidateNodes] no nodes." [])
+candidateNodes msg (FI _ _ i) = {- trace "[candidateNodes]" -}
+   maybe ({- trace "[candidateNodes] no nodes." -} [])
            (\m1 -> let noCI = fromMaybe [] $ HM.lookup Nothing m1
                        hasCI = fromMaybe [] $ maybe Nothing (`HM.lookup` m1) (Just $ msg ^. _agentMessageCellInd)
                    in noCI ++ hasCI)

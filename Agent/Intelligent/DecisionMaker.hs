@@ -79,8 +79,8 @@ decisionMakerComponent asInit = trace "dmComp" $ trace (replicate 80 '-') $
       getNextAction emotion =
          trace "[getNextAction]" $
          traceShow emotion $
-         traceShow (as ^. gestures) $
-         traceShow (as ^. messageSpace) $
+         --traceShow (as ^. gestures) $
+         --traceShow (as ^. messageSpace) $
          traceShow myPos $
          trace ("[getNextAction.SEC] " ++ show (strongestEmotionCell emotion as)) $
          traceShow (makeAbs myPos $ strongestEmotionCell emotion as) $
@@ -107,7 +107,7 @@ decisionMakerComponent asInit = trace "dmComp" $ trace (replicate 80 '-') $
       dominantEmotion :: EmotionName
       dominantEmotionLevel :: Rational
       (dominantEmotion, dominantEmotionLevel) =
-         head $ map snd $ msgWhereAny psbcPrisms $ as ^. messageSpace
+         head $ sortBy (flip $ comparing snd) $ map snd $ msgWhereAny psbcPrisms $ as ^. messageSpace
 
       plannedActions = as ^. messageSpace . to (msgWhere _AMPlannedAction)
       planEmotion = fromMaybe (error "[decisionMakerComponent.planEmotion]: Nothing") $ firstWhere _AMPlanEmotion $ as ^. messageSpace

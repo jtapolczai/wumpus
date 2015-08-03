@@ -103,7 +103,7 @@ psbcEmotion :: [AgentMessage]
             -> EmotionName
             -> AgentState
             -> AgentState
-psbcEmotion ms emo as = {- trace ("[psbcEmotion: " ++ show emo ++ "]") $ -} as & psbc . ix emo .~ (new_lvl , filt)
+psbcEmotion ms emo as = trace ("[psbcEmotion: " ++ show emo ++ "] new_lvl: " ++ show new_lvl) $ as & psbc . ix emo .~ (new_lvl , filt)
    where
       (lvl, filt) = as ^. psbc . at emo . to (fromMaybe $ error "[psbcEmotion.lvl/fil]: Nothing")
       val = {- trace ("calling with EV " ++ show emo) $ -} emotionValue ms filt
