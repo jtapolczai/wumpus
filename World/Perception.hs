@@ -71,7 +71,7 @@ verticesInSightCone world i d =
 direct :: World -> CellInd  -> CellInd -> Bool
 direct world i j = {- trace "[VerticesInSightCone.direct]" $ -} any (all $ closeToLine i j) $ shortestPaths world i j
 
-closeToLine i j d = trace "[VerticesInSightCone.closeToLine]"
+closeToLine i j d = trace ("[VerticesInSightCone.closeToLine] i=" ++ show i ++ ", j=" ++ show j ++ ", d=" ++ show d)
                     $ traceShow i
                     $ traceShow j
                     $ traceShow d

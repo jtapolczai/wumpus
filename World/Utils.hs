@@ -112,7 +112,8 @@ lineDistance :: CellInd -- V
 lineDistance v@(x1,y1) w@(x2,y2) (dx,dy) = if dist v w == 0 then trace "[lineDistance] zero distance!" 0
                                                             else fromIntegral (abs nom) / dist v w
    where
-      nom = (y2 - y1)*dx - (x2-x1)*dy + x2*y1 + y2*x1
+      nom = trace ("[lineDistance.nom] " ++ show ((y2 - y1)*dx - (x2-x1)*dy + x2*y1 - y2*x1))
+            $ (y2 - y1)*dx - (x2-x1)*dy + x2*y1 - y2*x1
 
 -- |Gets the angle between point i and point j in radians.
 angle :: CellInd -> CellInd -> Float
