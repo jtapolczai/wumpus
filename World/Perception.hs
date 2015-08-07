@@ -71,28 +71,28 @@ verticesInSightCone world i d =
 direct :: World -> CellInd  -> CellInd -> Bool
 direct world i j = {- trace "[VerticesInSightCone.direct]" $ -} any (all $ closeToLine i j) $ shortestPaths world i j
 
-closeToLine i j d = trace ("[VerticesInSightCone.closeToLine] i=" ++ show i ++ ", j=" ++ show j ++ ", d=" ++ show d)
+closeToLine i j d = {- trace ("[VerticesInSightCone.closeToLine] i=" ++ show i ++ ", j=" ++ show j ++ ", d=" ++ show d)
                     $ traceShow i
                     $ traceShow j
                     $ traceShow d
                     $ traceShow (lineDistance i j d)
                     $ traceShow (lineDistance i j d <= toRational (sqrt 2 * 0.5))
-                    $ lineDistance i j d <= toRational (sqrt 2 * 0.5)
+                    $ -} lineDistance i j d <= toRational (sqrt 2 * 0.5)
 
 -- the difference between the angle between i and j, and the angle
 -- in which i is "lookup" (up/down/left/right) must be less than pi/4
-smallAngle i d j = trace "[VerticesInSightCone.smallAngle]"
+smallAngle i d j = {- trace "[VerticesInSightCone.smallAngle]"
                    $ traceShow (angle i j)
                    $ traceShow (angleOf d)
-                   $ traceShow (angleDiff (angle i j) (angleOf d))
+                   $ traceShow (angleDiff (angle i j) (angleOf d)) -}
                    -- small tolerance because of rounding errors
-                   $ angleDiff (angle i j) (angleOf d) <= (pi * 0.25 + 0.000001)
+                   angleDiff (angle i j) (angleOf d) <= (pi * 0.25 + 0.000001)
 
-distance world i j = trace "[VerticesInSightCone.distance]"
+distance world i j = {- trace "[VerticesInSightCone.distance]"
                      $ traceShow (dist i j)
-                     $ traceShow (max_distance world)
-                     $ traceShow (dist i j <= max_distance world)
-                     $ (dist i j /= 0) && (dist i j <= max_distance world)
+                     $ traceShow (max_distance world) 
+                     $ traceShow (dist i j <= max_distance world) -}
+                     (dist i j /= 0) && (dist i j <= max_distance world)
 
 -- the maximum distance at which a cell can be visible from i
 max_distance :: World -> Rational
