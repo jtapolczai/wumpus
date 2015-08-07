@@ -115,19 +115,21 @@ lineDistance v@(x1,y1) w@(x2,y2) (dx,dy) = if dist v w == 0 then trace "[lineDis
       nom = trace ("[lineDistance.nom] " ++ show ((y2 - y1)*dx - (x2-x1)*dy + x2*y1 - y2*x1))
             $ (y2 - y1)*dx - (x2-x1)*dy + x2*y1 - y2*x1
 
--- |Gets the angle between point i and point j in radians.
+-- |Gets the angle between point i and point j in radians (CCW from East).
 angle :: CellInd -> CellInd -> Float
-angle i@(x1,y1) j@(x2,y2) = case (x1 <= x2, y1 <= y2) of
-   -- 4 circle-segments of 90°, going CCW
-   (True, True) -> angle'
-   (False, True) -> angle' + pi*0.5
-   (False, False) -> angle' + pi
-   (True, False) -> angle' + pi*1.5
+angle (x1,y1) (x2,y2) = if rawVal < 0 then (2*pi) + rawVal else rawVal
    where
-      -- |Gets an angle from 0 to pi/4 based on delta y.
-      angle' :: Float
-      angle' = if dist i j == 0 then trace "[angle] zero distance!" 0
-                                else asin $ (fromIntegral $ abs (y1-y2)) / fromRational (dist i j)
+      dx = fromIntegral $ x2 - x1
+      dy = fromIntegral $ y2 - y1
+      rawVal = atan2 dy dx
+
+-- |Returns the absolute difference between two angles, in radians.
+--  This value will always be positive.
+angleDiff :: Float -> Float -> Float
+angleDiff a b = min (large - small) (small - large + 2*pi)
+   where
+      small = min a b
+      large = max a b
 
 -- |Creates a function that goes linearly between to points.
 linearFunc :: (Rational, Rational) -- Point 1 (x,y)

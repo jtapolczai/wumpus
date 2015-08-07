@@ -84,8 +84,9 @@ closeToLine i j d = trace ("[VerticesInSightCone.closeToLine] i=" ++ show i ++ "
 smallAngle i d j = trace "[VerticesInSightCone.smallAngle]"
                    $ traceShow (angle i j)
                    $ traceShow (angleOf d)
-                   $ traceShow (abs (angle i j - angleOf d))
-                   $ abs (angle i j - angleOf d) <= pi * 0.25
+                   $ traceShow (angleDiff (angle i j) (angleOf d))
+                   -- small tolerance because of rounding errors
+                   $ angleDiff (angle i j) (angleOf d) <= (pi * 0.25 + 0.000001)
 
 distance world i j = trace "[VerticesInSightCone.distance]"
                      $ traceShow (dist i j)
