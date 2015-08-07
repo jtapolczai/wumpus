@@ -59,26 +59,44 @@ verticesInSightCone :: World
 verticesInSightCone world i d =
    {- trace "[verticesInSightCone]" $ 
    trace ("___proximity 8: " ++ show proximity) $ -}
-   filter (\x -> all ($ x) [direct, smallAngle, distance]) proximity
+   filter (\x -> all ($ x) [direct world i, smallAngle i d, distance world i]) proximity
    where
-      -- there has to exist at least one path from i to j on which every
-      -- point is close to the straight line from i to j
-      direct j = {- trace "[VerticesInSightCone.direct]" $ -} any (all $ closeToLine i j) $ shortestPaths world i j
-      closeToLine i j d = {- trace "[VerticesInSightCone.closeToLine]"
-                          $ traceShow i
-                          $ traceShow j
-                          $ traceShow d
-                          $ traceShow (lineDistance i j d)
-                          $ -} lineDistance i j d <= toRational (sqrt 2 * 0.5)
-
-      -- the difference between the angle between i and j, and the angle
-      -- in which i is "lookup" (up/down/left/right) must be less than pi/4
-      smallAngle j = {- trace "[VerticesInSightCone.smallAngle]" $ -} abs (angle i j - angleOf d) <= pi * 0.25
-      distance j = trace "[VerticesInSightCone.distance]" $ dist i j <= max_distance
-      -- the maximum distance at which a cell can be visible from i
-      max_distance = {- trace "[VerticesInSightCone.max_distance]" $ -} world ^. worldData . time . to coneLength
-      coneLength = {- trace "[VerticesInSightCone.coneLength]" $ -} (3%2 *) . (1+) . fromIntegral . light
-
       -- a small segment of cells that can possibly be in the sight cone.
       -- we generate this list to avoid looking at every cell in the world.
       proximity = getCircle i 8
+
+
+-- there has to exist at least one path from i to j on which every
+-- point is close to the straight line from i to j
+direct :: World -> CellInd  -> CellInd -> Bool
+direct world i j = {- trace "[VerticesInSightCone.direct]" $ -} any (all $ closeToLine i j) $ shortestPaths world i j
+
+closeToLine i j d = trace "[VerticesInSightCone.closeToLine]"
+                    $ traceShow i
+                    $ traceShow j
+                    $ traceShow d
+                    $ traceShow (lineDistance i j d)
+                    $ traceShow (lineDistance i j d <= toRational (sqrt 2 * 0.5))
+                    $ lineDistance i j d <= toRational (sqrt 2 * 0.5)
+
+-- the difference between the angle between i and j, and the angle
+-- in which i is "lookup" (up/down/left/right) must be less than pi/4
+smallAngle i d j = trace "[VerticesInSightCone.smallAngle]"
+                   $ traceShow (angle i j)
+                   $ traceShow (angleOf d)
+                   $ traceShow (abs (angle i j - angleOf d))
+                   $ abs (angle i j - angleOf d) <= pi * 0.25
+
+distance world i j = trace "[VerticesInSightCone.distance]"
+                     $ traceShow (dist i j)
+                     $ traceShow (max_distance world)
+                     $ traceShow (dist i j <= max_distance world)
+                     $ dist i j <= max_distance world
+
+-- the maximum distance at which a cell can be visible from i
+max_distance :: World -> Rational
+max_distance world = {- trace "[VerticesInSightCone.max_distance]" $ -} world ^. worldData . time . to coneLength
+coneLength = {- trace "[VerticesInSightCone.coneLength]" $ -} (3%2 *) . (1+) . fromIntegral . light
+
+
+

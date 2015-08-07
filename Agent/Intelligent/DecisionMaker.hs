@@ -49,7 +49,7 @@ decisionMakerComponent asInit = trace "dmComp" $ trace (replicate 80 '-') $
       traceM $ "dominantEmotion: " ++ show dominantEmotion
       traceM $ "dominantEmotionLevel: " ++ show dominantEmotionLevel
       -- randomly choose an emotion-appropriate action
-      act <- getNextAction dominantEmotion
+      act <- getNextAction False dominantEmotion
       traceM (show act)
       let newMsg = isImag [AMPlannedAction act mempty False,
                            AMPlanEmotion dominantEmotion]
@@ -70,25 +70,25 @@ decisionMakerComponent asInit = trace "dmComp" $ trace (replicate 80 '-') $
          return $ finalizeAction (MI []) as
       else do
          traceM "contine plan"
-         act <- getNextAction planEmotion
+         act <- getNextAction True planEmotion
          let newMsg = [(True, AMPlannedAction act (leftMemIndex as) False)]
          return $ budgetAddStep $ as & newMessages %~ (newMsg++)
    where
       -- chooses another action related to the given emotion
-      getNextAction :: EmotionName -> IO Action
-      getNextAction emotion =
+      getNextAction :: IsImaginary -> EmotionName -> IO Action
+      getNextAction imag emotion =
          trace "[getNextAction]" $
          traceShow emotion $
          --traceShow (as ^. gestures) $
          --traceShow (as ^. messageSpace) $
          traceShow myPos $
-         trace ("[getNextAction.SEC] " ++ show (strongestEmotionCell emotion as)) $
-         traceShow (makeAbs myPos $ strongestEmotionCell emotion as) $
+         trace ("[getNextAction.SEC] " ++ show (strongestEmotionCell imag emotion as)) $
+         traceShow (makeAbs myPos $ strongestEmotionCell imag emotion as) $
          traceShow "___getNextAction traces done" $
          choose $ emotionAction emotion
                                 (as ^. gestures)
                                 myPos
-                                (makeAbs myPos $ strongestEmotionCell emotion as)
+                                (makeAbs myPos $ strongestEmotionCell imag emotion as)
 
       myPos = fromMaybe (error "[decisionMakerComponent.myPos] Nothing!") $ myPosition $ as ^. messageSpace
 
@@ -251,14 +251,14 @@ sumEmotionChanges goalMI = foldl' f (psbcEmotionMap 0)
                        else m
 
 -- |Gets the cell that evokes the highest value for a given emotion.
-strongestEmotionCell :: EmotionName -> AgentState-> RelInd
-strongestEmotionCell en as = trace "[strongestEmotionCell]"
+strongestEmotionCell :: IsImaginary -> EmotionName -> AgentState-> RelInd
+strongestEmotionCell imag en as = trace "[strongestEmotionCell]"
    $ trace ("[strongestEmotionCell.evCells] " ++ (show evCells))
    $ trace ("[strongestEmotionCell.sortedCells] " ++ (show sortedCells))
    $ trace ("___[strongestEmotionCell.returnValue] " ++ show ret)
    $ ret
    where
-      evCells = evaluateCells as
+      evCells = evaluateCells imag as
       sortedCells = sortBy (flip $ comparing f) $ M.toList evCells
       ret = fst $ head sortedCells
 
@@ -267,13 +267,13 @@ strongestEmotionCell en as = trace "[strongestEmotionCell]"
       f = view (at' en) . snd
 
 -- |Performs affective evaluation separately on every cell.
-evaluateCells :: AgentState -> M.Map RelInd (M.Map EmotionName Rational)
-evaluateCells as = trace "[evaluateCells]" 
+evaluateCells :: IsImaginary -> AgentState -> M.Map RelInd (M.Map EmotionName Rational)
+evaluateCells imag as = trace "[evaluateCells]" 
    $ trace ("___cells: " ++ (show $ map fst $ M.toList cells))
    $ trace ("___cell vals: " ++ show (fmap evaluateCell cells))
    $ fmap evaluateCell cells
    where
-      ms = as ^. messageSpace
+      ms = filter ((imag==) . fst) $ as ^. messageSpace
 
       -- |Messages relating to given cells (plus global data which applies everywhere,
       --  and local messages which influence judgments about other cells).

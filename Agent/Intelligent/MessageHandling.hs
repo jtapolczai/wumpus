@@ -32,8 +32,8 @@ callComponents comps initAs = putMsg <$> foldM f (initAs, mempty) comps
       -- run the component with the initial messages.
       -- collect the newly added messages separately.
       f (curAs, ms) g = do
-         -- traceM $ "[CC] msg: " ++ (show $ view messageSpace initAs ++ ms)
          traceM $ "[CC] #msg: " ++ (show $ length $ view messageSpace initAs ++ ms)
+         traceM $ "[CC] msg: " ++ (show $ view messageSpace initAs ++ ms)
          newAs <- g $ curAs & messageSpace .~ (view messageSpace initAs ++ ms)
          return (newAs & newMessages .~ mempty,
                  newAs ^. newMessages ++ ms)
