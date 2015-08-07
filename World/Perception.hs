@@ -92,7 +92,7 @@ distance world i j = trace "[VerticesInSightCone.distance]"
                      $ traceShow (dist i j)
                      $ traceShow (max_distance world)
                      $ traceShow (dist i j <= max_distance world)
-                     $ dist i j <= max_distance world
+                     $ (dist i j /= 0) && (dist i j <= max_distance world)
 
 -- the maximum distance at which a cell can be visible from i
 max_distance :: World -> Rational
