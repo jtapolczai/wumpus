@@ -31,7 +31,7 @@ psbcEmotionMap x = M.fromList [(Anger, x), (Fear, x), (Enthusiasm, x), (Contentm
 --  Messages about the three emotions regarding detected agents will
 --  be put into the message space.
 sjsComponent :: Monad m => AgentComponent m
-sjsComponent as = return $ foldr sjsFold as entityMsg
+sjsComponent as = trace "[sjsComponent]" $ trace (replicate 80 '+') $ return $ foldr sjsFold as entityMsg
    where
       entityMsg = sortByEntityName $ as ^. messageSpace
 
@@ -87,7 +87,7 @@ sjsEntityEmotion ms other emo as = as & sjs . _1 . at other %~ changeLvl
 -- |Modulates an agent's emotional state based on stimuli.
 --  Messages about the four new emotional states are inserted.
 psbcComponent :: Monad m => AgentState -> m AgentState
-psbcComponent as = trace "[psbcComponent]" $ return $
+psbcComponent as = trace "[psbcComponent]" $ trace (replicate 80 '+') $ return $
    foldr (\en as' -> addEmotionMessage en $ psbcEmotion msg en as') as [minBound..maxBound]
    where
       msg = map snd $ as ^. messageSpace

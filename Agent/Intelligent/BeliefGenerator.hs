@@ -12,17 +12,25 @@ import Control.Monad.IO.Class
 import Data.Maybe
 
 import Agent.Intelligent.Memory
+import Agent.Intelligent.MessageHandling
 import Agent.Intelligent.Perception
 import Agent.Intelligent.Utils
 import Types
 import World
+
+import Debug.Trace
 
 -- |Extracts 'AMPlannedAction' messages from the message space and runs
 --  'generateBelief\'' with all imaginary 'AMPlannedAction' messages whose 'Discharged' field is 'False'.
 --  The MemoryIndex in 'AMPlannedAction' has to exist in the memory tree. The new memory will
 --  be generated as its last child.
 beliefGeneratorComponent :: MonadIO m => AgentComponent m
-beliefGeneratorComponent as = liftIO $ foldM f as acts
+beliefGeneratorComponent as = liftIO
+   $ trace ("[beliefGeneratorComponent]")
+   $ trace (replicate 80 '+')
+   $ trace ("___num acts: " ++ show (length acts))
+   $ trace ("___acts: " ++ show acts)
+   $ foldM f as acts
    where
       f :: AgentState -> (Action, MemoryIndex, Discharged) -> IO AgentState
       f as' (act, mi, _) = generateBelief act mi as'
@@ -63,8 +71,9 @@ generateBelief :: MonadIO m
                -> MemoryIndex
                -> AgentComponent m
 generateBelief act mi as = liftIO $ do
+   traceM "[generateBelief]"
    (_, msg) <- simulateConsequences act mi as
    let msg' = map (True,) msg
-       as' = as & newMessages .~ msg'
-                & addMemory msg' mi
+       as' = addMemory msg' mi . addMessages msg' $ as
+   traceM ("___generated msg: " ++ show msg)
    return as'

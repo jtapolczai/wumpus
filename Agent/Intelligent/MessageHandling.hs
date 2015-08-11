@@ -26,8 +26,11 @@ callComponents :: (Functor m, Monad m)
                -> m AgentState
 callComponents comps initAs = putMsg <$> foldM f (initAs, mempty) comps
    where
-      putMsg (curAs,ms) = curAs & messageSpace .~ ms
-                                & newMessages .~ mempty
+      putMsg (curAs,ms) =
+         trace ("[CC.putMsg] initAs #msg: " ++ (show $ length $ view messageSpace initAs))
+         $ trace ("[CC.putMsg] out #msg: " ++ (show $ length $ ms))
+         $ curAs & messageSpace .~ ms
+                 & newMessages .~ mempty
 
       -- run the component with the initial messages.
       -- collect the newly added messages separately.

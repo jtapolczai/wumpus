@@ -42,7 +42,7 @@ initialDecisionMakerComponent = return . addMessages msg
 --  Chooses a next planned step and inserts the corresponding memory and
 --  imaginary 'AMPlannedAction' into the message space.
 decisionMakerComponent :: AgentComponent IO
-decisionMakerComponent asInit = trace "dmComp" $ trace (replicate 80 '-') $
+decisionMakerComponent asInit = trace "[decisionMakerComponent]" $ trace (replicate 80 '+') $
    -- if there's no plan, start one.
    if null plannedActions || noBudget then do
       traceM "no plan"
@@ -56,7 +56,7 @@ decisionMakerComponent asInit = trace "dmComp" $ trace (replicate 80 '-') $
 
       traceM "mkStep"
       traceM $ "newMsg: " ++ show newMsg
-      return $ budgetAddStep $ as & newMessages %~ (newMsg++)
+      return $ budgetAddStep $ addMessages newMsg as
    -- if there is one, continue/abandon/OK the plan
    else do
       traceM "has plan"
@@ -72,7 +72,7 @@ decisionMakerComponent asInit = trace "dmComp" $ trace (replicate 80 '-') $
          traceM "contine plan"
          act <- getNextAction True planEmotion
          let newMsg = [(True, AMPlannedAction act (leftMemIndex as) False)]
-         return $ budgetAddStep $ as & newMessages %~ (newMsg++)
+         return $ budgetAddStep $ addMessages newMsg as
    where
       -- chooses another action related to the given emotion
       getNextAction :: IsImaginary -> EmotionName -> IO Action
@@ -94,7 +94,7 @@ decisionMakerComponent asInit = trace "dmComp" $ trace (replicate 80 '-') $
 
       -- first, we reinsert all the planning-related messages
       as :: AgentState
-      as = asInit & newMessages .~ reinsertablePlanMsg asInit
+      as = addMessages (reinsertablePlanMsg asInit) asInit
 
       planStartEmotion = planStartEmotions as M.! planEmotion
       targetEmotionSatisfied' = trace "[decisionMakerComponent.targetEmotionSatisfied]" $ targetEmotionSatisfied planStartEmotion planEmotion
@@ -122,7 +122,7 @@ decisionMakerComponent asInit = trace "dmComp" $ trace (replicate 80 '-') $
 
       -- Reduces the local and global budgets in the newMessages container.
       budgetAddStep = newMessages %~ fmap ((_2 . _AMPlanLocalBudget -~ 1) .
-                                            (_2 . _AMPlanGlobalBudget -~ 1))
+                                           (_2 . _AMPlanGlobalBudget -~ 1))
 
       -- Adds to the local (BUT NOT TO THE GLOBAL) budget in the newmessages container.
       budgetRetractSteps n = newMessages %~ fmap (_2 . _AMPlanLocalBudget +~ n)
@@ -269,6 +269,7 @@ strongestEmotionCell imag en as = trace "[strongestEmotionCell]"
 -- |Performs affective evaluation separately on every cell.
 evaluateCells :: IsImaginary -> AgentState -> M.Map RelInd (M.Map EmotionName Rational)
 evaluateCells imag as = trace "[evaluateCells]" 
+   $ trace ("___image: " ++ show imag)
    $ trace ("___cells: " ++ (show $ map fst $ M.toList cells))
    $ trace ("___cell vals: " ++ show (fmap evaluateCell cells))
    $ fmap evaluateCell cells

@@ -1,11 +1,8 @@
 module Wumpus where
 
-import Control.Lens
-import qualified Data.Map as M
 import Data.MList
 import World.Read
 import World.Statistics
-import Types
 import World
 
 main' :: String -> IO ()

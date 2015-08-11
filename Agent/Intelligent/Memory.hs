@@ -36,7 +36,6 @@ module Agent.Intelligent.Memory (
 
 import Control.Arrow (first)
 import Control.Lens
-import Data.Default
 import Data.List
 import qualified Data.Map as M
 import Data.Maybe
@@ -72,7 +71,8 @@ initialMemoryComponent as = return $ resetMemory as (as ^. messageSpace)
 --  Note that multiple actions will almost always create multiple (contradictory)
 --  messages about perceptions, positions, etc.
 memoryComponent :: Monad m => AgentComponent m
-memoryComponent as = return $ foldl' mkAction as actions
+memoryComponent as = trace "[memoryComponent]" $ trace (replicate 80 '+')
+   $ return $ foldl' mkAction as actions
    where
       -- we add the messages to the agent's message space and, if the agent
       -- didn't die, a new memory.
