@@ -49,3 +49,9 @@ addMessage m = newMessages %~ (m:)
 -- |Prepends (by concatenation) a list of messages to the new messages of an agent.
 addMessages :: [AgentMessage'] -> AgentState -> AgentState
 addMessages ms = newMessages %~ (ms++)
+
+swallow :: Monad m => AgentComponent m
+swallow = return . id
+
+reproduce :: Monad m => AgentComponent m
+reproduce as = return $ addMessages (as ^. messageSpace) as
