@@ -56,8 +56,7 @@ getAction' as = do traceM $ "[getAction] " ++ (as ^. name)
       action :: AgentState -> Maybe Action
       action = fmap (view (_2._1)) . LS.head . filter (not.fst) . msgWhere _AMPlannedAction . view messageSpace
 
-      components = [persistentMessagesComponent,
-                    psbcComponent,
+      components = [psbcComponent,
                     sjsComponent, 
                     memoryComponent,
                     decisionMakerComponent,
