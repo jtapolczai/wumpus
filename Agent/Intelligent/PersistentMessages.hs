@@ -18,9 +18,9 @@ persistentMessagesComponent as = trace "[persistentMessagesComponent]" $ trace (
    addMessages (filter prisms $ view messageSpace as) as
    where
       prisms (False,_) = True
-      prisms (_, x) = any
+      prisms (_, x) = any ($ x)
          [isP _AMPosition,
-          isP _AMTime x,
-          isP _AMTemperature x,
-          isP _AMPlanLocalBudget x,
-          isP _AMPlanGlobalBudget x]
+          isP _AMTime,
+          isP _AMTemperature,
+          isP _AMPlanLocalBudget,
+          isP _AMPlanGlobalBudget]
