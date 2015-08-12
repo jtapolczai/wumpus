@@ -43,14 +43,23 @@ instance AgentMind AgentState where
 getAction' :: AgentState -> IO (Action, AgentState)
 getAction' as = do traceM $ "[getAction] " ++ (as ^. name)
                    traceM $ "[getAction] " ++ (show $ as ^. messageSpace)
-                   action <- callComponents [persistentMessagesComponent,
-                                             initialMemoryComponent,
-                                             initialDecisionMakerComponent] as
-                             >>= loop action (callComponents components)
+                   action <- callComponents [initialMemoryComponent,
+                                             initialDecisionMakerComponent,
+                                             persistentMessagesComponent] as
+                             >>= loop action (cc' components)
                    return (action, as & messageSpace .~ [])
    where
       loop :: Monad m => (a -> Maybe b) -> (a -> m a) -> a -> m b
       loop test f x = maybe (f x >>= loop test f) return (test x)
+
+      cc' :: Monad m
+          => [AgentComponent m]
+          -> AgentState
+          -> m AgentState
+      cc' comps as = do as' <- callComponents comps as
+                        as'' <- persistentMessagesComponent as
+                        return $ as' & messageSpace .~ view newMessages as''
+
 
       -- gets the first non-imaginary action, if it exists.
       action :: AgentState -> Maybe Action
@@ -60,5 +69,4 @@ getAction' as = do traceM $ "[getAction] " ++ (as ^. name)
                     sjsComponent, 
                     memoryComponent,
                     decisionMakerComponent,
-                    beliefGeneratorComponent,
-                    persistentMessagesComponent]
+                    beliefGeneratorComponent]
