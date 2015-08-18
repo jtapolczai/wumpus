@@ -1,11 +1,16 @@
 module Types.Arithmetic where
 
--- |Integers, including positive infinity.
+-- |Numbers, including NaN.
+--  Any addition/subtraction/multiplication/abs with NaN results in
+--  NaN. In comparisons, NaN == NaN, and NaN > any other element.
 newtype NatInf a = NatInf (Maybe a)
    deriving (Eq)
 
 -- |Time-to-live for a message.
 type TTL = NatInf Int
+
+ttl :: Int -> TTL
+ttl = pure
 
 eternal :: TTL
 eternal = NatInf Nothing
