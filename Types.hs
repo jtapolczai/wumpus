@@ -14,6 +14,7 @@ module Types (
    module Types.Agent.Intelligent.Filter,
    module Types.Agent.Intelligent.Affect.Fragments,
    module Types.Agent.Omni,
+   module Types.Arithmetic,
    module Types.Castable,
    module Types.World,
    module Types.World.Statistics,
@@ -29,6 +30,7 @@ import Types.Agent.Intelligent
 import Types.Agent.Intelligent.Filter
 import Types.Agent.Intelligent.Affect.Fragments
 import Types.Agent.Omni
+import Types.Arithmetic
 import Types.Castable
 import Types.World
 import Types.World.Statistics
