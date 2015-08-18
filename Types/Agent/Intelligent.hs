@@ -9,6 +9,7 @@ import qualified Data.Map as M
 import qualified Data.Tree as T
 import Math.Geometry.Grid.SquareInternal (SquareDirection)
 
+import Types.Arithmetic
 import Types.World
 import Types.Agent.Intelligent.Filter
 
@@ -223,7 +224,7 @@ instance Monoid MemoryIndex where
    mempty = MI []
    mappend (MI i) (MI j) = MI (i ++ j)
 
-type AgentMessage' = (IsImaginary, AgentMessage)
+type AgentMessage' = (IsImaginary, AgentMessage, TTL)
 
 type Filter = FilterMsg AgentMessageName RelInd AgentMessage
 

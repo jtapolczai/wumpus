@@ -35,8 +35,8 @@ type ActionSelector a =
 initialDecisionMakerComponent :: Monad m => AgentComponent m
 initialDecisionMakerComponent = return . addMessages msg
    where
-      msg = [(True, AMPlanLocalBudget cAGENT_PLAN_LIMIT),
-             (True, AMPlanGlobalBudget $ cAGENT_GLOBAL_PLAN_LIMIT)]
+      msg = [(True, AMPlanLocalBudget cAGENT_PLAN_LIMIT, eternal),
+             (True, AMPlanGlobalBudget $ cAGENT_GLOBAL_PLAN_LIMIT, eternal)]
 
 -- |Makes a decision based on the affective evaluation of the world.
 --  Chooses a next planned step and inserts the corresponding memory and
@@ -44,15 +44,15 @@ initialDecisionMakerComponent = return . addMessages msg
 decisionMakerComponent :: AgentComponent IO
 decisionMakerComponent asInit = trace "[decisionMakerComponent]" $ trace (replicate 80 '+') $
    -- if there's no plan, start one.
-   if null plannedActions || noBudget then do
+   if null plannedActions || not hasBudget then do
       traceM "no plan"
       traceM $ "dominantEmotion: " ++ show dominantEmotion
       traceM $ "dominantEmotionLevel: " ++ show dominantEmotionLevel
       -- randomly choose an emotion-appropriate action
       act <- getNextAction False dominantEmotion
       traceM (show act)
-      let newMsg = isImag [AMPlannedAction act mempty False,
-                           AMPlanEmotion dominantEmotion]
+      let newMsg = [(isImag, AMPlannedAction act mempty False, eternal),
+                    (isImag, AMPlanEmotion dominantEmotion, eternal)]
 
       traceM "mkStep"
       traceM $ "newMsg: " ++ show newMsg
@@ -71,7 +71,7 @@ decisionMakerComponent asInit = trace "[decisionMakerComponent]" $ trace (replic
       else do
          traceM "contine plan"
          act <- getNextAction True planEmotion
-         let newMsg = [(True, AMPlannedAction act (leftMemIndex as) False)]
+         let newMsg = [(True, AMPlannedAction act (leftMemIndex as) False, eternal)]
          return $ budgetAddStep $ addMessages newMsg as
    where
       -- chooses another action related to the given emotion
@@ -107,7 +107,11 @@ decisionMakerComponent asInit = trace "[decisionMakerComponent]" $ trace (replic
       dominantEmotion :: EmotionName
       dominantEmotionLevel :: Rational
       (dominantEmotion, dominantEmotionLevel) =
-         head $ sortBy (flip $ comparing snd) $ map snd $ msgWhereAny psbcPrisms $ as ^. messageSpace
+         head
+         $ sortBy (flip $ comparing snd)
+         $ map (view _2)
+         $ msgWhereAny psbcPrisms
+         $ as ^. messageSpace
 
       plannedActions = as ^. messageSpace . to (msgWhere _AMPlannedAction)
       planEmotion = fromMaybe (error "[decisionMakerComponent.planEmotion]: Nothing") $ firstWhere _AMPlanEmotion $ as ^. messageSpace
@@ -127,10 +131,8 @@ decisionMakerComponent asInit = trace "[decisionMakerComponent]" $ trace (replic
       -- Adds to the local (BUT NOT TO THE GLOBAL) budget in the newmessages container.
       budgetRetractSteps n = newMessages %~ fmap (_2 . _AMPlanLocalBudget +~ n)
 
-      isImag = map $ if strongEnough dominantEmotionLevel || noBudget
-                     then (False,) else (True,)
-
-      noBudget = min localBudget globalBudget <= 0
+      isImag = not (strongEnough dominantEmotionLevel) && hasBudget
+      hasBudget = min localBudget globalBudget > 0
 
 -- |Returns the amount by which the strongest conflicting emotion is stronger
 --  than a given one. If no confliction emotion is stronger, 0 is returned. 
@@ -153,7 +155,7 @@ retractSteps :: MemoryIndex -- ^The index from which to start deleting upward.
              -> AgentState
 retractSteps mi n as = over memory delMem . over newMessages delMsg $ as
    where
-      delMsg = filter (pa.snd)
+      delMsg = filter (pa . view _2)
 
       pa (AMPlannedAction _ mi' _) = not (mi' `subIndex` mi && memLength mi' > memLength mi - n)
       pa (AMPlanEmotionChanged mi' _ _) = not (mi' `subIndex` mi && memLength mi' > memLength mi - n)
@@ -168,19 +170,19 @@ retractSteps mi n as = over memory delMem . over newMessages delMsg $ as
 --  inserts it into 'newMessages', with its 'IsImaginary' flag set to False.
 --  Will fail if the message with the given memory index does not exist.
 finalizeAction :: MemoryIndex -> AgentState -> AgentState
-finalizeAction mi as = as & newMessages %~ ((False,uncurry3 AMPlannedAction msg):)
+finalizeAction mi as = as & newMessages %~ ((False,uncurry3 AMPlannedAction msg,eternal):)
    where
       uncurry3 :: (a -> b -> c -> d) -> (a,b,c) -> d
       uncurry3 f (x,y,z) = f x y z
-      msg = head . filter ((mi ==) . view _2) . map snd . msgWhere _AMPlannedAction . view messageSpace $ as
+      msg = head . filter ((mi ==) . view _2) . map (view _2) . msgWhere _AMPlannedAction . view messageSpace $ as
 
 -- |Gets all the 'AMPlanEmotionChanged' messages from the agent's message space.
 emotionChanges :: AgentState -> [(MemoryIndex, EmotionName, Rational)]
-emotionChanges = map snd . msgWhere _AMPlanEmotionChanged . view messageSpace
+emotionChanges = map (view _2) . msgWhere _AMPlanEmotionChanged . view messageSpace
 
 -- |Gets the level of emotions felt at the beginning of the planning.
 planStartEmotions :: AgentState -> M.Map EmotionName Rational
-planStartEmotions = foldl' f M.empty . map snd . msgWhereAny psbcPrisms . view messageSpace
+planStartEmotions = foldl' f M.empty . map (view _2) . msgWhereAny psbcPrisms . view messageSpace
    where
       f m n | M.size m >= cAGENT_NUM_EMOTIONS = m
             | otherwise                       = case n of
@@ -189,7 +191,7 @@ planStartEmotions = foldl' f M.empty . map snd . msgWhereAny psbcPrisms . view m
 -- |Gets those messages which are planning-related and should thus be reinserted by the
 --  decision maker by default.
 reinsertablePlanMsg :: AgentState -> [AgentMessage']
-reinsertablePlanMsg = filter (f.snd) . view messageSpace
+reinsertablePlanMsg = filter (f. view (_2)) . view messageSpace
    where
       f = (\x y z u v -> x || y || z
                            || u || v) <$> isP _AMPlannedAction
@@ -211,17 +213,17 @@ psbcPrisms = [_AMEmotionAnger . to (Anger,),
 --  Each pair of AMEmotionAnger/Fear/Enthusiasm/Contentment and AMEmotionChanged
 --  will result in an AMPlanEmotionChanged.
 recordPlanEmotionChanges :: MemoryIndex -> [AgentMessage'] -> [AgentMessage']
-recordPlanEmotionChanges mi = map (True,) . M.foldrWithKey mkMsg [] . foldl' f (psbcEmotionMap Nothing)
+recordPlanEmotionChanges mi = map (True,,ttl 1) . M.foldrWithKey mkMsg [] . foldl' f (psbcEmotionMap Nothing)
    where
       mkMsg :: EmotionName -> Maybe Rational -> [AgentMessage] -> [AgentMessage]
       mkMsg en (Just r) = ((AMPlanEmotionChanged mi en r) :)
       mkMsg _ _ = error "recordPlanEmotionChanges.mkMsg: called with Nothing!"
 
       f :: M.Map EmotionName (Maybe Rational) -> AgentMessage' -> M.Map EmotionName (Maybe Rational)
-      f m (_,AMEmotionAnger r) = m & ix Anger .~ Just r
-      f m (_,AMEmotionFear r) = m & ix Fear .~ Just r
-      f m (_,AMEmotionEnthusiasm r) = m & ix Enthusiasm .~ Just r
-      f m (_,AMEmotionContentment r) = m & ix Contentment .~ Just r
+      f m (_,AMEmotionAnger r,_) = m & ix Anger .~ Just r
+      f m (_,AMEmotionFear r,_) = m & ix Fear .~ Just r
+      f m (_,AMEmotionEnthusiasm r,_) = m & ix Enthusiasm .~ Just r
+      f m (_,AMEmotionContentment r,_) = m & ix Contentment .~ Just r
       f m _ = m
 
 -- |Returns the degree to which the target emotion's decree satisfies the criterion
@@ -274,7 +276,7 @@ evaluateCells imag as = trace "[evaluateCells]"
    $ trace ("___cell vals: " ++ show (fmap evaluateCell cells))
    $ fmap evaluateCell cells
    where
-      ms = filter ((imag==) . fst) $ as ^. messageSpace
+      ms = filter ((imag==) . view _1) $ as ^. messageSpace
 
       -- |Messages relating to given cells (plus global data which applies everywhere,
       --  and local messages which influence judgments about other cells).
@@ -282,18 +284,18 @@ evaluateCells imag as = trace "[evaluateCells]"
       cells :: M.Map RelInd [AgentMessage']
       cells = M.mapWithKey addData $ fst $ sortByInd ms
 
-      addData k = (if k == RI (0,0) then ((True, AMYouAreHere) :) else id)
+      addData k = (if k == RI (0,0) then ((True, AMYouAreHere, ephemeral) :) else id)
                   . (localData++)
                   . (globalData++)
 
       globalData :: [AgentMessage']
-      globalData = mapMaybe (\(i,m) -> globalMessage m >$> (i,)) ms
+      globalData = mapMaybe (\(i,m,t) -> globalMessage m >$> (i,,t)) ms
 
       localData :: [AgentMessage']
-      localData = mapMaybe (\(i,m) -> localMessage m >$> (i,)) ms
+      localData = mapMaybe (\(i,m,t) -> localMessage m >$> (i,,t)) ms
 
       evaluateCell :: [AgentMessage'] -> M.Map EmotionName Rational
-      evaluateCell ms' = fmap (emotionValue (map snd ms')) $ as ^. psbc . to (fmap snd)
+      evaluateCell ms' = fmap (emotionValue (map (view _2) ms')) $ as ^. psbc . to (fmap snd)
 
 
    -- possible solution: AMPlanDirection EmotionName, so that 'good' means 'the planned emotion'

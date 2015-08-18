@@ -39,7 +39,7 @@ sjsFold :: [AgentMessage'] -> AgentState -> AgentState
 sjsFold ms as' = maybe as' (\name -> foldr (f name) as' [minBound .. maxBound])
                  $ constructAgentName ms'
    where
-      ms' = mapMaybe (socialMessage . snd) ms
+      ms' = mapMaybe (socialMessage . view _2) ms
 
       i :: RelInd
       i = fromMaybe (error "sjsFold: no pos found for i!")
@@ -48,7 +48,7 @@ sjsFold ms as' = maybe as' (\name -> foldr (f name) as' [minBound .. maxBound])
       f name en as = addSocialMessage name en $ sjsEntityEmotion ms' name en as
 
       addSocialMessage name en as =
-         addMessage (False, socialEmotionMessage en i $ view (sjsLens name en) as) as
+         addMessage (False, socialEmotionMessage en i $ view (sjsLens name en) as, ephemeral) as
 
       sjsLens name en = sjs . _1 . at' name . sst . at' en
 
@@ -90,10 +90,10 @@ psbcComponent :: Monad m => AgentState -> m AgentState
 psbcComponent as = trace "[psbcComponent]" $ trace (replicate 80 '+') $ return $
    foldr (\en as' -> addEmotionMessage en $ psbcEmotion msg en as') as [minBound..maxBound]
    where
-      msg = map snd $ as ^. messageSpace
+      msg = map (view _2) $ as ^. messageSpace
       addEmotionMessage en as' =
-           addMessage (False, AMEmotionChanged en (emotionVal en as' - emotionVal en as))
-         . addMessage (False, emotionMessage en (emotionVal en as')) $ as'
+           addMessage (False, AMEmotionChanged en (emotionVal en as' - emotionVal en as), ephemeral)
+         . addMessage (False, emotionMessage en (emotionVal en as'), ephemeral) $ as'
 
       emotionVal :: EmotionName -> AgentState -> Rational
       emotionVal en = view (psbc . at' en . _1)

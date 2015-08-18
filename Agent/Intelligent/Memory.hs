@@ -91,20 +91,20 @@ memoryComponent as = trace "[memoryComponent]" $ trace (replicate 80 '+')
             newPos = newW ^. agents . at (as' ^. name)
 
             -- new messages to be added
-            newMsg = map (True,) $ maybe [AMYouDied] perc newPos
+            newMsg = map (True,,ephemeral) $ maybe [AMYouDied] perc newPos
 
             -- The new memory. If the agent died, it will be identical to the
             -- previous one on which it was supposed to be based.
             newMem = addMemory newMsg mi
 
       actions = sortBy (comparing snd)
-                . map (\(_,(act, mi, _)) -> (act, mi))
+                . map (\(_,(act, mi, _),_) -> (act, mi))
                 . filter filt
                 . msgWhere _AMPlannedAction
                 . view messageSpace $ as
 
-      filt :: (IsImaginary, (Action, MemoryIndex, Discharged)) -> Bool
-      filt = (&&) <$> fst <*> not . view _3 . snd
+      filt :: (IsImaginary, (Action, MemoryIndex, Discharged), TTL) -> Bool
+      filt = (&&) <$> view _1 <*> not . view (_2 . _3)
 
 -- |Takes the agent's memory (and current messages about global data) and
 --  constructs a world from it.
@@ -226,7 +226,7 @@ makeWorldUpdates xs = (cellUpdates, edgeUpdates)
 -- |Constructs a cell update function from agent messages.
 constructCell :: [AgentMessage']
               -> (VisualCellData -> VisualCellData)
-constructCell ms = foldl' addCellInfo cellEntity (map snd ms)
+constructCell ms = foldl' addCellInfo cellEntity (map (view _2) ms)
    where
       -- Performs a function on an inventory, creating an empty one first if none exists.
       onInv :: (M.Map Item Int -> M.Map Item Int) -> VisualCellData -> VisualCellData
@@ -282,7 +282,7 @@ constructEntity ms = trace "[constructEntity]" agentKind
 
 -- |Constructs an edge update from agent messages.
 constructEdge :: [AgentMessage'] -> (EdgeData -> EdgeData)
-constructEdge = foldl' (\f (_,m) -> addEdgeInfo f m) id
+constructEdge = foldl' (\f (_,m,_) -> addEdgeInfo f m) id
    where
       addEdgeInfo f (AMVisualEdgeDanger _ r) = (danger .~ r) . f
       addEdgeInfo f (AMVisualEdgeFatigue _ r) = (fatigue .~ r) . f

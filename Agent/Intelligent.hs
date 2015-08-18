@@ -2,6 +2,7 @@
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE TupleSections #-}
 
 module Agent.Intelligent where
 
@@ -35,7 +36,7 @@ instance AgentMind AgentState where
                            $ trace ("___[receiveMessage] msg space: " ++ show (as ^. messageSpace))
                            $ as & messageSpace %~ (msg'++)
       where
-        msg' = zip (repeat False) (perception myPos msg)
+        msg' = map (False,,eternal) (perception myPos msg)
         myPos = fromMaybe (error "[receiveMessage.myPos] Nothing!") $ myPosition $ view messageSpace as
 
    getAction = getAction'
@@ -63,7 +64,7 @@ getAction' as = do traceM $ "[getAction] " ++ (as ^. name)
 
       -- gets the first non-imaginary action, if it exists.
       action :: AgentState -> Maybe Action
-      action = fmap (view (_2._1)) . LS.head . filter (not.fst) . msgWhere _AMPlannedAction . view messageSpace
+      action = fmap (view (_2._1)) . LS.head . filter (not . view _1) . msgWhere _AMPlannedAction . view messageSpace
 
       components = [psbcComponent,
                     sjsComponent, 

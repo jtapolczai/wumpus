@@ -36,7 +36,10 @@ beliefGeneratorComponent as = liftIO
       f as' (act, mi, _) = generateBelief act mi as'
 
       -- all imaginary, non-discharged planned actions
-      acts = map snd $ filter ((&&) <$> fst <*> view (_2._3)) $ msgWhere _AMPlannedAction $ as ^. messageSpace
+      acts = map (view _2)
+             $ filter ((&&) <$> view _1 <*> view (_2._3))
+             $ msgWhere _AMPlannedAction
+             $ as ^. messageSpace
 
 
 -- |Performs a hypothetical action and gets the consequences, in message-form.
@@ -73,7 +76,7 @@ generateBelief :: MonadIO m
 generateBelief act mi as = liftIO $ do
    traceM "[generateBelief]"
    (_, msg) <- simulateConsequences act mi as
-   let msg' = map (True,) msg
+   let msg' = map (True,,ephemeral) msg
        as' = addMemory msg' mi . addMessages msg' $ as
    traceM ("___generated msg: " ++ show msg)
    return as'

@@ -24,10 +24,10 @@ import Types
 -- |Returns the messages that have the given constructor.
 msgWhere :: forall a.Getting (First a) AgentMessage a
          -> [AgentMessage']
-         -> [(IsImaginary, a)]
+         -> [(IsImaginary, a, TTL)]
 msgWhere = msgWhereAny . (:[])
 
--- |Returns True iff an AgentMessage has one of the given constructors.
+-- |Returns True iff a nAgentMessage has one of the given constructors.
 anyOfP :: [Getting (First a) AgentMessage a]
        -> AgentMessage
        -> Bool
@@ -39,19 +39,19 @@ isP l x = isJust (x ^? l)
 -- |Returns the messages that have the one of the given constructors
 msgWhereAny :: forall a.[Getting (First a) AgentMessage a]
             -> [AgentMessage']
-            -> [(IsImaginary, a)]
+            -> [(IsImaginary, a, TTL)]
 msgWhereAny ls = concatMap f
    where
-      f :: (IsImaginary, AgentMessage) -> [(IsImaginary, a)]
-      f (c,m) = mapMaybe (\l -> (m ^? l) >$> (c,)) ls
+      f :: (IsImaginary, AgentMessage, TTL) -> [(IsImaginary, a, TTL)]
+      f (c,m,t) = mapMaybe (\l -> (m ^? l) >$> (c,,t)) ls
 
 -- |Returns the first message that has the correct consturctor.
 firstWhere :: Getting (First a) AgentMessage a -> [AgentMessage'] -> Maybe a
-firstWhere p = S.head . map snd . msgWhere p
+firstWhere p = S.head . map (view _2) . msgWhere p
 
 -- |Returns the last message that has the correct consturctor.
 lastWhere :: Getting (First a) AgentMessage a -> [AgentMessage'] -> Maybe a
-lastWhere p = S.last . map snd . msgWhere p
+lastWhere p = S.last . map (view _2) . msgWhere p
 
 -- |Sieves out messages about global world data.
 globalMessage :: AgentMessage -> Maybe AgentMessage
@@ -119,10 +119,10 @@ sortByInd :: [AgentMessage']
               M.Map RelEdgeInd [AgentMessage'])
 sortByInd = foldl' collect (M.empty, M.empty)
    where
-      collect (cs, es) (c,m) =
-         (maybe id (const $ insert' (RI (0,0)) (c,m)) (localMessage m)
-          $ maybe id (const $ insert' (msgPos m) (c,m)) (cellMessage m) cs,
-          maybe id (const $ insert' (msgEdg m) (c,m)) (edgeMessage m) es)
+      collect (cs, es) (c,m,t) =
+         (maybe id (const $ insert' (RI (0,0)) (c,m,t)) (localMessage m)
+          $ maybe id (const $ insert' (msgPos m) (c,m,t)) (cellMessage m) cs,
+          maybe id (const $ insert' (msgEdg m) (c,m,t)) (edgeMessage m) es)
 
       msgPos m = fromMaybe (error "[sortByInd.msgPos]: Nothing") (m ^. _agentMessageCellInd)
       msgEdg m = fromMaybe (error "[sortByInd.msgEdg]: Nothing") (m ^. _agentMessageEdgeInd)
@@ -135,8 +135,8 @@ sortByEntityName :: [AgentMessage']
                  -> (M.Map EntityName [AgentMessage'])
 sortByEntityName = foldl' collect M.empty
    where
-      collect es (c,m) =
-         maybe id (const $ insert' (entName m) (c,m)) (socialMessage m) es
+      collect es (c,m,t) =
+         maybe id (const $ insert' (entName m) (c,m,t)) (socialMessage m) es
 
       entName m = fromMaybe (error "no entity name in sortByEntityName")
                             (m ^. _agentMessageEntityName)

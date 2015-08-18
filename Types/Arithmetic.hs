@@ -15,6 +15,9 @@ ttl = pure
 eternal :: TTL
 eternal = NatInf Nothing
 
+ephemeral :: TTL
+ephemeral = ttl 0
+
 instance Show a => Show (NatInf a) where
    show (NatInf (Just x)) = show x
    show (NatInf Nothing) = "Infinity"
