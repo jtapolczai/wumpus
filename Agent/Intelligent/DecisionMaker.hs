@@ -197,8 +197,6 @@ reinsertablePlanMsg = filter (f. view (_2)) . view messageSpace
                            || u || v) <$> isP _AMPlannedAction
                                       <*> isP _AMPlanEmotion
                                       <*> isP _AMPlanEmotionChanged
-                                      <*> isP _AMPlanGlobalBudget
-                                      <*> isP _AMPlanLocalBudget
       
 -- |Getters for the four PSBC-emotions.
 --psbcPrisms :: [Prism' ]
