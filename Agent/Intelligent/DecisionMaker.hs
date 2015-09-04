@@ -193,10 +193,9 @@ planStartEmotions = foldl' f M.empty . map (view _2) . msgWhereAny psbcPrisms . 
 reinsertablePlanMsg :: AgentState -> [AgentMessage']
 reinsertablePlanMsg = filter (f. view (_2)) . view messageSpace
    where
-      f = (\x y z u v -> x || y || z
-                           || u || v) <$> isP _AMPlannedAction
-                                      <*> isP _AMPlanEmotion
-                                      <*> isP _AMPlanEmotionChanged
+      f = (\x y z -> x || y || z) <$> isP _AMPlannedAction
+                                  <*> isP _AMPlanEmotion
+                                  <*> isP _AMPlanEmotionChanged
       
 -- |Getters for the four PSBC-emotions.
 --psbcPrisms :: [Prism' ]

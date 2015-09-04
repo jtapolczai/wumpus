@@ -91,7 +91,7 @@ memoryComponent as = trace "[memoryComponent]" $ trace (replicate 80 '+')
             newPos = newW ^. agents . at (as' ^. name)
 
             -- new messages to be added
-            newMsg = map (True,,ephemeral) $ maybe [AMYouDied] perc newPos
+            newMsg = map (True,,ttl 1) $ maybe [AMYouDied] perc newPos
 
             -- The new memory. If the agent died, it will be identical to the
             -- previous one on which it was supposed to be based.

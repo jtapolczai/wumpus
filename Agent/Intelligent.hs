@@ -42,13 +42,16 @@ instance AgentMind AgentState where
    getAction = getAction'
 
 getAction' :: AgentState -> IO (Action, AgentState)
-getAction' as = do traceM $ "[getAction] " ++ (as ^. name)
-                   traceM $ "[getAction] " ++ (show $ as ^. messageSpace)
-                   action <- callComponents [initialMemoryComponent,
-                                             initialDecisionMakerComponent,
-                                             persistentMessagesComponent] as
-                             >>= loop action (cc' components)
-                   return (action, as & messageSpace .~ [])
+getAction' initAs = do
+   traceM $ "[getAction] " ++ (initAs ^. name)
+   traceM $ "[getAction] " ++ (show $ initAs ^. messageSpace)
+   -- create an initial memory and 
+   as' <- callComponents [initialMemoryComponent,
+                          initialDecisionMakerComponent,
+                          temporalizePerceptionsComponent] initAs
+   action <- loop action (cc' components) as'
+   return (action, as & messageSpace .~ [])
+
    where
       loop :: Monad m => (a -> Maybe b) -> (a -> m a) -> a -> m b
       loop test f x = maybe (f x >>= loop test f) return (test x)
@@ -57,10 +60,11 @@ getAction' as = do traceM $ "[getAction] " ++ (as ^. name)
           => [AgentComponent m]
           -> AgentState
           -> m AgentState
-      cc' comps as = do as' <- callComponents comps as
-                        as'' <- persistentMessagesComponent as
+      cc' comps as = do traceM $ "[cc'] msg:" ++ show (as ^. messageSpace)
+                        as' <- persistentMessagesComponent as
+                        traceM $ "[cc'| after pruning] msg:" ++ show (as ^. messageSpace)
+                        as'' <- callComponents comps as'
                         return $ as' & messageSpace .~ view newMessages as''
-
 
       -- gets the first non-imaginary action, if it exists.
       action :: AgentState -> Maybe Action

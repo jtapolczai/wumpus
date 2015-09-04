@@ -15,3 +15,11 @@ persistentMessagesComponent as = trace "[persistentMessagesComponent]" $ trace (
    where
       living (_,_,n) = n > 0
       decr = _3 -~ 1
+
+-- |Reinserts messages which are both eternal and non-imaginary with a TTL of 1.
+temporalizePerceptionsComponent :: Monad m => AgentComponent m
+temporalizePerceptionsComponent as = return $ addMessages (msg as) as
+   where
+      msg = map (set _3 (ttl 1))
+            . filter (\(i,_,t) -> not i && t == eternal)
+            . view messageSpace
