@@ -58,3 +58,4 @@ swallow = return . id
 
 reproduce :: Monad m => AgentComponent m
 reproduce as = return $ addMessages (as ^. messageSpace) as
+

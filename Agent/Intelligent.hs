@@ -50,7 +50,7 @@ getAction' initAs = do
                           initialDecisionMakerComponent,
                           temporalizePerceptionsComponent] initAs
    action <- loop action (cc' components) as'
-   return (action, as & messageSpace .~ [])
+   return (action, as' & messageSpace .~ [])
 
    where
       loop :: Monad m => (a -> Maybe b) -> (a -> m a) -> a -> m b
@@ -61,7 +61,7 @@ getAction' initAs = do
           -> AgentState
           -> m AgentState
       cc' comps as = do traceM $ "[cc'] msg:" ++ show (as ^. messageSpace)
-                        as' <- persistentMessagesComponent as
+                        as' <- callComponents [persistentMessagesComponent] as
                         traceM $ "[cc'| after pruning] msg:" ++ show (as ^. messageSpace)
                         as'' <- callComponents comps as'
                         return $ as' & messageSpace .~ view newMessages as''
