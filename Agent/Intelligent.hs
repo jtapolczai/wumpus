@@ -62,7 +62,7 @@ getAction' initAs = do
           -> m AgentState
       cc' comps as = do traceM $ "[cc'] msg:" ++ show (as ^. messageSpace)
                         as' <- callComponents [persistentMessagesComponent] as
-                        traceM $ "[cc'| after pruning] msg:" ++ show (as ^. messageSpace)
+                        traceM $ "[cc'| after pruning] msg:" ++ show (as' ^. messageSpace)
                         as'' <- callComponents comps as'
                         return $ as' & messageSpace .~ view newMessages as''
 
