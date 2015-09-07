@@ -58,7 +58,7 @@ simulateConsequences act mi as = do
    -- get the messages from the agent at its new position.
    -- the agent not being present means that it has died, so create an
    -- appropriate "health decreased by 100 percept" message.
-   let messages = fromMaybe [AMHealthDecreased 100] $ do
+   let messages = fromMaybe [AMHealthDecreased 100, AMYouDied] $ do
                      newPos <- nextWorld ^. agents . at (as ^. name)
                      me <- nextWorld ^? cellData . at newPos . _Just . entity . _Just . _Ag
                      return $ concatMap (perception myPos) $ readMessageSpace $ me ^. state

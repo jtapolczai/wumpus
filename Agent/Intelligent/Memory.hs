@@ -180,13 +180,14 @@ resetMemory as xs = as & memory .~ T.Node mem []
 --  If the second parameter is given, a pre-existing memory will be modified. If not,
 --  an entirely new one will be created.
 constructMemory :: [AgentMessage'] -> Maybe Memory -> Memory
-constructMemory xs mem = (fjoin vcd cu c, fjoin ed eu e)
+constructMemory xs mem = (fjoin vcd cu c, fjoin ed eu e, pos)
    where
       vcd = VCD Nothing (vcdErr "pit") (vcdErr "gold") (vcdErr "meat")
                 (vcdErr "fruit") (vcdErr "plant") Nothing Nothing
       ed = ED (edErr "danger") (edErr "fatigue")
+      pos = fromMaybe (error "constructMemory: no position found!") $ myPosition xs
 
-      (c, e) = fromMaybe (M.empty, M.empty) mem
+      (c, e, _) = fromMaybe (M.empty, M.empty, pos) mem
       (cu, eu) = makeWorldUpdates xs
 
       vcdErr x = error $ "Uninitialized field " ++ x ++ " in VCD (Memory.hs)"
