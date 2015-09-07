@@ -37,7 +37,7 @@ beliefGeneratorComponent as = liftIO
 
       -- all imaginary, non-discharged planned actions
       acts = map (view _2)
-             $ filter ((&&) <$> view _1 <*> view (_2._3))
+             $ filter ((&&) <$> view _1 <*> view (_2._3. to not))
              $ msgWhere _AMPlannedAction
              $ as ^. messageSpace
 
