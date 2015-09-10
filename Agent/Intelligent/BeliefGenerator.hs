@@ -59,9 +59,14 @@ simulateConsequences act mi as = do
    -- the agent not being present means that it has died, so create an
    -- appropriate "health decreased by 100 percept" message.
    let messages = fromMaybe [AMHealthDecreased 100, AMYouDied] $ do
-                     newPos <- nextWorld ^. agents . at (as ^. name)
-                     me <- nextWorld ^? cellData . at newPos . _Just . entity . _Just . _Ag
-                     return $ concatMap (perception myPos) $ readMessageSpace $ me ^. state
+          traceM "[simulateConsequences] messages"
+          traceM $ "[simulateConsequences.messages] agents: " ++ show (nextWorld ^. agents)
+          traceM $ "[simulateConsequences.messages] my name: " ++ (as ^. name)
+          newPos <- nextWorld ^. agents . at (as ^. name)
+          traceM $ "[simulateConsequences.messages] newPos: " ++ show newPos
+          me <- nextWorld ^? cellData . at newPos . _Just . entity . _Just . _Ag
+          traceM $ "[simulateConsequences.messages] me: Just"
+          return $ concatMap (perception myPos) $ readMessageSpace $ me ^. state
 
    return (nextWorld, messages)
 
