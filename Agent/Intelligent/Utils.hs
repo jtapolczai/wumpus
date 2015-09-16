@@ -110,7 +110,8 @@ socialMessage x@AMKilledWumpus{} = Just x
 socialMessage _ = Nothing
 
 -- |Goes through a message space and groups messages by CellInd/EdgeInd, provided
---  they have such fields.
+--  they have such fields. Self-related field (AMHave*, AMLocal*) are treated
+--  as if they had index (0,0).
 --
 --  This function is good for re-constructing complex facts about individual
 --  cells/edges from simple, atomic messages.

@@ -81,7 +81,7 @@ generateBelief :: MonadIO m
 generateBelief act mi as = liftIO $ do
    traceM "[generateBelief]"
    (_, msg) <- simulateConsequences act mi as
-   let msg' = map (True,,ephemeral) msg
+   let msg' = map (True,,ttl 1) msg
        as' = addMemory msg' mi . addMessages msg' $ as
    traceM ("___generated msg: " ++ show msg)
    return as'

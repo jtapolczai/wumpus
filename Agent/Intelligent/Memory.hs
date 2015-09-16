@@ -132,8 +132,10 @@ reconstructWorld' myAct world mi as =
          UnboundedSquareGrid
          (as ^. memory . memInd mi . _2)
          (M.mapWithKey mkCell $ as ^. memory . memInd mi . _1)
-         (makeEntityIndex $ as ^. memory . memInd mi . _1)
+         (trace ("[reconstructWorld] entityIndex: " ++ show entityIndex) $ entityIndex)
    where
+
+      entityIndex = (makeEntityIndex $ as ^. memory . memInd mi . _1)
 
       -- |Reconstructs a CellData from a VisualCellData and gives minds to
       --  entities. If the world-parameter is Nothing, Wumpuses get dummyMinds,
@@ -227,7 +229,8 @@ makeWorldUpdates xs = (cellUpdates, edgeUpdates)
 -- |Constructs a cell update function from agent messages.
 constructCell :: [AgentMessage']
               -> (VisualCellData -> VisualCellData)
-constructCell ms = foldl' addCellInfo cellEntity (map (view _2) ms)
+constructCell ms = trace ("[constructCell] messages: " ++ show ms)
+                   $ foldl' addCellInfo cellEntity (map (view _2) ms)
    where
       -- Performs a function on an inventory, creating an empty one first if none exists.
       onInv :: (M.Map Item Int -> M.Map Item Int) -> VisualCellData -> VisualCellData
@@ -250,7 +253,7 @@ constructCell ms = foldl' addCellInfo cellEntity (map (view _2) ms)
 
       addCellInfo f (AMLocalStench n) = (stench ?~ n) . f
       addCellInfo f (AMLocalBreeze n) = (breeze ?~ n) . f
-      addCellInfo f (AMLocalAgent) = f
+      addCellInfo f (AMLocalAgent) = trace "[constructCell] LOCALAGENT FOUND. " f
       addCellInfo f (AMHaveHealth n) = (entity . _Just . health .~ n) . f
       addCellInfo f (AMHaveStamina n) = (entity . _Just . stamina .~ n) . f
       addCellInfo f (AMHaveGold n) = onInv (ix Gold .~ n) . f
