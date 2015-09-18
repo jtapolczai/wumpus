@@ -35,8 +35,8 @@ type ActionSelector a =
 initialDecisionMakerComponent :: Monad m => AgentComponent m
 initialDecisionMakerComponent = trace "[initialDecisionMakerComponent]" $ trace (replicate 80 '+') $ return . addMessages msg
    where
-      msg = [(True, AMPlanLocalBudget cAGENT_PLAN_LIMIT, eternal),
-             (True, AMPlanGlobalBudget $ cAGENT_GLOBAL_PLAN_LIMIT, eternal)]
+      msg = [(True, AMPlanLocalBudget cAGENT_PLAN_LIMIT, ephemeral),
+             (True, AMPlanGlobalBudget $ cAGENT_GLOBAL_PLAN_LIMIT, ephemeral)]
 
 -- |Makes a decision based on the affective evaluation of the world.
 --  Chooses a next planned step and inserts the corresponding memory and
@@ -191,11 +191,17 @@ planStartEmotions = foldl' f M.empty . map (view _2) . msgWhereAny psbcPrisms . 
 -- |Gets those messages which are planning-related and should thus be reinserted by the
 --  decision maker by default.
 reinsertablePlanMsg :: AgentState -> [AgentMessage']
-reinsertablePlanMsg = filter (f. view (_2)) . view messageSpace
+reinsertablePlanMsg = map incttl . filter (f . view _2) . view messageSpace
    where
-      f = (\x y z -> x || y || z) <$> isP _AMPlannedAction
-                                  <*> isP _AMPlanEmotion
-                                  <*> isP _AMPlanEmotionChanged
+      incttl :: AgentMessage' -> AgentMessage'
+      incttl = over _3 (+1)
+
+      f = (\x y z u v -> x || y || z || u || v)
+          <$> isP _AMPlannedAction
+          <*> isP _AMPlanEmotion
+          <*> isP _AMPlanEmotionChanged
+          <*> isP _AMPlanLocalBudget
+          <*> isP _AMPlanGlobalBudget
       
 -- |Getters for the four PSBC-emotions.
 --psbcPrisms :: [Prism' ]

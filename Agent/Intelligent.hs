@@ -60,13 +60,13 @@ getAction' initAs = do
           => [AgentComponent m]
           -> AgentState
           -> m AgentState
-      cc' comps as = do traceM $ "[cc'] msg:" ++ show (as ^. messageSpace)
-                        as' <- callComponents [persistentMessagesComponent] as
-                        traceM $ "[cc'| after pruning] msg:" ++ show (as' ^. messageSpace)
-                        as'' <- callComponents comps as'
+      cc' comps as = do traceM $ "[cc'] initMsg:" ++ show (as ^. messageSpace)
+                        asAfterCC <- callComponents comps as
                         traceM $ "[cc'] callComponents done."
-                        traceM $ "[cc'] output messages: " ++ show (as'' ^. messageSpace)
-                        return $ as''
+                        traceM $ "[cc'] output msg:" ++ show (asAfterCC ^. messageSpace)
+                        asAfterPruning <- callComponents [persistentMessagesComponent] asAfterCC
+                        traceM $ "[cc'| after pruning] output msg:" ++ show (asAfterPruning ^. messageSpace)
+                        return $ asAfterPruning
 
       -- gets the first non-imaginary action, if it exists.
       action :: AgentState -> Maybe Action

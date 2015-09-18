@@ -33,7 +33,7 @@ callComponents comps initAs = putMsg <$> foldM f (initAs, mempty) comps
          trace ("[CC.putMsg] initAs #msg: " ++ (show $ length $ view messageSpace initAs))
          $ trace ("[CC.putMsg] out #msg: " ++ (show $ length $ ms))
          $ trace ("[CC.putMsg] out msg: " ++ show ms)
-         $ curAs & messageSpace .~ (initMsg ++ ms)
+         $ curAs & messageSpace .~ ms
                  & newMessages .~ mempty
 
       -- run the component with the initial messages.
