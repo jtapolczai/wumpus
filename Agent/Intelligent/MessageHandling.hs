@@ -33,15 +33,17 @@ callComponents comps initAs = putMsg <$> foldM f (initAs, mempty) comps
          trace ("[CC.putMsg] initAs #msg: " ++ (show $ length $ view messageSpace initAs))
          $ trace ("[CC.putMsg] out #msg: " ++ (show $ length $ ms))
          $ trace ("[CC.putMsg] out msg: " ++ show ms)
-         $ curAs & messageSpace .~ ms
+         $ curAs & messageSpace .~ (initMsg ++ ms)
                  & newMessages .~ mempty
 
       -- run the component with the initial messages.
       -- collect the newly added messages separately.
       f (curAs, ms) g = do
          traceM $ "[CC] #msg: " ++ (show $ length $ initMsg ++ ms)
-         traceM $ "[CC] msg: " ++ (show $ initMsg ++ ms)
+         traceM $ "[CC] msg (initMs): " ++ (show initMsg)
+         traceM $ "[CC] msg (ms): " ++ (show ms)
          newAs <- g $ curAs & messageSpace .~ (initMsg ++ ms)
+         traceM $ "[CC] newMsg: " ++ (show $ newAs ^. newMessages)
          return (newAs & newMessages .~ mempty,
                  newAs ^. newMessages ++ ms)
 
