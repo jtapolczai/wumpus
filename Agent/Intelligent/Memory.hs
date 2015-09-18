@@ -59,7 +59,8 @@ import Debug.Trace
 --  This should only be called when the agent begins its thought process.
 --  After that, memoryComponent should be called for planning.
 initialMemoryComponent :: Monad m => AgentComponent m
-initialMemoryComponent as = return $ resetMemory as (as ^. messageSpace) 
+initialMemoryComponent as = trace "[initialMemoryComponent]" $ trace (replicate 80 '+')
+   $ return $ resetMemory as (as ^. messageSpace) 
 
 -- |Creates memories for all non-discharged, imaginary _AMPlannedAction messages.
 --  For each created memory, perception messages will be inserted into the message

@@ -33,7 +33,7 @@ type ActionSelector a =
 
 -- |Adds 'AMPlanLocalBudget' and 'AMPlanGlobalBudget' messages.
 initialDecisionMakerComponent :: Monad m => AgentComponent m
-initialDecisionMakerComponent = return . addMessages msg
+initialDecisionMakerComponent = trace "[initialDecisionMakerComponent]" $ trace (replicate 80 '+') $ return . addMessages msg
    where
       msg = [(True, AMPlanLocalBudget cAGENT_PLAN_LIMIT, eternal),
              (True, AMPlanGlobalBudget $ cAGENT_GLOBAL_PLAN_LIMIT, eternal)]
