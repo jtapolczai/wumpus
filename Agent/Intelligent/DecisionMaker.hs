@@ -81,7 +81,7 @@ decisionMakerComponent asInit = trace "[decisionMakerComponent]" $ trace (replic
          traceShow emotion $
          --traceShow (as ^. gestures) $
          --traceShow (as ^. messageSpace) $
-         traceShow myPos $
+         --traceShow myPos $
          trace ("[getNextAction.SEC] " ++ show (strongestEmotionCell imag emotion as)) $
          traceShow (makeAbs myPos $ strongestEmotionCell imag emotion as) $
          traceShow "___getNextAction traces done" $
@@ -139,8 +139,12 @@ decisionMakerComponent asInit = trace "[decisionMakerComponent]" $ trace (replic
 strongestOverruling :: EmotionName -> M.Map EmotionName Rational -> Rational
 strongestOverruling en m = trace "[strongestOverruling]" fromMaybe 0 $ do
    enVal <- m ^. at en
+   traceM $ "[strongestOverruling] enVal: " ++ show enVal
    confVals <- mapM (\e -> m ^. at e) (conflictingEmotions en)
-   return . max 0 . maximum . map (subtract enVal) $ confVals
+   traceM $ "[strongestOverruling] confVals: " ++ show confVals
+   let ret = max 0 . maximum . map (subtract enVal) $ confVals
+   traceM $ "[strongestOverruling] ret: " ++ show ret
+   return ret
 
 -- |Deletes n steps from end of a given memory index.
 --
