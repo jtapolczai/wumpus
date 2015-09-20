@@ -18,23 +18,26 @@ import Debug.Trace
 --  components outputted. Messages written into the message space are ignored.
 --
 --  In the end, the modified agent state is returned, with its message space
---  containing the list of all new messages that the components added. That is,
---  the message space gets completely overwritten.
+--  containing the list of all new messages that the components added.
+--  If the 'reinsert'-argument is True, then the initial messages are kept. Otherwise,
+--  the message space will only contain the messages inserted by the components.
 callComponents :: (Functor m, Monad m)
-               => [AgentComponent m]
+               => Bool -- Reinsert initial messages at the end?
+               -> [AgentComponent m]
                -> AgentState
                -> m AgentState
-callComponents comps initAs = putMsg <$> foldM f (initAs, mempty) comps
+callComponents doReinsertInit comps initAs = putMsg <$> foldM f (initAs, mempty) comps
    where
-
       initMsg = view messageSpace initAs
+      addFinalMsg = if doReinsertInit then initMsg else []
+
 
       putMsg (curAs,ms) =
          trace ("[CC.putMsg] initAs #msg: " ++ (show $ length $ view messageSpace initAs))
          $ trace ("[CC.putMsg] out #msg: " ++ (show $ length $ ms))
          $ trace ("[CC.putMsg] out msg (initMsg): " ++ show initMsg)
          $ trace ("[CC.putMsg] out msg (ms): " ++ show ms)
-         $ curAs & messageSpace .~ (initMsg ++ ms)
+         $ curAs & messageSpace .~ (addFinalMsg ++ ms)
                  & newMessages .~ mempty
 
       -- run the component with the initial messages.
@@ -47,6 +50,7 @@ callComponents comps initAs = putMsg <$> foldM f (initAs, mempty) comps
          traceM $ "[CC] newMsg: " ++ (show $ newAs ^. newMessages)
          return (newAs & newMessages .~ mempty,
                  newAs ^. newMessages ++ ms)
+
 
 
 -- |Prepends a message to the new messages of an agent.

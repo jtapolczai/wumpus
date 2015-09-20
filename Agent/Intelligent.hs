@@ -46,9 +46,9 @@ getAction' initAs = do
    traceM $ "[getAction] " ++ (initAs ^. name)
    traceM $ "[getAction] " ++ (show $ initAs ^. messageSpace)
    -- create an initial memory and 
-   as' <- callComponents [initialMemoryComponent,
-                          initialDecisionMakerComponent,
-                          temporalizePerceptionsComponent] initAs
+   as' <- callComponents True [initialMemoryComponent,
+                               initialDecisionMakerComponent,
+                               temporalizePerceptionsComponent] initAs
    action <- loop action (cc' components) as'
    return (action, as' & messageSpace .~ [])
 
@@ -61,10 +61,10 @@ getAction' initAs = do
           -> AgentState
           -> m AgentState
       cc' comps as = do traceM $ "[cc'] initMsg:" ++ show (as ^. messageSpace)
-                        asAfterCC <- callComponents comps as
+                        asAfterCC <- callComponents True comps as
                         traceM $ "[cc'] callComponents done."
                         traceM $ "[cc'] output msg:" ++ show (asAfterCC ^. messageSpace)
-                        asAfterPruning <- callComponents [persistentMessagesComponent] asAfterCC
+                        asAfterPruning <- callComponents False [persistentMessagesComponent] asAfterCC
                         traceM $ "[cc'| after pruning] output msg:" ++ show (asAfterPruning ^. messageSpace)
                         return $ asAfterPruning
 
