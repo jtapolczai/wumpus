@@ -14,13 +14,17 @@ persistentMessagesComponent :: Monad m => AgentComponent m
 persistentMessagesComponent as = trace "[persistentMessagesComponent]"
                                  $ trace (replicate 80 '+')
                                  $ trace ("[persistentMessagesComponent] oldMsg: " ++ show oldMsg)
-                                 $ trace ("[persistentMessagesComponent] newMsg: " ++ show newMsg)
+                                 $ trace (replicate 40 '_')
+                                 $ trace ("[persistentMessagesComponent] newMsg: " ++ show (map decr newMsg))
+                                 $ trace (replicate 40 '_')
                                  $ trace ("[persistentMessagesComponent] msgDiff: " ++ show msgDiff)
+                                 $ trace (replicate 40 '_')
+                                 $ trace ("[persistentMessagesComponent] #newMsg: " ++ show (length newMsg))
                                  $ return $
    addMessages (map decr $ filter living $ view messageSpace as) as
    where
       oldMsg = view messageSpace as
-      newMsg = (filter living $ view messageSpace as)
+      newMsg = (map decr $ filter living $ view messageSpace as)
 
       msgDiff = map decr (oldMsg \\ newMsg)
 
