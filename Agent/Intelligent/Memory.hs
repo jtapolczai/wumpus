@@ -64,8 +64,7 @@ initialMemoryComponent as = trace "[initialMemoryComponent]" $ trace (replicate 
 
 -- |Creates memories for all non-discharged, imaginary _AMPlannedAction messages.
 --  For each created memory, perception messages will be inserted into the message
---  space. If the agent dies as a result of an action, only an 'AMYouDied' message 
---  is inserted.
+--  space. If the agent dies as a result of an action, no messages are inserted.
 --  The actions with the smallest MemoryIndex (by Ord-instance) will be processed
 --  first.
 --
@@ -92,7 +91,7 @@ memoryComponent as = trace "[memoryComponent]" $ trace (replicate 80 '+')
             newPos = newW ^. agents . at (as' ^. name)
 
             -- new messages to be added
-            newMsg = map (True,,ttl 1) $ maybe [AMYouDied] perc newPos
+            newMsg = map (True,,ttl 1) $ maybe [] perc newPos
 
             -- The new memory. If the agent died, it will be identical to the
             -- previous one on which it was supposed to be based.
