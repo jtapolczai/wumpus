@@ -46,7 +46,7 @@ getAction' initAs = do
    traceM $ "[getAction] " ++ (initAs ^. name)
    traceM $ "[getAction] " ++ (show $ initAs ^. messageSpace)
    -- create an initial memory and 
-   as' <- callComponents True [initialMemoryComponent,
+   as' <- callComponents False [initialMemoryComponent,
                                initialDecisionMakerComponent,
                                temporalizePerceptionsComponent] initAs
    action <- loop action (cc' components) as'
