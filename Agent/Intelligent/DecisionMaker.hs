@@ -67,8 +67,8 @@ decisionMakerComponent asInit = trace "[decisionMakerComponent]" $ trace (replic
       -- randomly choose an emotion-appropriate action
       act <- getNextAction False dominantEmotion
       traceM (show act)
-      let newMsg = [(isImag, AMPlannedAction act mempty False, eternal),
-                    (isImag, AMPlanEmotion dominantEmotion, eternal)]
+      let newMsg = [(isImag, AMPlannedAction act mempty False, ttl 1),
+                    (isImag, AMPlanEmotion dominantEmotion, ttl 1)]
 
       traceM "mkStep"
       traceM $ "newMsg: " ++ show newMsg
