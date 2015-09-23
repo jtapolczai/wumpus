@@ -110,6 +110,7 @@ _wumpusStateLens :: Lens (Wumpus a) (Wumpus b) a b
 _wumpusStateLens = lens _wumpusState (\a x -> a{_wumpusState = x})
 
 -- |Gets the CellInd of an AgentMessage, for all which have one (except AMPosition).
+--  Local fields (AMHave*, AMLocal*) are given the index (0,0)
 _agentMessageCellInd :: Getter AgentMessage (Maybe RelInd)
 _agentMessageCellInd = to go
    where
@@ -126,6 +127,11 @@ _agentMessageCellInd = to go
       go (AMEmotionSympathy c _) = Just c
       go (AMEmotionTrust c _) = Just c
       go (AMEmotionRespect c _) = Just c
+      go (AMHaveHealth _) = Just $ RI (0,0)
+      go (AMHaveStamina _) = Just $ RI (0,0)
+      go (AMHaveMeat _) = Just $ RI (0,0)
+      go (AMHaveGold _) = Just $ RI (0,0)
+      go (AMHaveFruit _) = Just $ RI (0,0)
       go _ = Nothing
 
 -- |Gets the EgdeInd of an AgentMessage, for all which have one.

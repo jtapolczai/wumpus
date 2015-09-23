@@ -87,9 +87,12 @@ sjsEntityEmotion ms other emo as = as & sjs . _1 . at other %~ changeLvl
 -- |Modulates an agent's emotional state based on stimuli.
 --  Messages about the four new emotional states are inserted.
 psbcComponent :: Monad m => AgentState -> m AgentState
-psbcComponent as = trace "[psbcComponent]" $ trace (replicate 80 '+') $ return $
-   foldr (\en as' -> addEmotionMessage en $ psbcEmotion msg en as') as [minBound..maxBound]
+psbcComponent as = trace "[psbcComponent]" $ trace (replicate 80 '+')
+   $ trace ("[psbcComponent] new emotion map: " ++ show (ret_as ^. psbc . to (fmap fst)))
+   $ return ret_as
    where
+      ret_as = foldr (\en as' -> addEmotionMessage en $ psbcEmotion msg en as') as [minBound..maxBound]
+
       msg = map (view _2) $ as ^. messageSpace
       addEmotionMessage en as' =
            addMessage (False, AMEmotionChanged en (emotionVal en as' - emotionVal en as), ephemeral)

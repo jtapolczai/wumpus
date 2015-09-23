@@ -75,5 +75,6 @@ getAction' initAs = do
       components = [psbcComponent,
                     sjsComponent, 
                     memoryComponent,
+                    recordPlanEmotionChangesComponent,
                     decisionMakerComponent,
                     beliefGeneratorComponent]

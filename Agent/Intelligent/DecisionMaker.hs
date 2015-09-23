@@ -38,11 +38,27 @@ initialDecisionMakerComponent = trace "[initialDecisionMakerComponent]" $ trace 
       msg = [(True, AMPlanLocalBudget cAGENT_PLAN_LIMIT, ephemeral),
              (True, AMPlanGlobalBudget $ cAGENT_GLOBAL_PLAN_LIMIT, ephemeral)]
 
+-- |Turns the 'AMEmotionChanged'-messages into 'AMPlanEmotionChanged' ones if
+--  the leftMemIndex isn't empty (i.e. if at least one action has been planned already).
+--  The memory index of the new messages will be leftMemIndex.
+recordPlanEmotionChangesComponent :: Monad m => AgentComponent m
+recordPlanEmotionChangesComponent as =
+   trace "[recordPlanEmotionChangesComponent]" $ trace (replicate 80 '_')
+   $ trace ("[recordPlanEmotionChangesComponent] leftMemIndex: " ++ show memInd)
+   $ return $ addMessages planChMsg as
+   where
+      memInd = leftMemIndex as
+
+      planChMsg = case memInd of
+         (MI []) -> []
+         _ -> recordPlanEmotionChanges memInd (as ^. messageSpace)
+
 -- |Makes a decision based on the affective evaluation of the world.
 --  Chooses a next planned step and inserts the corresponding memory and
 --  imaginary 'AMPlannedAction' into the message space.
 decisionMakerComponent :: AgentComponent IO
-decisionMakerComponent asInit = trace "[decisionMakerComponent]" $ trace (replicate 80 '+') $
+decisionMakerComponent asInit = trace "[decisionMakerComponent]" $ trace (replicate 80 '+')
+   $ trace ("[decisionMakerComponent] leftMemIndex: " ++ show (leftMemIndex as)) $
    -- if there's no plan, start one.
    if null plannedActions || not hasBudget then do
       traceM "no plan"
@@ -137,7 +153,8 @@ decisionMakerComponent asInit = trace "[decisionMakerComponent]" $ trace (replic
 -- |Returns the amount by which the strongest conflicting emotion is stronger
 --  than a given one. If no confliction emotion is stronger, 0 is returned. 
 strongestOverruling :: EmotionName -> M.Map EmotionName Rational -> Rational
-strongestOverruling en m = trace "[strongestOverruling]" fromMaybe 0 $ do
+strongestOverruling en m = trace ("[strongestOverruling] for emotion:" ++ show en) fromMaybe 0 $ do
+   traceM $ "strongestOverruling] emotions: " ++ show m
    enVal <- m ^. at en
    traceM $ "[strongestOverruling] enVal: " ++ show enVal
    confVals <- mapM (\e -> m ^. at e) (conflictingEmotions en)
@@ -216,9 +233,8 @@ psbcPrisms = [_AMEmotionAnger . to (Anger,),
 
 
 -- |Outputs AMPlanEmotionChanged-messages.
---  Looks for PSBC emotion messages (AMEmoionAnger,... and AMEmotionChanged).
---  Each pair of AMEmotionAnger/Fear/Enthusiasm/Contentment and AMEmotionChanged
---  will result in an AMPlanEmotionChanged.
+--  'AMEmotionChanged' messages and turns them into 'AMPlanEmotionChanged'-messages
+--  with the given memory index.
 recordPlanEmotionChanges :: MemoryIndex -> [AgentMessage'] -> [AgentMessage']
 recordPlanEmotionChanges mi = map (True,,ttl 1) . M.foldrWithKey mkMsg [] . foldl' f (psbcEmotionMap Nothing)
    where
@@ -227,10 +243,7 @@ recordPlanEmotionChanges mi = map (True,,ttl 1) . M.foldrWithKey mkMsg [] . fold
       mkMsg _ _ = error "recordPlanEmotionChanges.mkMsg: called with Nothing!"
 
       f :: M.Map EmotionName (Maybe Rational) -> AgentMessage' -> M.Map EmotionName (Maybe Rational)
-      f m (_,AMEmotionAnger r,_) = m & ix Anger .~ Just r
-      f m (_,AMEmotionFear r,_) = m & ix Fear .~ Just r
-      f m (_,AMEmotionEnthusiasm r,_) = m & ix Enthusiasm .~ Just r
-      f m (_,AMEmotionContentment r,_) = m & ix Contentment .~ Just r
+      f m (_,AMEmotionChanged n r,_) = m & ix n .~ Just r
       f m _ = m
 
 -- |Returns the degree to which the target emotion's decree satisfies the criterion
@@ -252,7 +265,9 @@ targetEmotionSatisfied start n m = trace "[targetEmotionSatisfied]"
 sumEmotionChanges :: MemoryIndex
                   -> [(MemoryIndex, EmotionName, Rational)]
                   -> M.Map EmotionName Rational
-sumEmotionChanges goalMI = foldl' f (psbcEmotionMap 0)
+sumEmotionChanges goalMI =
+      trace ("[sumEmotionChanges] goalMI: " ++ show goalMI)
+      $ foldl' f (psbcEmotionMap 0)
    where 
       f :: M.Map EmotionName Rational -> (MemoryIndex, EmotionName, Rational) -> M.Map EmotionName Rational
       f m (mi, n, v) = if mi `subIndex` goalMI
