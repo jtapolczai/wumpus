@@ -67,7 +67,7 @@ decisionMakerComponent asInit = trace "[decisionMakerComponent]" $ trace (replic
       -- randomly choose an emotion-appropriate action
       act <- getNextAction False dominantEmotion
       traceM (show act)
-      let newMsg = [(isImag, AMPlannedAction act mempty False, ttl 1),
+      let newMsg = [(isImag, AMPlannedAction act mempty False, ephemeral),
                     (isImag, AMPlanEmotion dominantEmotion, ttl 1)]
 
       traceM "mkStep"
@@ -174,18 +174,22 @@ retractSteps :: MemoryIndex -- ^The index from which to start deleting upward.
              -> Int -- ^Number of steps to go back.
              -> AgentState
              -> AgentState
-retractSteps mi n as = over memory delMem . over newMessages delMsg $ as
+retractSteps mi n as = trace "[retractSteps]"
+   $ over memory delMem . over newMessages delMsg $ as
    where
       delMsg = filter (pa . view _2)
 
-      pa (AMPlannedAction _ mi' _) = not (mi' `subIndex` mi && memLength mi' > memLength mi - n)
-      pa (AMPlanEmotionChanged mi' _ _) = not (mi' `subIndex` mi && memLength mi' > memLength mi - n)
-      pa (AMPlanEmotion _) = n < memLength (leftMemIndex as)
+      pa (AMPlannedAction _ mi' _) = tr "[retractSteps] PlannedAction filter=" $ not (mi' `subIndex` mi && memLength mi' > memLength mi - n)
+      pa (AMPlanEmotionChanged mi' _ _) = tr "[retractSteps] PlanEmotionChanged filter=" $ not (mi' `subIndex` mi && memLength mi' > memLength mi - n)
+      pa (AMPlanEmotion _) = tr "[retractSteps] PlanEmotion filter=" $ (n < memLength (leftMemIndex as))
       pa _ = True
 
       delMem ms@(T.Node n _) = fromMaybe (T.Node n []) $ deleteMemory mi ms
 
       memLength = length . runMI
+
+      tr :: Show a => String -> a -> a
+      tr s x = trace (s ++ show x) x
 
 -- |Gets the 'AMPlannedAction' with the given memory index and from the message space and
 --  inserts it into 'newMessages', with its 'IsImaginary' flag set to False.

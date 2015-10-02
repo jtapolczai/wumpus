@@ -24,6 +24,7 @@ import Debug.Trace
 --  'generateBelief\'' with all imaginary 'AMPlannedAction' messages whose 'Discharged' field is 'False'.
 --  The MemoryIndex in 'AMPlannedAction' has to exist in the memory tree. The new memory will
 --  be generated as its last child.
+--  The newly discharged planned actions will be reinserted with a ttl of 1.
 beliefGeneratorComponent :: MonadIO m => AgentComponent m
 beliefGeneratorComponent as = liftIO
    $ trace ("[beliefGeneratorComponent]")
@@ -33,7 +34,8 @@ beliefGeneratorComponent as = liftIO
    $ foldM f as acts
    where
       f :: AgentState -> (Action, MemoryIndex, Discharged) -> IO AgentState
-      f as' (act, mi, _) = generateBelief act mi as'
+      f as' (act, mi, _) = generateBelief act mi
+                           $ addMessage (True, AMPlannedAction act mi True, ttl 1) as'
 
       -- all imaginary, non-discharged planned actions
       acts = map (view _2)

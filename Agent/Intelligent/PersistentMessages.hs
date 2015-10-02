@@ -24,9 +24,9 @@ persistentMessagesComponent as = trace "[persistentMessagesComponent]"
    addMessages (map decr $ filter living $ view messageSpace as) as
    where
       oldMsg = view messageSpace as
-      newMsg = (map decr $ filter living $ view messageSpace as)
+      newMsg = (filter living $ view messageSpace as)
 
-      msgDiff = map decr (oldMsg \\ newMsg)
+      msgDiff = (oldMsg \\ newMsg)
 
       living (_,_,n) = n > 0
       decr = _3 -~ 1
