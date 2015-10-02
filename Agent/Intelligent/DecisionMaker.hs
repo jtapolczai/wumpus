@@ -67,7 +67,7 @@ decisionMakerComponent asInit = trace "[decisionMakerComponent]" $ trace (replic
       -- randomly choose an emotion-appropriate action
       act <- getNextAction False dominantEmotion
       traceM (show act)
-      let newMsg = [(isImag, AMPlannedAction act mempty False, ephemeral),
+      let newMsg = [(isImag, AMPlannedAction act (MI [0]) False, ephemeral),
                     (isImag, AMPlanEmotion dominantEmotion, ttl 1)]
 
       traceM "mkStep"
@@ -78,7 +78,9 @@ decisionMakerComponent asInit = trace "[decisionMakerComponent]" $ trace (replic
       traceM "has plan"
       if strongestOverruling planEmotion allChanges > 0 then
          do traceM "retract step"
+            traceM $ "leftMemIndex: " ++ (show (leftMemIndex as))
             numSteps <- randomRIO (1,length . runMI . leftMemIndex $ as)
+            traceM ("num of retracted steps: " ++ show numSteps)
             return $ budgetRetractSteps numSteps
                    $ retractSteps (leftMemIndex as) numSteps as
       else if targetEmotionSatisfied' allChanges >= 1 then do
@@ -175,13 +177,15 @@ retractSteps :: MemoryIndex -- ^The index from which to start deleting upward.
              -> AgentState
              -> AgentState
 retractSteps mi n as = trace "[retractSteps]"
+   $ trace ("[retractSteps] mi: " ++ show mi)
+   $ trace ("[retractSteps] n: " ++ show n)
    $ over memory delMem . over newMessages delMsg $ as
    where
       delMsg = filter (pa . view _2)
 
-      pa (AMPlannedAction _ mi' _) = tr "[retractSteps] PlannedAction filter=" $ not (mi' `subIndex` mi && memLength mi' > memLength mi - n)
-      pa (AMPlanEmotionChanged mi' _ _) = tr "[retractSteps] PlanEmotionChanged filter=" $ not (mi' `subIndex` mi && memLength mi' > memLength mi - n)
-      pa (AMPlanEmotion _) = tr "[retractSteps] PlanEmotion filter=" $ (n < memLength (leftMemIndex as))
+      pa x@(AMPlannedAction _ mi' _) = tr ("[retractSteps] PlannedAction (" ++ show x ++ ") filter=") $ not (mi' `subIndex` mi && memLength mi' > memLength mi - n)
+      pa x@(AMPlanEmotionChanged mi' _ _) = tr ("[retractSteps] PlanEmotionChanged (" ++ show x ++ ") filter=") $ not (mi' `subIndex` mi && memLength mi' > memLength mi - n)
+      pa x@(AMPlanEmotion _) = tr ("[retractSteps] PlanEmotion (" ++ show x ++ ") filter=") $ (n < memLength (leftMemIndex as))
       pa _ = True
 
       delMem ms@(T.Node n _) = fromMaybe (T.Node n []) $ deleteMemory mi ms
