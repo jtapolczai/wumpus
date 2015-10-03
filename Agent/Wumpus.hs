@@ -7,6 +7,7 @@
 module Agent.Wumpus where
 
 import Control.Lens
+import Data.Maybe
 import Data.List (sortBy)
 import qualified Data.Map as M
 import Data.Ord
@@ -93,4 +94,4 @@ instance AgentMind WumpusMind where
 -- |Uniformly randomly selects an element of a list.
 randomInd :: [a] -> IO a
 randomInd xs = do i <- randomRIO (0, length xs - 1)
-                  return $ xs !! i
+                  return $ fromMaybe (error $ "randomInd: index (" ++ show i ++ ") too large!") $ lIndex xs i

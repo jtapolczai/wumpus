@@ -86,13 +86,20 @@ makeFields ''FearSettings
 makeFields ''EnthusiasmSettings
 makeFields ''ContentmentSettings
 
+-- |Safe version of (!!)
+lIndex :: [a] -> Int -> Maybe a
+lIndex [] _ = Nothing
+lIndex (x:xs) n | n < 0 = Nothing
+                | n == 0 = Just x
+                | otherwise = lIndex xs (n-1)
+
 -- |Lens for getting or setting a value in a tree. This function is partial;
 --  the path has to refer to an existing node.
 memInd :: MemoryIndex -> Lens' (T.Tree a) a
 memInd i = lens (get i) (set i)
    where
       get (MI []) (T.Node t _) = t
-      get (MI (x:xs)) (T.Node _ ts) = get (MI xs) (ts !! x)
+      get (MI (x:xs)) (T.Node _ ts) = get (MI xs) (fromMaybe (error $ "memInd: index (" ++ show x ++ ") too large!") $ lIndex ts x)
 
       set (MI []) (T.Node _ ts) t' = (T.Node t' ts)
       set (MI (x:xs)) (T.Node t ts) t' =

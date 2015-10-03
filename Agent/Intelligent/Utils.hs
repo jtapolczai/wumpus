@@ -178,14 +178,16 @@ addMemNode (MI (x:xs)) m (T.Node t ts) =
 hasMemNode :: MemoryIndex -> T.Tree a -> Bool
 hasMemNode (MI []) _ = True
 hasMemNode (MI (x:xs)) (T.Node _ ts)
-  | length ts > x = hasMemNode (MI xs) (ts !! x)
+  | length ts > x = hasMemNode (MI xs) (fromMaybe (error $ "hasMemNode: index (" ++ show x ++ ") too large!") $ lIndex ts x)
   | otherwise     = False
 
 
 -- |Randomly and uniformly chooses an element from a list.
 choose :: [a] -> IO a
 choose [] = error "choose: empty list given!"
-choose xs = randomRIO (0, length xs - 1) >$> (xs !!)
+choose xs = randomRIO (0, length xs - 1) >$> ind
+   where
+      ind x = fromMaybe (error $ "choose: index (" ++ show x ++ ") too large!") $ lIndex xs x
 
 -- |Creates a map from a list of keys and a value generating function.
 mkMap :: Ord k => (k -> v) -> [k] -> M.Map k v

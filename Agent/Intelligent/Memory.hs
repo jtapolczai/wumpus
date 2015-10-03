@@ -127,7 +127,7 @@ reconstructWorld'
    -- ^The agent's current state. The function will need its memory, name,
    --  and messages pertaining to time and temperature.
    -> World -- ^The resultant world induced by the agent's knowledge.
-reconstructWorld' myAct world mi as =
+reconstructWorld' myAct world mi as = trace "[reconstructWorld']" $
    World (WD time temperature)
          UnboundedSquareGrid
          (as ^. memory . memInd mi . _2)
@@ -354,5 +354,5 @@ deleteMemory (MI mi) = go mi
   where
     go [] _ = Nothing
     go (x:xs) (T.Node n ns)
-       | length ns >= x = Just $ T.Node n $ take x ns ++ maybe [] (:[]) (go xs (ns !! x)) ++ drop (x+1) ns
+       | length ns >= x = Just $ T.Node n $ take x ns ++ maybe [] (:[]) (go xs (fromMaybe (error $ "deleteMemory: index (" ++ show x ++ ") too large!") $ lIndex ns x)) ++ drop (x+1) ns
        | otherwise = error $ "deleteMemory: tried to delete non-existent index " ++ show x

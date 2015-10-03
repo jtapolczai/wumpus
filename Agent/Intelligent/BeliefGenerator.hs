@@ -54,9 +54,11 @@ simulateConsequences
    -> AgentState
    -> IO (World, [AgentMessage])
 simulateConsequences act mi as = do
+   traceM $ "[simulateConsequences]"
    let currentWorld = reconstructWorld act mi as
        myPos = fromMaybe (error "[simulateConsequences.myPos] Nothing!") $ myPosition $ view messageSpace as
    nextWorld <- simulateStep currentWorld
+   traceM $ "[simulateConsequences] nextWorld computed."
    -- get the messages from the agent at its new position.
    -- the agent not being present means that it has died, so create an
    -- appropriate "health decreased by 100 percept" message.
@@ -83,6 +85,7 @@ generateBelief :: MonadIO m
 generateBelief act mi as = liftIO $ do
    traceM "[generateBelief]"
    (_, msg) <- simulateConsequences act mi as
+   traceM "[generateBelief] simulateConsequences done."
    let msg' = map (True,,ttl 1) msg
        as' = addMemory msg' mi . addMessages msg' $ as
    traceM ("___generated msg: " ++ show msg)
