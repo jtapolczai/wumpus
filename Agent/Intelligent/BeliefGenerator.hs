@@ -55,7 +55,7 @@ simulateConsequences
    -> IO (World, [AgentMessage])
 simulateConsequences act mi as = do
    traceM $ "[simulateConsequences]"
-   let currentWorld = reconstructWorld act mi as
+   let currentWorld = reconstructWorld act (MI . init . runMI $ mi) as
        myPos = fromMaybe (error "[simulateConsequences.myPos] Nothing!") $ myPosition $ view messageSpace as
    nextWorld <- simulateStep currentWorld
    traceM $ "[simulateConsequences] nextWorld computed."

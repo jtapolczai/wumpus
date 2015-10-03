@@ -77,7 +77,7 @@ memoryComponent as = trace "[memoryComponent]" $ trace (replicate 80 '+')
       -- we add the messages to the agent's message space and, if the agent
       -- didn't die, a new memory.
       mkAction :: AgentState -> (Action, MemoryIndex) -> AgentState
-      mkAction as' (act, mi) = newMem $ addMessages newMsg as'
+      mkAction as' (act, mi) = trace ("[memoryComponent.mkAction] mi: " ++ show mi) $ newMem $ addMessages newMsg as'
          where
             newW = reconstructWorld act mi as' 
 
@@ -98,10 +98,15 @@ memoryComponent as = trace "[memoryComponent]" $ trace (replicate 80 '+')
             newMem = addMemory newMsg mi
 
       actions = sortBy (comparing snd)
-                . map (\(_,(act, mi, _),_) -> (act, mi))
+                -- we take init of the MI because the last position refers to the not-yet-existent
+                -- memory node that is to be inserted.
+                . map (\(_,(act, mi, _),_) -> (act, init' mi))
                 . filter filt
                 . msgWhere _AMPlannedAction
                 . view messageSpace $ as
+
+      init' :: MemoryIndex -> MemoryIndex
+      init' = MI . init . runMI
 
       filt :: (IsImaginary, (Action, MemoryIndex, Discharged), TTL) -> Bool
       filt = (&&) <$> view _1 <*> not . view (_2 . _3)
