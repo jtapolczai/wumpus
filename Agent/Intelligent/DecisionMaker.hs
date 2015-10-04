@@ -244,7 +244,7 @@ psbcPrisms = [_AMEmotionAnger . to (Anger,),
 --  'AMEmotionChanged' messages and turns them into 'AMPlanEmotionChanged'-messages
 --  with the given memory index.
 recordPlanEmotionChanges :: MemoryIndex -> [AgentMessage'] -> [AgentMessage']
-recordPlanEmotionChanges mi = map (True,,ttl 1) . M.foldrWithKey mkMsg [] . foldl' f (psbcEmotionMap Nothing)
+recordPlanEmotionChanges mi = map (True,,ephemeral) . M.foldrWithKey mkMsg [] . foldl' f (psbcEmotionMap Nothing)
    where
       mkMsg :: EmotionName -> Maybe Rational -> [AgentMessage] -> [AgentMessage]
       mkMsg en (Just r) = ((AMPlanEmotionChanged mi en r) :)
