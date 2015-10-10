@@ -274,9 +274,9 @@ makeEntityIndex :: (HasEntity c (Maybe (Entity s t)),
                     HasName (Entity s t) EntityName)
                 => M.Map CellInd c
                 -> M.Map EntityName CellInd
-makeEntityIndex = M.foldrWithKey
+makeEntityIndex = trace "[makeEntityIndex]" $ M.foldrWithKey
    (\k cd -> if maybe False isAgent (cd ^. entity)
-             then M.insert (cd ^. entity . to (maybe (error $ show k ++ "MEI nothing!!!") id) . name) k
+             then trace ("[makeEntityIndex] -> inserting entity at " ++ show k) $ M.insert (cd ^. entity . to (maybe (error $ show k ++ "MEI nothing!!!") id) . name) k
              else id) M.empty
 
 -- |Gets a given entity's name and location, if it exists. Partial.

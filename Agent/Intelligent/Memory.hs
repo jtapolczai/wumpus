@@ -75,7 +75,9 @@ memoryComponent as = trace "[memoryComponent]" $ trace (replicate 80 '+')
       -- we add the messages to the agent's message space and, if the agent
       -- didn't die, a new memory.
       mkAction :: AgentState -> (Action, MemoryIndex) -> AgentState
-      mkAction as' (act, mi) = trace ("[memoryComponent.mkAction] mi: " ++ show mi) $ newMem $ as'
+      mkAction as' (act, mi) = trace ("[memoryComponent.mkAction] mi: " ++ show mi)
+                               trace ("[memoryComponent.mkAction] mi after insert: " ++ show (leftMemIndex $ newMem as'))
+                               $ newMem as'
          where
             newW = reconstructWorld act mi as' 
 
@@ -201,7 +203,7 @@ constructMemory xs mem = (fjoin vcd cu c, fjoin ed eu e, pos)
 -- |Adds a memory as a last child to an existent one. The memory given by the
 --  MemoryIndex has to exist.
 addMemory :: [AgentMessage'] -> MemoryIndex -> AgentState -> AgentState
-addMemory xs mi as = as & memory %~ addMemNode mi newMem
+addMemory xs mi as = trace "[addMemory]" $ as & memory %~ addMemNode mi newMem
   where
     newMem = constructMemory xs $ Just (as ^. memory . memInd mi)
 
