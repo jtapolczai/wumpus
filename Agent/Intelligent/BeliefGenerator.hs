@@ -62,6 +62,8 @@ beliefGeneratorComponent as = liftIO
 --
 --  The given MI index should NOT be mempty. Its init should refer to an existing memory;
 --  in its entirety, it should refer to a not-yet-existent memory.
+--
+--  __UNUSED!__ Use 'recallMemory' instead.
 simulateConsequences
    :: Action
    -> MemoryIndex
@@ -101,16 +103,30 @@ recallMemory mi as =
        myPos = trace "[recallMemory.myPos]" $ as ^. memory . memInd mi . _3
        currentWorldWithMessages = trace "[recallMemory.currentWorldWithMessages]" $ giveEntityPerceptions currentWorld myPos
        messages :: [Message]
-       messages = trace "[recallMemory.messages]" $ readMessageSpace $ view state $ agentAt myPos currentWorldWithMessages
+
+   -- get the messages from the agent at its new position.
+   -- the agent not being present means that it has died, so create an
+   -- appropriate "health decreased by 100 percept" message.
+       messages = fromMaybe [AMHealthDecreased 100, AMYouDied] $ do
+          traceM "[simulateConsequences] messages"
+          traceM $ "[simulateConsequences.messages] agents: " ++ show (nextWorld ^. agents)
+          traceM $ "[simulateConsequences.messages] my name: " ++ (as ^. name)
+          newPos <- nextWorld ^. agents . at (as ^. name)
+          traceM $ "[simulateConsequences.messages] newPos: " ++ show newPos
+          me <- nextWorld ^? cellData . at newPos . _Just . entity . _Just . _Ag
+          traceM $ "[simulateConsequences.messages] me: Just"
+          return $ concatMap (perception myPos) $ readMessageSpace $ me ^. state
    in
       trace "[recallMemory]"
       $ trace ("[recallMemory] mi: " ++ show mi)
       $ trace ("[recallMemory] messages: " ++ show messages)
-      $ concatMap (perception myPos) messages
+      $ messages
 
 -- |Generates a new set of beliefs about the world, i.e. inserts a new memory
 --  at the given location. In addition, all messages are
 --  inserted into the agent's message space, marked as imaginary.
+--
+--  __UNUSED!__ Use 'recallMemory' instead.
 generateBelief :: MonadIO m
                => Action
                -> MemoryIndex
@@ -120,6 +136,6 @@ generateBelief act mi as = liftIO $ do
    (_, msg) <- simulateConsequences act mi as
    traceM "[generateBelief] simulateConsequences done."
    let msg' = map (True,,ttl 1) msg
-       as' = addMemory msg' mi . addMessages msg' $ as
+       as' = addMessages msg' $ as
    traceM ("___generated msg: " ++ show msg)
    return as'
