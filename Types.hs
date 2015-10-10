@@ -282,6 +282,7 @@ instance Castable AgentMessage AgentMessageName where
       AMKilledAgent{} -> AMNKilledAgent
       AMKilledWumpus{} -> AMNKilledWumpus
       AMPlannedAction{} -> AMNPlannedAction
+      AMRecallMemory{} -> AMNRecallMemory
       AMPlanEmotion{} -> AMNPlanEmotion
       AMPlanEmotionChanged{} -> AMNPlanEmotionChanged
       AMYouAreHere{} -> AMNYouAreHere

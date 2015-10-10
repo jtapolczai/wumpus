@@ -135,6 +135,8 @@ data AgentMessage =
    | AMKilledWumpus EntityName
    -- |A planned action.
    | AMPlannedAction Action MemoryIndex Discharged
+   -- |A note to insert perceptions based on a given memory index.
+   | AMRecallMemory MemoryIndex
    -- |The emotion that dominates the current plan.
    | AMPlanEmotion EmotionName
    -- |Changes in emotional states as a result of hypothetical actions.
@@ -208,6 +210,7 @@ data AgentMessageName =
    | AMNKilledAgent
    | AMNKilledWumpus
    | AMNPlannedAction
+   | AMNRecallMemory
    | AMNPlanEmotion
    | AMNPlanEmotionChanged
    | AMNYouAreHere

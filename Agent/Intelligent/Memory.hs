@@ -45,7 +45,6 @@ import Math.Geometry.Grid.Square (UnboundedSquareGrid(..))
 
 import Agent.Dummy
 import Agent.Wumpus
-import Agent.Intelligent.MessageHandling
 import Agent.Intelligent.Perception
 import Agent.Intelligent.Utils
 import Agent.Omni()
@@ -63,8 +62,7 @@ initialMemoryComponent as = trace "[initialMemoryComponent]" $ trace (replicate 
    $ return $ resetMemory as (as ^. messageSpace) 
 
 -- |Creates memories for all non-discharged, imaginary _AMPlannedAction messages.
---  For each created memory, perception messages will be inserted into the message
---  space. If the agent dies as a result of an action, no messages are inserted.
+--  No messages are inserted.
 --  The actions with the smallest MemoryIndex (by Ord-instance) will be processed
 --  first.
 --
@@ -77,7 +75,7 @@ memoryComponent as = trace "[memoryComponent]" $ trace (replicate 80 '+')
       -- we add the messages to the agent's message space and, if the agent
       -- didn't die, a new memory.
       mkAction :: AgentState -> (Action, MemoryIndex) -> AgentState
-      mkAction as' (act, mi) = trace ("[memoryComponent.mkAction] mi: " ++ show mi) $ newMem $ addMessages newMsg as'
+      mkAction as' (act, mi) = trace ("[memoryComponent.mkAction] mi: " ++ show mi) $ newMem $ as'
          where
             newW = reconstructWorld act mi as' 
 
@@ -117,8 +115,8 @@ memoryComponent as = trace "[memoryComponent]" $ trace (replicate 80 '+')
 --  is Nothing, the Wumpuses will get dummyMinds too; if it is Just, they get
 --  real WumpusMinds.
 --
---  For the global data (time, temperature), the messages with the lowest
---  counter will be taken and @time = 0@ will be assumed if none are found.
+--  For the global data (time, temperature), @time = 0@ will be assumed if
+--  no time/temperature-messages are found.
 reconstructWorld'
    :: Action
    -- ^The action which the current agent (identified by its name) should perform.
@@ -157,8 +155,8 @@ reconstructWorld' myAct world mi as = trace "[reconstructWorld']" $
 
       msg = as ^. messageSpace
 
-      time = fromMaybe 0 $ lastWhere _AMTime msg
-      temperature = fromMaybe Freezing $ lastWhere _AMTemperature msg
+      time = fromMaybe 0 $ firstWhere _AMTime msg
+      temperature = fromMaybe Freezing $ firstWhere _AMTemperature msg
 
 -- |See 'constructWorldFromMemory''. All Wumpuses will get WumpusMinds in this
 --  function.

@@ -172,6 +172,8 @@ strongestOverruling en m = trace ("[strongestOverruling] for emotion:" ++ show e
 --  * 'AMPlannedAction' and 'AMPlanEmotionChanged' messages are deleted from the 'newMessages' list, and
 --  * the memory nodes corresponding to the deleted memory indices are deleted too.
 --  * If all steps were retracted, the 'AMPanEmotion' message is deleted too.
+--  * An 'AMRecallMemory' message is inserted, containing the index of the last non-deleted memory
+--    (i.e. the given memory index, with the last n elements removed).
 retractSteps :: MemoryIndex -- ^The index from which to start deleting upward.
              -> Int -- ^Number of steps to go back.
              -> AgentState
@@ -179,7 +181,7 @@ retractSteps :: MemoryIndex -- ^The index from which to start deleting upward.
 retractSteps mi n as = trace "[retractSteps]"
    $ trace ("[retractSteps] mi: " ++ show mi)
    $ trace ("[retractSteps] n: " ++ show n)
-   $ over memory delMem . over newMessages delMsg $ as
+   $ addMessage (True, AMRecallMemory miRemaining, ephemeral) . over memory delMem . over newMessages delMsg $ as
    where
       delMsg = filter (pa . view _2)
 
@@ -189,8 +191,8 @@ retractSteps mi n as = trace "[retractSteps]"
       pa _ = True
 
       delMem ms@(T.Node n _) = fromMaybe (T.Node n []) $ deleteMemory mi ms
-
       memLength = length . runMI
+      miRemaining = MI . take (memLength mi - n) . runMI $ mi
 
       tr :: Show a => String -> a -> a
       tr s x = trace (s ++ show x) x

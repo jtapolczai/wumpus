@@ -17,6 +17,7 @@ import Agent.Intelligent.Perception
 import Agent.Intelligent.Utils
 import Types
 import World
+import World.Utils
 
 import Debug.Trace
 
@@ -31,11 +32,16 @@ beliefGeneratorComponent as = liftIO
    $ trace (replicate 80 '+')
    $ trace ("___num acts: " ++ show (length acts))
    $ trace ("___acts: " ++ show acts)
-   $ foldM f as acts
+   $ flip (foldM genRecalls) recalls 
+   =<< foldM genActs as acts
    where
-      f :: AgentState -> (Action, MemoryIndex, Discharged) -> IO AgentState
-      f as' (act, mi, _) = generateBelief act mi
-                           $ addMessage (True, AMPlannedAction act mi True, ttl 1) as'
+      genActs :: AgentState -> (Action, MemoryIndex, Discharged) -> IO AgentState
+      genActs as' (act, mi, _) =
+         generateBelief act mi $ addMessage (True, AMPlannedAction act mi True, ttl 1) as'
+
+      genRecalls :: AgentState -> MemoryIndex -> IO AgentState
+      genRecalls as' mi = return $ addMessages (map (case mi of {MI [] -> False; _ -> True},,ttl 1) $ recallMemory mi as')
+                                               as'
 
       -- all imaginary, non-discharged planned actions
       acts = map (view _2)
@@ -43,11 +49,19 @@ beliefGeneratorComponent as = liftIO
              $ msgWhere _AMPlannedAction
              $ as ^. messageSpace
 
+      recalls :: [MemoryIndex]
+      recalls = map (view _2)
+                $ msgWhere _AMRecallMemory
+                $ as ^. messageSpace
+
 
 -- |Performs a hypothetical action and gets the consequences, in message-form.
 --  Note that these resultant messages shouldn't be inserted directly into
 --  the agent's message space, but should be marked as imaginary (unless you
 --  want the agent to be psychotic).
+--
+--  The given MI index should NOT be mempty. Its init should refer to an existing memory;
+--  in its entirety, it should refer to a not-yet-existent memory.
 simulateConsequences
    :: Action
    -> MemoryIndex
@@ -74,6 +88,25 @@ simulateConsequences act mi as = do
 
    return (nextWorld, messages)
 
+-- |Recalls an existing memory and returns the perception-messages that correspond to it.
+--  Note that these resultant messages shouldn't be inserted directly into
+--  the agent's message space, but should be marked as imaginary (unless you
+--  want the agent to be psychotic).
+recallMemory
+   :: MemoryIndex
+   -> AgentState
+   -> [AgentMessage]
+recallMemory mi as =
+   let currentWorld = trace "[recallMemory.currentWorld]" $ reconstructWorld NoOp mi as
+       myPos = trace "[recallMemory.myPos]" $ as ^. memory . memInd mi . _3
+       currentWorldWithMessages = trace "[recallMemory.currentWorldWithMessages]" $ giveEntityPerceptions currentWorld myPos
+       messages :: [Message]
+       messages = trace "[recallMemory.messages]" $ readMessageSpace $ view state $ agentAt myPos currentWorldWithMessages
+   in
+      trace "[recallMemory]"
+      $ trace ("[recallMemory] mi: " ++ show mi)
+      $ trace ("[recallMemory] messages: " ++ show messages)
+      $ concatMap (perception myPos) messages
 
 -- |Generates a new set of beliefs about the world, i.e. inserts a new memory
 --  at the given location. In addition, all messages are
