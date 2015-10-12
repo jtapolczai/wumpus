@@ -43,8 +43,10 @@ beliefGeneratorComponent as = liftIO
 
       -- For memory recalls, we just recall the messages from an existing memory.
       genRecalls :: AgentState -> MemoryIndex -> IO AgentState
-      genRecalls as' mi = return $ addMessages (map (case mi of {MI [] -> False; _ -> True},,ttl 1) $ recallMemory mi as')
-                                               as'
+      genRecalls as' mi = do
+         memMsg <- recallMemory mi as'
+         let memMsg' = map (case mi of {MI [] -> False; _ -> True},,ttl 1) memMsg
+         return $ addMessages memMsg' as'
 
       -- all imaginary, non-discharged planned actions
       acts = map (view _2)
@@ -108,7 +110,7 @@ recallMemory
    :: MemoryIndex
    -> AgentState
    -> IO [AgentMessage]
-recallMemory mi as = simulateConsequences NoOp mi as simulateStep
+recallMemory mi as = snd <$> simulateConsequences NoOp mi as return
 
 -- |Generates a new set of beliefs about the world, i.e. all messages are
 --  inserted into the agent's message space, marked as imaginary.
@@ -118,7 +120,7 @@ generateBelief :: MonadIO m
                -> AgentComponent m
 generateBelief act mi as = liftIO $ do
    traceM "[generateBelief]"
-   (_, msg) <- simulateConsequences act mi as 
+   (_, msg) <- simulateConsequences act mi as simulateStep
    traceM "[generateBelief] simulateConsequences done."
    let msg' = map (True,,ttl 1) msg
        as' = addMessages msg' $ as
