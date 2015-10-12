@@ -244,15 +244,25 @@ resetMemory as xs = as & memory .~ T.Node mem []
 -- |Constructs a memory from a list of messages.
 --  If the second parameter is given, a pre-existing memory will be modified. If not,
 --  an entirely new one will be created.
+--
+--  If the list of messages contains AMYouDied, the second parameter (the base memory)
+--  HAS TO BE A JUST. Otherwise, an error will be thrown.
 constructMemory :: [AgentMessage'] -> Maybe Memory -> Memory
-constructMemory xs mem = (fjoin vcd cu c, fjoin ed eu e, pos)
+constructMemory xs mem = if died
+   then trace "[constructMemory] agent IS DEAD."
+        $ maybe (error "[constructMemory] agent is dead, but no base memory given!")
+                (_4 .~ True)
+                mem
+   else trace "[constructMemory] agent isn't dead." (fjoin vcd cu c, fjoin ed eu e, pos, False)
    where
+      died = isJust $ firstWhere _AMYouDied xs
+
       vcd = VCD Nothing (vcdErr "pit") (vcdErr "gold") (vcdErr "meat")
                 (vcdErr "fruit") (vcdErr "plant") Nothing Nothing
       ed = ED (edErr "danger") (edErr "fatigue")
       pos = fromMaybe (error "constructMemory: no position found!") $ myPosition xs
 
-      (c, e, _) = fromMaybe (M.empty, M.empty, pos) mem
+      (c, e, _, _) = fromMaybe (M.empty, M.empty, pos, False) mem
       (cu, eu) = makeWorldUpdates xs
 
       vcdErr x = error $ "Uninitialized field " ++ x ++ " in VCD (Memory.hs)"
