@@ -159,7 +159,7 @@ readAgents dir = readFile (dir ++ "/agents.txt")
                      (M.empty, M.fromList [(Sympathy, sympathyFragment Sympathy s gest),
                                            (Trust, def),
                                            (Respect, def)])
-                     (T.Node (M.empty, M.empty, (0,0)) [])
+                     (T.Node (M.empty, M.empty, (0,0), False) [])
                      []
                      []
                      gest
