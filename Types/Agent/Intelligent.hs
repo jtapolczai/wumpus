@@ -239,7 +239,8 @@ instance Default SocialStorage where
 
 type SJSFilters = (M.Map EntityName SocialStorage, M.Map SocialEmotionName Filter)
 
-type Memory = (M.Map CellInd VisualCellData, M.Map EdgeInd EdgeData, CellInd)
+-- |Cell data, edge data, the agent's position and whether the agent is alive.
+type Memory = (M.Map CellInd VisualCellData, M.Map EdgeInd EdgeData, CellInd, Bool)
 
 data Valence = Negative | Positive
    deriving (Show, Eq, Ord, Read, Enum, Bounded)
