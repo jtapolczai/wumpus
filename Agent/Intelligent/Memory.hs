@@ -34,8 +34,9 @@ module Agent.Intelligent.Memory (
    agentDummyMind,
    ) where
 
-import Control.Arrow (first)
+import Control.Arrow (first, (***))
 import Control.Lens
+import Control.Monad
 import Data.List
 import qualified Data.Map as M
 import Data.Maybe
@@ -68,18 +69,39 @@ initialMemoryComponent as = trace "[initialMemoryComponent]" $ trace (replicate 
 --
 --  Note that multiple actions will almost always create multiple (contradictory)
 --  messages about perceptions, positions, etc.
-memoryComponent :: Monad m => AgentComponent m
+{- memoryComponent :: Monad m => AgentComponent m
 memoryComponent as = trace "[memoryComponent]" $ trace (replicate 80 '+')
    $ return $ foldl' mkAction as actions
    where
       -- we add the messages to the agent's message space and, if the agent
       -- didn't die, a new memory.
-      mkAction :: AgentState -> (Action, MemoryIndex) -> AgentState
+      mkAction :: AgentState -> (Action, MemoryIndex) -> IO (World, [Message])
       mkAction as' (act, mi) = trace ("[memoryComponent.mkAction] mi: " ++ show mi)
                                trace ("[memoryComponent.mkAction] mi after insert: " ++ show (leftMemIndex $ newMem as'))
                                $ newMem as'
+         let currentWorld = race "[recallMemory.currentWorld]" $ reconstructWorld act mi as'
+             myPos = trace "[memoryComponent.mkAction.myPos]" $ as ^. memory . memInd mi . _3
+         nextWorld <- simulateStep currentWorld
+
+         -- get the messages from the agent at its new position.
+         -- the agent not being present means that it has died, so create an
+         -- appropriate "health decreased by 100 percept" message.
+         let messages = fromMaybe [AMHealthDecreased 100, AMYouDied] $ do
+                traceM "[memoryComponent.mkAction] messages"
+                traceM $ "[memoryComponent.mkAction.messages] agents: " ++ show (nextWorld ^. agents)
+                traceM $ "[memoryComponent.mkAction.messages] my name: " ++ (as ^. name)
+                newPos <- nextWorld ^. agents . at (as ^. name)
+                traceM $ "[memoryComponent.mkAction.messages] newPos: " ++ show newPos
+                me <- nextWorld ^? cellData . at newPos . _Just . entity . _Just . _Ag
+                traceM $ "[memoryComponent.mkAction.messages] me: Just"
+                return $ concatMap (perception myPos) $ readMessageSpace $ me ^. state
+
+         return (nextWorld, messages)
+
+
+
          where
-            newW = reconstructWorld act mi as' 
+            curW = reconstructWorld act mi as' 
 
             perc :: CellInd -> [AgentMessage]
             perc p = concatMap (perception p)
@@ -109,7 +131,43 @@ memoryComponent as = trace "[memoryComponent]" $ trace (replicate 80 '+')
       init' = MI . init . runMI
 
       filt :: (IsImaginary, (Action, MemoryIndex, Discharged), TTL) -> Bool
-      filt = (&&) <$> view _1 <*> not . view (_2 . _3)
+      filt = (&&) <$> view _1 <*> not . view (_2 . _3) -}
+
+memoryComponent :: Monad m => AgentComponent m
+memoryComponent as = trace "[memoryComponent]" $ trace (replicate 80 '+') $ do
+   let plannedActions = map (view _2) $ msgWhere _AMPlannedAction . view messageSpace $ as
+       pendingActions = filter (not . view _3) plannedActions
+
+       -- gets all imaginary messages with a ttl of >0.
+       currentMsg :: [AgentMessage']
+       currentMsg = filter ((&&) <$> view _1 <*> (0<) . view _3) $ as ^. messageSpace
+
+       mi :: MemoryIndex
+       mi = head $ map (view _2) pendingActions
+
+   when (length pendingActions > 1 ) $ error "memoryComponent: more than 1 non-discharged planned action!"
+   let as' = if length plannedActions == 1 then trace ("[memoryComponent] executing planned action with mi " ++ show mi)
+                                                $ addMemory currentMsg mi as
+                                           else trace "[memoryComponent] no planned action." as
+       as'' = removeUnplannedMemories (mempty : map (view _2) plannedActions) as'
+
+   return as''
+
+-- |Removes all memories which have indices that aren't in the given list.
+removeUnplannedMemories 
+   :: [MemoryIndex] -- The indices which should be kept.
+   -> AgentState
+   -> AgentState
+removeUnplannedMemories mi as = trace "[removeUnplannedMemories]" $ as & memory %~ fromMaybe (error "[removeUnplannedMemories] root memory was removed!") . go mempty
+   where
+      appMI :: MemoryIndex -> Int -> MemoryIndex
+      appMI x i = x `mappend` MI [i]
+
+      go :: MemoryIndex -> T.Tree a -> Maybe (T.Tree a)
+      go cur (T.Node x xs) = if cur `elem` mi
+                             then Just $ T.Node x $ mapMaybe (uncurry go) $ zipWith (\i x -> (appMI cur i, x)) [0..] xs
+                             else Nothing
+
 
 -- |Takes the agent's memory (and current messages about global data) and
 --  constructs a world from it.

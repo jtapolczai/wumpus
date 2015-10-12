@@ -35,10 +35,13 @@ beliefGeneratorComponent as = liftIO
    $ flip (foldM genRecalls) recalls 
    =<< foldM genActs as acts
    where
+      -- For planned actions, we generate a future world and reinsert the planned action with its
+      -- Discharged-field set to True.
       genActs :: AgentState -> (Action, MemoryIndex, Discharged) -> IO AgentState
       genActs as' (act, mi, _) =
          generateBelief act mi $ addMessage (True, AMPlannedAction act mi True, ttl 1) as'
 
+      -- For memory recalls, we just recall the messages from an existing memory.
       genRecalls :: AgentState -> MemoryIndex -> IO AgentState
       genRecalls as' mi = return $ addMessages (map (case mi of {MI [] -> False; _ -> True},,ttl 1) $ recallMemory mi as')
                                                as'
@@ -63,22 +66,29 @@ beliefGeneratorComponent as = liftIO
 --  The given MI index should NOT be mempty. Its init should refer to an existing memory;
 --  in its entirety, it should refer to a not-yet-existent memory.
 --
---  __UNUSED!__ Use 'recallMemory' instead.
+--  This function doesn't create any new memories; it only inserts messages.
 simulateConsequences
    :: Action
    -> MemoryIndex
    -> AgentState
+   -> (World -> IO World)
    -> IO (World, [AgentMessage])
-simulateConsequences act mi as = do
+simulateConsequences act mi as simulateAction = do
+   when (mi == mempty) (error "EMPTY MI GIVEN TO simulateConsequences!")
    traceM $ "[simulateConsequences]"
    let currentWorld = reconstructWorld act (MI . init . runMI $ mi) as
-       myPos = fromMaybe (error "[simulateConsequences.myPos] Nothing!") $ myPosition $ view messageSpace as
-   nextWorld <- simulateStep currentWorld
+       myPos = trace "[recallMemory.myPos]" $ as ^. memory . memInd mi . _3
+       isAlive = trace "[recallMemory.isAlive]" $ as ^. memory . memInd mi . _4
+   nextWorld <- simulateAction currentWorld --simulateStep currentWorld
    traceM $ "[simulateConsequences] nextWorld computed."
    -- get the messages from the agent at its new position.
    -- the agent not being present means that it has died, so create an
    -- appropriate "health decreased by 100 percept" message.
-   let messages = fromMaybe [AMHealthDecreased 100, AMYouDied] $ do
+   --
+   -- we also insert the death-messages in lieu of the perceptions if the
+   -- IsAlive-field of the memory is false.
+   let deadMessages = [AMHealthDecreased 100, AMYouDied]
+       messages = fromMaybe deadMessages $ do
           traceM "[simulateConsequences] messages"
           traceM $ "[simulateConsequences.messages] agents: " ++ show (nextWorld ^. agents)
           traceM $ "[simulateConsequences.messages] my name: " ++ (as ^. name)
@@ -88,7 +98,7 @@ simulateConsequences act mi as = do
           traceM $ "[simulateConsequences.messages] me: Just"
           return $ concatMap (perception myPos) $ readMessageSpace $ me ^. state
 
-   return (nextWorld, messages)
+   return (nextWorld, if isAlive then messages else trace "[simulateConsequences] agent dead (through isAlive-field)!"  deadMessages)
 
 -- |Recalls an existing memory and returns the perception-messages that correspond to it.
 --  Note that these resultant messages shouldn't be inserted directly into
@@ -97,43 +107,18 @@ simulateConsequences act mi as = do
 recallMemory
    :: MemoryIndex
    -> AgentState
-   -> [AgentMessage]
-recallMemory mi as =
-   let currentWorld = trace "[recallMemory.currentWorld]" $ reconstructWorld NoOp mi as
-       myPos = trace "[recallMemory.myPos]" $ as ^. memory . memInd mi . _3
-       currentWorldWithMessages = trace "[recallMemory.currentWorldWithMessages]" $ giveEntityPerceptions currentWorld myPos
-       messages :: [Message]
+   -> IO [AgentMessage]
+recallMemory mi as = simulateConsequences NoOp mi as simulateStep
 
-   -- get the messages from the agent at its new position.
-   -- the agent not being present means that it has died, so create an
-   -- appropriate "health decreased by 100 percept" message.
-       messages = fromMaybe [AMHealthDecreased 100, AMYouDied] $ do
-          traceM "[simulateConsequences] messages"
-          traceM $ "[simulateConsequences.messages] agents: " ++ show (nextWorld ^. agents)
-          traceM $ "[simulateConsequences.messages] my name: " ++ (as ^. name)
-          newPos <- nextWorld ^. agents . at (as ^. name)
-          traceM $ "[simulateConsequences.messages] newPos: " ++ show newPos
-          me <- nextWorld ^? cellData . at newPos . _Just . entity . _Just . _Ag
-          traceM $ "[simulateConsequences.messages] me: Just"
-          return $ concatMap (perception myPos) $ readMessageSpace $ me ^. state
-   in
-      trace "[recallMemory]"
-      $ trace ("[recallMemory] mi: " ++ show mi)
-      $ trace ("[recallMemory] messages: " ++ show messages)
-      $ messages
-
--- |Generates a new set of beliefs about the world, i.e. inserts a new memory
---  at the given location. In addition, all messages are
+-- |Generates a new set of beliefs about the world, i.e. all messages are
 --  inserted into the agent's message space, marked as imaginary.
---
---  __UNUSED!__ Use 'recallMemory' instead.
 generateBelief :: MonadIO m
                => Action
                -> MemoryIndex
                -> AgentComponent m
 generateBelief act mi as = liftIO $ do
    traceM "[generateBelief]"
-   (_, msg) <- simulateConsequences act mi as
+   (_, msg) <- simulateConsequences act mi as 
    traceM "[generateBelief] simulateConsequences done."
    let msg' = map (True,,ttl 1) msg
        as' = addMessages msg' $ as
