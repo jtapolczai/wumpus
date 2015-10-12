@@ -16,7 +16,7 @@ instance AgentMind DummyMind where
    pullMessages _ _ d@DummyMind{_dummyMindStoreMessages=False} = d
    pullMessages w i d = d & messageSpace %~ (perc++)
       where
-         perc = trace "[DummyMind.pullMessages]" $ getLocalPerceptions w i dir
+         perc = trace "[DummyMind.pullMessages]" $ getGlobalPerceptions w i dir
          me = w ^. cellData . ju (at i) . ju entity
 
          dir = fromMaybe North (me ^? _Ag . direction)
