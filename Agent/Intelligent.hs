@@ -76,5 +76,5 @@ getAction' initAs = do
                     sjsComponent, 
                     recordPlanEmotionChangesComponent,
                     decisionMakerComponent,
-                    memoryComponent,
-                    beliefGeneratorComponent]
+                    beliefGeneratorComponent,
+                    memoryComponent]
