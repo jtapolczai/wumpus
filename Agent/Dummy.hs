@@ -3,8 +3,6 @@
 module Agent.Dummy where
 
 import Control.Lens
-import Data.Maybe
-import Math.Geometry.Grid.SquareInternal(SquareDirection(..))
 
 import Types.Agent.Dummy
 import Types
@@ -17,7 +15,7 @@ instance AgentMind DummyMind where
    pullMessages w i d = d & messageSpace %~ (perc++)
       where
          perc = trace "[DummyMind.pullMessages]" $ getGlobalPerceptions w i
-         me = w ^. cellData . ju (at i) . ju entity
+         -- me = w ^. cellData . ju (at i) . ju entity
 
    receiveMessage _ d@DummyMind{_dummyMindStoreMessages=False} = d
    receiveMessage m d = d & messageSpace %~ (m:)

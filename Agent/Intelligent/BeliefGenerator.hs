@@ -17,7 +17,6 @@ import Agent.Intelligent.Perception
 import Agent.Intelligent.Utils
 import Types
 import World
-import World.Utils
 
 import Debug.Trace
 

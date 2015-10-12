@@ -34,19 +34,17 @@ module Agent.Intelligent.Memory (
    agentDummyMind,
    ) where
 
-import Control.Arrow (first, (***))
+import Control.Arrow (first)
 import Control.Lens
 import Control.Monad
 import Data.List
 import qualified Data.Map as M
 import Data.Maybe
-import Data.Ord (comparing)
 import qualified Data.Tree as T
 import Math.Geometry.Grid.Square (UnboundedSquareGrid(..))
 
 import Agent.Dummy
 import Agent.Wumpus
-import Agent.Intelligent.Perception
 import Agent.Intelligent.Utils
 import Agent.Omni()
 import Types
