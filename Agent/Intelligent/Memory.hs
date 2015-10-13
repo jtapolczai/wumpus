@@ -144,9 +144,9 @@ memoryComponent as = trace "[memoryComponent]" $ trace (replicate 80 '+') $ do
        mi = head $ map (view _2) pendingActions
 
    when (length pendingActions > 1 ) $ error "memoryComponent: more than 1 non-discharged planned action!"
-   let as' = if length plannedActions == 1 then trace ("[memoryComponent] executing planned action with mi " ++ show mi)
+   let as' = if length pendingActions == 1 then trace ("[memoryComponent] executing pending action with mi " ++ show mi)
                                                 $ addMemory currentMsg mi as
-                                           else trace "[memoryComponent] no planned action." as
+                                           else trace "[memoryComponent] no pending action." as
        as'' = removeUnplannedMemories (mempty : map (view _2) plannedActions) as'
 
    return as''
