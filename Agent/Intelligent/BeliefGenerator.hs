@@ -77,9 +77,10 @@ simulateConsequences
 simulateConsequences act mi as simulateAction = do
    when (mi == mempty) (error "EMPTY MI GIVEN TO simulateConsequences!")
    traceM $ "[simulateConsequences]"
-   let currentWorld = reconstructWorld act (MI . init . runMI $ mi) as
-       myPos = trace "[recallMemory.myPos]" $ as ^. memory . memInd mi . _3
-       isAlive = trace "[recallMemory.isAlive]" $ as ^. memory . memInd mi . _4
+   let mi' = MI . init . runMI $ mi
+       currentWorld = reconstructWorld act mi' as
+       myPos = trace "[simulateConsequences.myPos]" $ as ^. memory . memInd mi' . _3
+       isAlive = trace "[simulateConsequences.isAlive]" $ as ^. memory . memInd mi' . _4
    nextWorld <- simulateAction currentWorld --simulateStep currentWorld
    traceM $ "[simulateConsequences] nextWorld computed."
    -- get the messages from the agent at its new position.

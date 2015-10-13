@@ -253,7 +253,7 @@ constructMemory xs mem = if died
                 mem
    else trace "[constructMemory] agent isn't dead." (fjoin vcd cu c, fjoin ed eu e, pos, False)
    where
-      died = isJust $ firstWhere _AMYouDied xs
+      died = trace ("[constructMemory.died] died = " ++ show (isJust $ firstWhere _AMYouDied xs)) $ isJust $ firstWhere _AMYouDied xs
 
       vcd = VCD Nothing (vcdErr "pit") (vcdErr "gold") (vcdErr "meat")
                 (vcdErr "fruit") (vcdErr "plant") Nothing Nothing
