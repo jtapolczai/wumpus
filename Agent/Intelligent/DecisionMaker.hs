@@ -119,7 +119,10 @@ decisionMakerComponent asInit = trace "[decisionMakerComponent]" $ trace (replic
 
       -- the changes in emotional states since the beginning of the planning
       allChanges :: M.Map EmotionName Rational
-      allChanges = sumEmotionChanges (leftMemIndex as) (emotionChanges as)
+      allChanges = trace "[decisionMakerComponent.allChanges]"
+                   $ trace ("[decisionMakerComponent.allChanges] emotionChanges: " ++ show (emotionChanges as))
+                   $ trace ("[decisionMakerComponent.allChanges] emotionChanges: " ++ show (sumEmotionChanges (leftMemIndex as) $ emotionChanges as))
+                   $ sumEmotionChanges (leftMemIndex as) (emotionChanges as)
 
       -- |Gets the strongest current emotion, as indicated by the AMEmotion* messages.
       dominantEmotion :: EmotionName
