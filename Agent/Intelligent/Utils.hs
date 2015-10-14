@@ -21,6 +21,8 @@ import System.Random (randomRIO)
 
 import Types
 
+import Debug.Trace
+
 -- |Returns the messages that have the given constructor.
 msgWhere :: forall a.Getting (First a) AgentMessage a
          -> [AgentMessage']
@@ -171,8 +173,8 @@ myPosition = lastWhere _AMPosition
 --  
 --  __NOTE__: Unsafe in case of non-existent paths.
 addMemNode :: MemoryIndex -> a -> T.Tree a -> T.Tree a
-addMemNode (MI []) m (T.Node t ts) = T.Node t $ ts ++ [T.Node m []]
-addMemNode (MI (x:xs)) m (T.Node t ts) =
+addMemNode (MI []) m (T.Node t ts) = trace "[addMemNode] leaf" $ T.Node t $ ts ++ [T.Node m []]
+addMemNode mi@(MI (x:xs)) m (T.Node t ts) = trace ("[addMemNode] mi: " ++ show mi) $
    T.Node t $ ts & ix x %~ addMemNode (MI xs) m
 
 hasMemNode :: MemoryIndex -> T.Tree a -> Bool
