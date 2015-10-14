@@ -141,13 +141,17 @@ memoryComponent as = trace "[memoryComponent]" $ trace (replicate 80 '+') $ do
        currentMsg = filter ((&&) <$> view _1 <*> (0<) . view _3) $ as ^. messageSpace
 
        mi :: MemoryIndex
-       mi = head $ map (view _2) pendingActions
+       mi = MI . init . runMI . head . map (view _2) $ pendingActions
 
    when (length pendingActions > 1 ) $ error "memoryComponent: more than 1 non-discharged planned action!"
    let as' = if length pendingActions == 1 then trace ("[memoryComponent] executing pending action with mi " ++ show mi)
                                                 $ addMemory currentMsg mi as
                                            else trace "[memoryComponent] no pending action." as
        as'' = removeUnplannedMemories (mempty : map (view _2) plannedActions) as'
+
+   -- these are not needed in general
+   --when (leftMemIndex as' == mempty) $ error "memory not present in as'!!!"
+   --when (leftMemIndex as'' == mempty) $ error "memory not present in as''!!!"
 
    return as''
 
@@ -249,9 +253,9 @@ constructMemory :: [AgentMessage'] -> Maybe Memory -> Memory
 constructMemory xs mem = if died
    then trace "[constructMemory] agent IS DEAD."
         $ maybe (error "[constructMemory] agent is dead, but no base memory given!")
-                (_4 .~ True)
+                (_4 .~ False)
                 mem
-   else trace "[constructMemory] agent isn't dead." (fjoin vcd cu c, fjoin ed eu e, pos, False)
+   else trace "[constructMemory] agent isn't dead." (fjoin vcd cu c, fjoin ed eu e, pos, True)
    where
       died = trace ("[constructMemory.died] died = " ++ show (isJust $ firstWhere _AMYouDied xs)) $ isJust $ firstWhere _AMYouDied xs
 
@@ -260,7 +264,7 @@ constructMemory xs mem = if died
       ed = ED (edErr "danger") (edErr "fatigue")
       pos = fromMaybe (error "constructMemory: no position found!") $ myPosition xs
 
-      (c, e, _, _) = fromMaybe (M.empty, M.empty, pos, False) mem
+      (c, e, _, _) = fromMaybe (M.empty, M.empty, pos, True) mem
       (cu, eu) = makeWorldUpdates xs
 
       vcdErr x = error $ "Uninitialized field " ++ x ++ " in VCD (Memory.hs)"
