@@ -9,6 +9,7 @@ module Agent.Intelligent.BeliefGenerator where
 import Control.Lens
 import Control.Monad
 import Control.Monad.IO.Class
+import qualified Data.List.Safe as S
 import Data.Maybe
 
 import Agent.Intelligent.Memory
@@ -37,8 +38,8 @@ beliefGeneratorComponent as = liftIO
       -- For planned actions, we generate a future world and reinsert the planned action with its
       -- Discharged-field set to True.
       genActs :: AgentState -> (Action, MemoryIndex, Discharged) -> IO AgentState
-      genActs as' (act, mi, _) =
-         generateBelief act mi $ addMessage (True, AMPlannedAction act mi True, ttl 1) as'
+      genActs as' (act, mi, _) = let mi' = MI . fromMaybe (error "EMPTY MI GIVEN TO BELIEFGENERATORCOMPONENT.genActs") . S.init . runMI $ mi in
+         generateBelief act mi' $ addMessage (True, AMPlannedAction act mi True, ttl 1) as'
 
       -- For memory recalls, we just recall the messages from an existing memory.
       genRecalls :: AgentState -> MemoryIndex -> IO AgentState
@@ -64,8 +65,7 @@ beliefGeneratorComponent as = liftIO
 --  the agent's message space, but should be marked as imaginary (unless you
 --  want the agent to be psychotic).
 --
---  The given MI index should NOT be mempty. Its init should refer to an existing memory;
---  in its entirety, it should refer to a not-yet-existent memory.
+--  The given MI should refer to an existing memory!
 --
 --  This function doesn't create any new memories; it only inserts messages.
 simulateConsequences
@@ -75,9 +75,10 @@ simulateConsequences
    -> (World -> IO World)
    -> IO (World, [AgentMessage])
 simulateConsequences act mi as simulateAction = do
-   when (mi == mempty) (error "EMPTY MI GIVEN TO simulateConsequences!")
+   --when (mi == mempty) (error "EMPTY MI GIVEN TO simulateConsequences!")
    traceM $ "[simulateConsequences]"
-   let mi' = MI . init . runMI $ mi
+   let -- mi' = MI . init . runMI $ mi
+       mi' = mi
        currentWorld = reconstructWorld act mi' as
        myPos = trace "[simulateConsequences.myPos]" $ as ^. memory . memInd mi' . _3
        isAlive = trace "[simulateConsequences.isAlive]" $ as ^. memory . memInd mi' . _4
@@ -110,7 +111,7 @@ recallMemory
    :: MemoryIndex
    -> AgentState
    -> IO [AgentMessage]
-recallMemory mi as = snd <$> simulateConsequences NoOp mi as return
+recallMemory mi as = trace "[recallMemory]" $ snd <$> simulateConsequences NoOp mi as return
 
 -- |Generates a new set of beliefs about the world, i.e. all messages are
 --  inserted into the agent's message space, marked as imaginary.
