@@ -1,5 +1,6 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE RankNTypes #-}
@@ -122,13 +123,17 @@ sortByInd :: [AgentMessage']
               M.Map RelEdgeInd [AgentMessage'])
 sortByInd = foldl' collect (M.empty, M.empty)
    where
-      collect (cs, es) (c,m,t) =
-         (maybe id (const $ insert' (RI (0,0)) (c,m,t)) (localMessage m)
-          $ maybe id (const $ insert' (msgPos m) (c,m,t)) (cellMessage m) cs,
-          maybe id (const $ insert' (msgEdg m) (c,m,t)) (edgeMessage m) es)
+      collect (cs, es) m =
+         (insertMaybe (view $ _2 . _agentMessageCellInd) m cs,
+          insertMaybe (view $ _2 . _agentMessageEdgeInd) m es)
 
-      msgPos m = fromMaybe (error "[sortByInd.msgPos]: Nothing") (m ^. _agentMessageCellInd)
-      msgEdg m = fromMaybe (error "[sortByInd.msgEdg]: Nothing") (m ^. _agentMessageEdgeInd)
+         --(maybe id (const $ insert' (RI (0,0)) (c,m,t)) (localMessage m)
+         -- $ maybe id (const $ insert' (msgPos m) (c,m,t)) (cellMessage m) cs,
+         -- maybe id (const $ insert' (msgEdg m) (c,m,t)) (edgeMessage m) es)
+
+
+      --msgPos m = fromMaybe (error "[sortByInd.msgPos]: Nothing") (m ^. _agentMessageCellInd)
+      --msgEdg m = fromMaybe (error "[sortByInd.msgEdg]: Nothing") (m ^. _agentMessageEdgeInd)
 
 -- |Goes through a message and space and groups messages by EntityName, provided
 --  they have such fields. If we have a 'AMVisualEntityName', 'AMVisualAgent' and
@@ -144,7 +149,15 @@ sortByEntityName = foldl' collect M.empty
       entName m = fromMaybe (error "no entity name in sortByEntityName")
                             (m ^. _agentMessageEntityName)
 
+-- Inserts a value into a map if a key can be extracted from it.
+-- If a key can be extracted, the value will be inserted into a list
+-- of values with the same key (or a new, 1-element list).
+insertMaybe :: Ord k => (a -> Maybe k) -> a -> M.Map k [a] -> M.Map k [a]
+insertMaybe keyExtractor x m = maybe m (\k -> insert' k x m) $ keyExtractor x
 
+-- |Inserts a value into a map. If the key is already present, the
+--  new value is prepended to the list of values at that key. Otherwise,
+--  a new, 1-element list is created for that key.
 insert' :: Ord k => k -> a -> M.Map k [a] -> M.Map k [a] 
 insert' k x = M.alter (Just . maybe [x] (x:)) k
 
