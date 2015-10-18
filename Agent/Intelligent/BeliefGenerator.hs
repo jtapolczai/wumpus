@@ -113,7 +113,11 @@ recallMemory
    :: MemoryIndex
    -> AgentState
    -> IO [AgentMessage]
-recallMemory mi as = trace "[recallMemory]" $ snd <$> simulateConsequences NoOp mi as return
+recallMemory mi as = trace "[recallMemory]" $ snd <$> simulateConsequences NoOp mi as getPerc
+   where
+      -- calls pullMessages on all agents
+      -- %@~ is the indexed update operator that takes a function (k -> v -> v). Note imapped.
+      getPerc w = return $ w & cellData . imapped %@~ (\i c -> c & entity . _Just . _Ag . state %~ pullMessages w i)
 
 -- |Generates a new set of beliefs about the world, i.e. all messages are
 --  inserted into the agent's message space, marked as imaginary.
