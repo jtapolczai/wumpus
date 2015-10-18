@@ -36,8 +36,9 @@ instance AgentMind AgentState where
                            $ trace ("___[receiveMessage] msg space: " ++ show (as ^. messageSpace))
                            $ as & messageSpace %~ (msg'++)
       where
-        msg' = map (False,,eternal) (perception myPos msg)
+        msg' = map (False,,eternal) (perception myName myPos msg)
         myPos = fromMaybe (error "[receiveMessage.myPos] Nothing!") $ myPosition $ view messageSpace as
+        myName = as ^. name
 
    getAction = getAction'
 

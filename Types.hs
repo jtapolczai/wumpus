@@ -131,15 +131,49 @@ _agentMessageCellInd = to go
       go (AMVisualMeat c _) = Just c
       go (AMVisualFruit c _) = Just c
       go (AMVisualPlant c _) = Just c
+      go (AMLocalStench _) = Just $ RI (0,0)
+      go (AMLocalBreeze _) = Just $ RI (0,0)
+      go (AMLocalAgent _) = Just $ RI (0,0)
       go (AMEmotionSympathy c _) = Just c
       go (AMEmotionTrust c _) = Just c
       go (AMEmotionRespect c _) = Just c
+      go (AMHealthDecreased _) = Just $ RI (0,0)
+      go (AMHealthIncreased _) = Just $ RI (0,0)
+      go (AMStaminaDecreased _) = Just $ RI (0,0)
+      go (AMStaminaIncreased _) = Just $ RI (0,0)
       go (AMHaveHealth _) = Just $ RI (0,0)
       go (AMHaveStamina _) = Just $ RI (0,0)
       go (AMHaveMeat _) = Just $ RI (0,0)
       go (AMHaveGold _) = Just $ RI (0,0)
       go (AMHaveFruit _) = Just $ RI (0,0)
+      go (AMYouAreHere) = Just $ RI (0,0)
       go _ = Nothing
+
+
+-- how do deal with agentDied?
+
+
+   {-| AMNAgentDied
+   | AMNWumpusDied
+   | AMNYouDied
+   | AMNAttackedBy
+   | AMNAttackedFrom
+   | AMNAttacked
+   | AMNReceivedMeat
+   | AMNReceivedFruit
+   | AMNReceivedGold
+   | AMNGainedMeat
+   | AMNGainedFruit
+   | AMNGainedGold
+   | AMNGaveMeat
+   | AMNGaveFruit
+   | AMNGaveGold
+   | AMNLostMeat
+   | AMNLostFruit
+   | AMNLostGold
+   | AMNPlantHarvested
+   | AMNKilledAgent
+   | AMNKilledWumpus-}
 
 -- |Gets the EgdeInd of an AgentMessage, for all which have one.
 _agentMessageEdgeInd :: Getter AgentMessage (Maybe RelEdgeInd)

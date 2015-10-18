@@ -77,10 +77,12 @@ simulateConsequences
 simulateConsequences act mi as simulateAction = do
    --when (mi == mempty) (error "EMPTY MI GIVEN TO simulateConsequences!")
    traceM $ "[simulateConsequences]"
+   traceM $ "[simulateConsequences] mi: " ++ show mi
    let -- mi' = MI . init . runMI $ mi
        mi' = mi
        currentWorld = reconstructWorld act mi' as
        myPos = trace "[simulateConsequences.myPos]" $ as ^. memory . memInd mi' . _3
+       myName = trace "[simulateConsequences.myName]" $ as ^. name
        isAlive = trace "[simulateConsequences.isAlive]" $ as ^. memory . memInd mi' . _4
    nextWorld <- simulateAction currentWorld --simulateStep currentWorld
    traceM $ "[simulateConsequences] nextWorld computed."
@@ -99,7 +101,7 @@ simulateConsequences act mi as simulateAction = do
           traceM $ "[simulateConsequences.messages] newPos: " ++ show newPos
           me <- nextWorld ^? cellData . at newPos . _Just . entity . _Just . _Ag
           traceM $ "[simulateConsequences.messages] me: Just"
-          return $ concatMap (perception myPos) $ readMessageSpace $ me ^. state
+          return $ concatMap (perception myName myPos) $ readMessageSpace $ me ^. state
 
    return (nextWorld, if isAlive then messages else trace "[simulateConsequences] agent dead (through isAlive-field)!"  deadMessages)
 

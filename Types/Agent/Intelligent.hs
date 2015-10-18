@@ -26,6 +26,8 @@ type IsImaginary = Bool
 
 type Discharged = Bool
 
+data Global = Global deriving (Show, Eq, Ord)
+
 newtype RelInd = RI{runRelInd :: CellInd} deriving (Show, Eq, Ord, Generic)
 
 instance Hashable RelInd
@@ -68,7 +70,7 @@ data AgentMessage =
    -- |Local perceptions
    | AMLocalStench Rational
    | AMLocalBreeze Rational
-   | AMLocalAgent
+   | AMLocalAgent EntityName
    -- |Emotions of the PSBC
    | AMEmotionAnger Rational
    | AMEmotionFear Rational

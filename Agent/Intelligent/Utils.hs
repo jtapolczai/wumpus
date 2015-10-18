@@ -63,7 +63,7 @@ globalMessage x@AMTime{} = Just x
 globalMessage _ = Nothing
 
 -- |Sieves out cell-related messages (those which have a RelInd).
-cellMessage :: AgentMessage -> Maybe AgentMessage
+{-cellMessage :: AgentMessage -> Maybe AgentMessage
 cellMessage x@AMVisualAgent{} = Just x
 cellMessage x@AMVisualWumpus{} = Just x
 cellMessage x@AMVisualEntityHealth{} = Just x
@@ -75,7 +75,10 @@ cellMessage x@AMVisualMeat{} = Just x
 cellMessage x@AMVisualFruit{} = Just x
 cellMessage x@AMVisualPlant{} = Just x
 
-cellMessage _ = Nothing
+cellMessage _ = Nothing-}
+
+
+-- TODO: replace this
 
 -- |Sives out local messages (those which don't have an RelInd but are known
 --  to pertain to relative index (0,0), e.g. LocalBreeze, HaveHealth,...).
@@ -90,10 +93,12 @@ localMessage x@AMLocalStench{} = Just x
 
 localMessage _ = Nothing
 
-edgeMessage :: AgentMessage -> Maybe AgentMessage
+{-edgeMessage :: AgentMessage -> Maybe AgentMessage
 edgeMessage x@AMVisualEdgeDanger{} = Just x
 edgeMessage x@AMVisualEdgeFatigue{} = Just x
-edgeMessage _ = Nothing
+edgeMessage _ = Nothing-}
+
+-- todo: replace *message
 
 -- |Sieves out social messages. Social messages are all those that contain
 --  an EntityName.
