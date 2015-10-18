@@ -103,7 +103,7 @@ simulateConsequences act mi as simulateAction = do
           traceM $ "[simulateConsequences.messages] me: Just"
           return $ concatMap (perception myName myPos) $ readMessageSpace $ me ^. state
 
-   return (nextWorld, if isAlive then messages else trace "[simulateConsequences] agent dead (through isAlive-field)!"  deadMessages)
+   return (nextWorld, if isAlive then trace ("[simulateConsequences] messages: " ++ show messages) messages else trace "[simulateConsequences] agent dead (through isAlive-field)!"  deadMessages)
 
 -- |Recalls an existing memory and returns the perception-messages that correspond to it.
 --  Note that these resultant messages shouldn't be inserted directly into
