@@ -259,8 +259,7 @@ constructMemory xs mem = if died
    where
       died = trace ("[constructMemory.died] died = " ++ show (isJust $ firstWhere _AMYouDied xs)) $ isJust $ firstWhere _AMYouDied xs
 
-      vcd = VCD Nothing (vcdErr "pit") (vcdErr "gold") (vcdErr "meat")
-                (vcdErr "fruit") (vcdErr "plant") Nothing Nothing
+      vcd = VCD Nothing False 0 0 0 Nothing Nothing Nothing
       ed = ED (edErr "danger") (edErr "fatigue")
       pos = fromMaybe (error "constructMemory: no position found!") $ myPosition xs
 
@@ -324,7 +323,7 @@ constructCell ms = trace ("[constructCell] messages: " ++ show ms)
       addCellInfo f (AMVisualGold _ n) = (gold .~ n) . f
       addCellInfo f (AMVisualMeat _ n) = (meat .~ n) . f
       addCellInfo f (AMVisualFruit _ n) = (fruit .~ n) . f
-      addCellInfo f (AMVisualPlant _ n) = (plant ?~ n) . f
+      addCellInfo f (AMVisualPlant _ n) = (plant .~ Just n) . f
 
       addCellInfo f (AMLocalStench n) = (stench ?~ n) . f
       addCellInfo f (AMLocalBreeze n) = (breeze ?~ n) . f
