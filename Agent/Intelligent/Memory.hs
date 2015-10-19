@@ -259,7 +259,7 @@ constructMemory xs mem = if died
    where
       died = trace ("[constructMemory.died] died = " ++ show (isJust $ firstWhere _AMYouDied xs)) $ isJust $ firstWhere _AMYouDied xs
 
-      vcd = VCD Nothing False 0 0 0 Nothing Nothing Nothing
+      vcd = VCD (vcdErr "entity") False 0 0 0 Nothing Nothing Nothing
       ed = ED (edErr "danger") (edErr "fatigue")
       pos = fromMaybe (error "constructMemory: no position found!") $ myPosition xs
 
