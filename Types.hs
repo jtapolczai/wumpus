@@ -125,6 +125,7 @@ _agentMessageCellInd = to go
       go (AMVisualWumpus c _) = Just c
       go (AMVisualEntityHealth c _) = Just c
       go (AMVisualEntityStamina c _) = Just c
+      go (AMVisualEntityDirection c _) = Just c
       go (AMVisualFree c) = Just c
       go (AMVisualPit c) = Just c
       go (AMVisualGold c _) = Just c

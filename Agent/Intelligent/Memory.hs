@@ -317,6 +317,7 @@ constructCell ms = trace ("[constructCell] messages: " ++ show ms)
       addCellInfo f (AMVisualWumpus _ n) = (entity ._Just . name .~ n) . f
       addCellInfo f (AMVisualEntityHealth _ n) = (entity ._Just . health .~ n) . f
       addCellInfo f (AMVisualEntityStamina _ n) = (entity ._Just . stamina .~ n) . f
+      addCellInfo f (AMVisualEntityDirection _ n) = (entity . _Just . _Ag . direction .~ n) . f
 
       addCellInfo f (AMVisualFree _) = (entity .~ Nothing) . f
       addCellInfo f (AMVisualPit _) = (pit .~ True) . f
