@@ -25,13 +25,13 @@ perception _ pos (MsgVisualPerception iAbs d) = trace "[perception] MsgvisualPer
    [AMVisualGold i (d ^. gold),
     AMVisualMeat i (d ^. meat),
     AMVisualFruit i (d ^. fruit)]
-   ++ cond (d ^. pit) (AMVisualPit i)
-   ++ cond (d ^. plant . to isJust) (AMVisualPlant i $ d ^. plant . to (fromMaybe $ error "[Agent.perception.plant]: Nothing"))
-   ++ cond (d ^. entity . is isAgent) (AMVisualAgent i $ d ^. ju entity . name)
-   ++ cond (d ^. entity . is isWumpus) (AMVisualWumpus i $ d ^. ju entity . name)
-   ++ cond (d ^. entity . to isJust) (AMVisualEntityHealth i $ d ^. ju entity . health)
-   ++ cond (d ^. entity . to isJust) (AMVisualEntityStamina i $ d ^. ju entity . stamina)
-   ++ cond (d ^. entity . to isNothing) (AMVisualFree i)
+   ++ cond (d ^. pit) [AMVisualPit i]
+   ++ cond (d ^. plant . to isJust) [AMVisualPlant i $ d ^. plant . to (fromMaybe $ error "[Agent.perception.plant]: Nothing")]
+   ++ cond (d ^. entity . is isAgent) [AMVisualAgent i $ d ^. ju entity . name, AMVisualEntityDirection i $ fromMaybe (error "perception: no entity direction in MsgVisualPerception!") $ d ^? entity . _Just . _Ag . direction]
+   ++ cond (d ^. entity . is isWumpus) [AMVisualWumpus i $ d ^. ju entity . name]
+   ++ cond (d ^. entity . to isJust) [AMVisualEntityHealth i $ d ^. ju entity . health]
+   ++ cond (d ^. entity . to isJust) [AMVisualEntityStamina i $ d ^. ju entity . stamina]
+   ++ cond (d ^. entity . to isNothing) [AMVisualFree i]
    where
       is f = to (maybe False f)
       -- |The position relative to the agent.
@@ -43,7 +43,10 @@ perception n _ (MsgLocalPerception d) = trace "[perception] MsgLocalPerception" 
     AMVisualFruit (RI (0,0)) (d ^. fruit),
     AMLocalBreeze (d ^. breeze),
     AMLocalStench (d ^. stench),
-    AMLocalAgent n]
+    AMLocalAgent n,
+    AMVisualEntityDirection (RI (0,0)) (just $ d ^? entity . _Just . _Ag . direction)]
+    where
+      just = fromMaybe (error "perception: no entity in MsgLocalPerception!")
 
 perception _ _ (MsgGlobalPerception d) =
    [AMTemperature $ d ^. temperature,
