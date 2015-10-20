@@ -59,6 +59,7 @@ data AgentMessage =
    | AMVisualWumpus RelInd EntityName
    | AMVisualEntityHealth RelInd Rational
    | AMVisualEntityStamina RelInd Rational
+   | AMVisualEntityDirection RelInd SquareDirection
    | AMVisualFree RelInd
    | AMVisualPit RelInd
    | AMVisualGold RelInd Int
@@ -162,6 +163,7 @@ data AgentMessageName =
    | AMNVisualWumpus
    | AMNVisualEntityHealth
    | AMNVisualEntityStamina
+   | AMNVisualEntityDirection
    | AMNVisualFree
    | AMNVisualPit
    | AMNVisualGold

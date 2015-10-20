@@ -266,6 +266,7 @@ instance Castable AgentMessage AgentMessageName where
       AMVisualWumpus{} -> AMNVisualWumpus
       AMVisualEntityHealth{} -> AMNVisualEntityHealth
       AMVisualEntityStamina{} -> AMNVisualEntityStamina
+      AMVisualEntityDirection{} -> AMNVisualEntityDirection
       AMVisualFree{} -> AMNVisualFree
       AMVisualPit{} -> AMNVisualPit
       AMVisualGold{} -> AMNVisualGold
