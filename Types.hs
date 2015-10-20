@@ -52,8 +52,8 @@ ju l = l . to (fromMaybe err)
 
 -- |Returns the given element if the first argument is True and
 --  the monoid's neutral element otherwise.
-cond :: (Monoid (f a), Applicative f) => Bool -> a -> f a
-cond True x = pure x
+cond :: (Monoid a) => Bool -> a -> a
+cond True x = x
 cond False _ = mempty
 
 -- |Applies a function to an object iff the condition is True.
