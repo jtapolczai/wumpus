@@ -328,6 +328,7 @@ constructCell ms = trace ("[constructCell] messages: " ++ show ms)
 
       addCellInfo f (AMLocalStench n) = (stench ?~ n) . f
       addCellInfo f (AMLocalBreeze n) = (breeze ?~ n) . f
+      addCellInfo f (AMDirection n) = (entity . _Just . _Ag . direction .~ n) . f
       addCellInfo f (AMLocalAgent n) = trace "[constructCell] LOCALAGENT FOUND. " ((entity . _Just . name .~ n) . f)
       addCellInfo f (AMHaveHealth n) = (entity . _Just . health .~ n) . f
       addCellInfo f (AMHaveStamina n) = (entity . _Just . stamina .~ n) . f
