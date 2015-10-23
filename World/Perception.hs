@@ -22,11 +22,12 @@ getLocalPerceptions :: World
                     -> CellInd -- ^The agent's position.
                     -> SquareDirection -- ^The agent's direction.
                     -> [Message]
-getLocalPerceptions world i d = trace "[getLocalPerception]" $ location : local : global : dir ++ visual
+getLocalPerceptions world i d = trace "[getLocalPerception]" $ location : local : global : body ++ dir ++ visual
    where
       local = MsgLocalPerception $ cellAt i world
       global = MsgGlobalPerception $ world ^. worldData
       location = MsgPositionPerception i
+      body = maybe (error "no body in getLocalPerception! Bug?") (\a -> [MsgBody (a ^. health) (a ^. stamina) (a ^. inventory)]) $ cellAt i world ^? entity . _Just . _Ag
       dir = maybe [] ((:[]) . MsgDirectionPerception) $ cellAt i world ^? entity . _Just . _Ag . direction
       visual = map visualData $ verticesInSightCone world i d
       visualData j = MsgVisualPerception j $ cast $ cellAt j world
@@ -37,18 +38,19 @@ getLocalPerceptions world i d = trace "[getLocalPerception]" $ location : local 
 getGlobalPerceptions :: World
                      -> CellInd -- |The agent's current position.
                      -> [Message]
-getGlobalPerceptions world i = trace "[getGlobalPerception]" $ global : location : dir ++ cells
-  where
-    cells = map cellPerception $ world ^. cellData . to M.keys
-    cellPerception j = MsgVisualPerception j $ cast' $ cellAt j world
-    global = MsgGlobalPerception $ world ^. worldData
-    location = MsgPositionPerception i
-    dir = maybe [] ((:[]) . MsgDirectionPerception) $ cellAt i world ^? entity . _Just . _Ag . direction
+getGlobalPerceptions world i = trace "[getGlobalPerception]" $ global : location : body ++ dir ++ cells
+   where
+      cells = map cellPerception $ world ^. cellData . to M.keys
+      cellPerception j = MsgVisualPerception j $ cast' $ cellAt j world
+      global = MsgGlobalPerception $ world ^. worldData
+      location = MsgPositionPerception i
+      body = maybe (error "no body in getGlobalPerception! Bug?") (\a -> [MsgBody (a ^. health) (a ^. stamina) (a ^. inventory)]) $ cellAt i world ^? entity . _Just . _Ag
+      dir = maybe [] ((:[]) . MsgDirectionPerception) $ cellAt i world ^? entity . _Just . _Ag . direction
 
-    -- standard cast, but stench and breeze are also set.
-    cast' :: CellData -> VisualCellData
-    cast' c = (cast c) & breeze ?~ (c ^. breeze)
-                       & stench ?~ (c ^. stench)
+      -- standard cast, but stench and breeze are also set.
+      cast' :: CellData -> VisualCellData
+      cast' c = (cast c) & breeze ?~ (c ^. breeze)
+                         & stench ?~ (c ^. stench)
 
 
 -- |Returns all the cells in an agent's sight cone.

@@ -78,11 +78,11 @@ simulateStepReader :: (MonadReader WorldMetaInfo m, MonadWriter (WorldStats -> W
 simulateStepReader world = trace "simulateStepReader" $ trace (replicate 80 '=') $
    (worldData %~ advanceGlobalData)
    . (cellData %~ fmap advanceLocalData)
-   . sendBodyMessages
+   -- . sendBodyMessages -- This is done in World.Perception now.
    <$> foldM updateAgent world (worldAgents world)
    where
-      sendBodyMessages :: World -> World
-      sendBodyMessages w = foldl' sendBodyMessage w (worldAgents w)
+      --sendBodyMessages :: World -> World
+      --sendBodyMessages w = foldl' sendBodyMessage w (worldAgents w)
 
       -- "updating an agent" means giving it its perceptions and performing
       -- its action. We also update the wumpus stench to have accurate stench
@@ -95,10 +95,11 @@ simulateStepReader world = trace "simulateStepReader" $ trace (replicate 80 '=')
       -- perform local changes to agents/plants
       advanceLocalData = increaseStamina . increaseHunger . regrowPlants
 
-sendBodyMessage :: World -> CellInd -> World
+-- This is done in World.Perception now.
+{- sendBodyMessage :: World -> CellInd -> World
 sendBodyMessage w i = onCell i (onAgent $ \a -> sendMsg (msg a) a) w
    where
-      msg a = MsgBody (a ^. health) (a ^. stamina) (a ^. inventory)
+      msg a = MsgBody (a ^. health) (a ^. stamina) (a ^. inventory) -}
 
 -- |Gives an entity its perceptions based on the current world, and updates
 --  the world accordingly.
