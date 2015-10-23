@@ -13,16 +13,21 @@ import Debug.Trace
 -- Perceptions
 ------------------------------------------------------------------------------
 
+-- ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+-- sendbodymessage here (and remove it from world.hs)
+-- TODO ^^^^^^^^^^^^
+
 -- |Gets the perceptions to which a given agent is entitled.
 getLocalPerceptions :: World
                     -> CellInd -- ^The agent's position.
                     -> SquareDirection -- ^The agent's direction.
                     -> [Message]
-getLocalPerceptions world i d = trace "[getLocalPerception]" $ location : local : global : visual
+getLocalPerceptions world i d = trace "[getLocalPerception]" $ location : local : global : dir ++ visual
    where
       local = MsgLocalPerception $ cellAt i world
       global = MsgGlobalPerception $ world ^. worldData
       location = MsgPositionPerception i
+      dir = maybe [] ((:[]) . MsgDirectionPerception) $ cellAt i world ^? entity . _Just . _Ag . direction
       visual = map visualData $ verticesInSightCone world i d
       visualData j = MsgVisualPerception j $ cast $ cellAt j world
 
@@ -32,12 +37,13 @@ getLocalPerceptions world i d = trace "[getLocalPerception]" $ location : local 
 getGlobalPerceptions :: World
                      -> CellInd -- |The agent's current position.
                      -> [Message]
-getGlobalPerceptions world i = trace "[getGlobalPerception]" $ global : location : cells
+getGlobalPerceptions world i = trace "[getGlobalPerception]" $ global : location : dir ++ cells
   where
     cells = map cellPerception $ world ^. cellData . to M.keys
     cellPerception j = MsgVisualPerception j $ cast' $ cellAt j world
     global = MsgGlobalPerception $ world ^. worldData
     location = MsgPositionPerception i
+    dir = maybe [] ((:[]) . MsgDirectionPerception) $ cellAt i world ^? entity . _Just . _Ag . direction
 
     -- standard cast, but stench and breeze are also set.
     cast' :: CellData -> VisualCellData

@@ -223,7 +223,7 @@ data Message =
    -- |The agent's position.
    | MsgPositionPerception CellInd
    -- |The agent's direction.
-   | MsgDirectionPerception CellInd
+   | MsgDirectionPerception SquareDirection
    -- |A gesture sent from another agent.
    | MsgGesture EntityName GestureName
    -- |A change in the agent's health, in percents.
