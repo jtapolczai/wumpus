@@ -258,11 +258,14 @@ instance Castable CellData VisualCellData where
                 (Just $ a ^. stench)
 
 instance Castable AgentMessage AgentMessageName where
+-- DON'T ADD AN OTHERWISE-CASE HERE! NON-EXHAUSTIVE PATTERNS
+-- INDICATE A BUG!
    cast = \case
       AMTemperature{} -> AMNTemperature
       AMTime{} -> AMNTime
       AMGesture{} -> AMNGesture
       AMPosition{} -> AMNPosition
+      AMDirection{} -> AMNDirection
       AMVisualAgent{} -> AMNVisualAgent
       AMVisualWumpus{} -> AMNVisualWumpus
       AMVisualEntityHealth{} -> AMNVisualEntityHealth

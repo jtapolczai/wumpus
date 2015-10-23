@@ -52,8 +52,9 @@ data AgentMessage =
    | AMTime Int
    -- |A gesture coming from another agent.
    | AMGesture EntityName GestureName
-   -- |The agent's position.
+   -- |The agent's position and direction.
    | AMPosition CellInd
+   | AMDirection SquareDirection
    -- |Visual perceptions.
    | AMVisualAgent RelInd EntityName
    | AMVisualWumpus RelInd EntityName
@@ -68,22 +69,22 @@ data AgentMessage =
    | AMVisualPlant RelInd Rational
    | AMVisualEdgeDanger RelEdgeInd Rational
    | AMVisualEdgeFatigue RelEdgeInd Rational
-   -- |Local perceptions
+   -- |Local perceptions.
    | AMLocalStench Rational
    | AMLocalBreeze Rational
    | AMLocalAgent EntityName
-   -- |Emotions of the PSBC
+   -- |Emotions of the PSBC.
    | AMEmotionAnger Rational
    | AMEmotionFear Rational
    | AMEmotionEnthusiasm Rational
    | AMEmotionContentment Rational
-   -- |Emotion changes of the PSBC
+   -- |Emotion changes of the PSBC.
    | AMEmotionChanged EmotionName Rational
-   -- |Emotions of the SJS
+   -- |Emotions of the SJS.
    | AMEmotionSympathy RelInd Rational
    | AMEmotionTrust RelInd Rational
    | AMEmotionRespect RelInd Rational
-   -- |Emotions related to the agent's body
+   -- |Emotions related to the agent's body.
    | AMHealthDecreased Percentage
    | AMHealthIncreased Percentage
    | AMStaminaDecreased Percentage
@@ -159,6 +160,7 @@ data AgentMessageName =
    | AMNTime
    | AMNGesture
    | AMNPosition
+   | AMNDirection
    | AMNVisualAgent
    | AMNVisualWumpus
    | AMNVisualEntityHealth

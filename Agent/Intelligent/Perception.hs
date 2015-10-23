@@ -43,16 +43,15 @@ perception n _ (MsgLocalPerception d) = trace "[perception] MsgLocalPerception" 
     AMVisualFruit (RI (0,0)) (d ^. fruit),
     AMLocalBreeze (d ^. breeze),
     AMLocalStench (d ^. stench),
-    AMLocalAgent n,
-    AMVisualEntityDirection (RI (0,0)) (just $ d ^? entity . _Just . _Ag . direction)]
-    where
-      just = fromMaybe (error "perception: no entity in MsgLocalPerception!")
+    AMLocalAgent n]
 
 perception _ _ (MsgGlobalPerception d) =
    [AMTemperature $ d ^. temperature,
     AMTime $ d ^. time]
 
 perception _ _ (MsgPositionPerception i) = trace "[perception] MsgPositionPerception" $ [AMPosition i]
+
+perception _ _ (MsgDirectionPerception i) = trace "[perception] MsgDirectionPerception" $ [AMDirection i]
 
 perception _ _ (MsgGesture n g) = trace "[perception] MsgGesture" $ [AMGesture n g]
 
