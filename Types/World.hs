@@ -222,6 +222,8 @@ data Message =
    | MsgGlobalPerception WorldData
    -- |The agent's position.
    | MsgPositionPerception CellInd
+   -- |The agent's direction.
+   | MsgDirectionPerception CellInd
    -- |A gesture sent from another agent.
    | MsgGesture EntityName GestureName
    -- |A change in the agent's health, in percents.
@@ -250,7 +252,8 @@ instance Show Message
    where show = \case MsgVisualPerception e d -> "MsgVisualPerception " ++ intercalate " " [show e,show d]
                       MsgLocalPerception _ -> "MsgLocalPerception"
                       MsgGlobalPerception d -> "MsgGlobalPerception " ++ show d
-                      MsgPositionPerception p -> "MsgPositionPerception " ++ show p
+                      MsgPositionPerception p -> "MsgPositionPerception "  ++ intercalate " " [show p]
+                      MsgDirectionPerception p -> "MsgDirectionPerception "  ++ intercalate " " [show p]
                       MsgGesture e g -> "MsgGesture " ++ intercalate " " [show e,show g]
                       MsgHealthChanged r -> "MsgHealthChanged " ++ show r
                       MsgStaminaChanged r -> "MsgStaminaChanged " ++ show r
