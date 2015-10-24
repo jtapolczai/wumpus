@@ -332,9 +332,9 @@ constructCell ms = trace ("[constructCell] messages: " ++ show ms)
       addCellInfo f (AMLocalAgent n) = trace "[constructCell] LOCALAGENT FOUND. " ((entity . _Just . name .~ n) . f)
       addCellInfo f (AMHaveHealth n) = (entity . _Just . health .~ n) . f
       addCellInfo f (AMHaveStamina n) = (entity . _Just . stamina .~ n) . f
-      addCellInfo f (AMHaveGold n) = onInv (ix Gold .~ n) . f
-      addCellInfo f (AMHaveMeat n) = onInv (ix Meat .~ n) . f
-      addCellInfo f (AMHaveFruit n) = onInv (ix Fruit .~ n) . f
+      addCellInfo f (AMHaveGold n) = trace "[constructCell] AMHaveGold message." $ onInv (ix Gold .~ n) . f
+      addCellInfo f (AMHaveMeat n) = trace "[constructCell] AMHaveMeat message." $ onInv (ix Meat .~ n) . f
+      addCellInfo f (AMHaveFruit n) = trace "[constructCell] AMHaveFruit message." $ onInv (ix Fruit .~ n) . f
 
       addCellInfo f _ = f
 
