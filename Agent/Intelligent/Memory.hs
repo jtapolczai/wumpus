@@ -308,8 +308,8 @@ reconstructAgent am _ (Ag a) =
               (a ^. direction)
               (a ^. health)
               (a ^. stamina)
-              --(fromMaybe M.empty (a ^. inventory))
-              M.empty
+              (fromMaybe M.empty (a ^. inventory))
+              --M.empty
               am
 reconstructAgent _ aw (Wu w) =
    Wu $ Wumpus aw
