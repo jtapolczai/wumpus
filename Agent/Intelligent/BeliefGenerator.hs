@@ -92,7 +92,7 @@ simulateConsequences act mi as simulateAction = do
    --
    -- we also insert the death-messages in lieu of the perceptions if the
    -- IsAlive-field of the memory is false.
-   let deadMessages = [AMHealthDecreased 100, AMYouDied]
+   let deadMessages = [AMHealthDecreased 100, AMYouDied, AMPosition myPos]
        messages = fromMaybe deadMessages $ do
           traceM "[simulateConsequences] messages"
           traceM $ "[simulateConsequences.messages] agents: " ++ show (nextWorld ^. agents)
