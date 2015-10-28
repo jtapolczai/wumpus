@@ -46,6 +46,7 @@ callComponents doReinsertInit comps initAs = putMsg <$> foldM f (initAs, mempty)
          traceM $ "[CC] msg (initMsg): " ++ (show initMsg)
          traceM $ "[CC] msg (ms): " ++ (show ms)
          newAs <- g $ curAs & messageSpace .~ (initMsg ++ ms)
+                            & newMessages .~ mempty
          traceM $ "[CC] newMsg: " ++ (show $ newAs ^. newMessages)
          return (newAs & newMessages .~ mempty,
                  newAs ^. newMessages ++ ms)
