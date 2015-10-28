@@ -12,7 +12,7 @@ import Data.Maybe
 import Types
 import World.Utils
 
-import Debug.Trace
+import Debug.Trace.Disable
 
 -- |Processes and breaks up messages from the outside world into smaller
 --  ones that the other sub-systems of the agent can process.
