@@ -49,7 +49,8 @@ callComponents doReinsertInit comps initAs = putMsg <$> foldM f (initAs, mempty)
          newAs <- g $ curAs & messageSpace .~ (initMsg ++ ms)
                             & newMessages .~ mempty
          traceM $ "[CC] newMsg: " ++ (show $ newAs ^. newMessages)
-         return $ unsafePerformIO $ putStrLn "Press Enter to continue" >> getLine
+         traceM "> "
+         traceM (unsafePerformIO getLine)
          return (newAs & newMessages .~ mempty,
                  newAs ^. newMessages ++ ms)
 
