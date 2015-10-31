@@ -85,11 +85,11 @@ decisionMakerComponent asInit = trace "[decisionMakerComponent]" $ trace (replic
                    $ retractSteps (leftMemIndex as) numSteps as
       else if targetEmotionSatisfied' allChanges >= 1 then do
          traceM "finalize plan"
-         return $ finalizeAction (MI []) as
+         return $ finalizeAction (MI [0]) as
       else do
          traceM "contine plan"
          act <- getNextAction True planEmotion
-         let newMsg = [(True, AMPlannedAction act (leftMemIndex as) False, eternal)]
+         let newMsg = [(True, AMPlannedAction act (leftMemIndex as `mappend` [0]) False, ephemeral)]
          return $ budgetAddStep $ addMessages newMsg as
    where
       -- chooses another action related to the given emotion
