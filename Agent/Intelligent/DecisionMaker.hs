@@ -65,9 +65,12 @@ decisionMakerComponent asInit = trace "[decisionMakerComponent]" $ trace (replic
       traceM $ "dominantEmotion: " ++ show dominantEmotion
       traceM $ "dominantEmotionLevel: " ++ show dominantEmotionLevel
       -- randomly choose an emotion-appropriate action
-      act <- getNextAction False dominantEmotion
+      act <- getNextAction (leftMemIndex as /= mempty) dominantEmotion
       traceM (show act)
-      let newMsg = [(isImag, AMPlannedAction act (MI [0]) False, ephemeral),
+      -- Imaginary AMPlannedActions are picked up and reinserted by the BG; non-imaginary ones
+      -- get a TTL 1 so that they aren't pruned at the end of the round - they have to be picked up
+      -- in the main loop in Agent/Intelligent.
+      let newMsg = [(isImag, AMPlannedAction act (MI [0]) False, if isImag then ephemeral else ttl 1),
                     (isImag, AMPlanEmotion dominantEmotion, ttl 1)]
 
       traceM "mkStep"
