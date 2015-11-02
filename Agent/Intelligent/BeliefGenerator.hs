@@ -99,6 +99,9 @@ simulateConsequences act mi as simulateAction = do
           traceM $ "[simulateConsequences.messages] my name: " ++ (as ^. name)
           newPos <- nextWorld ^. agents . at (as ^. name)
           traceM $ "[simulateConsequences.messages] newPos: " ++ show newPos
+          traceM $ "[simulateConsequences.messages] cell at my pos: " ++ show (nextWorld ^? cellData . at newPos . _Just)
+          traceM $ "[simulateConsequences.messages] entity at my pos present: " ++ show (isJust $ nextWorld ^? cellData . at newPos . _Just . entity)
+          traceM $ "[simulateConsequences.messages] agent at my pos present: " ++ show (isJust $ nextWorld ^? cellData . at newPos . _Just . entity . _Just . _Ag)
           me <- nextWorld ^? cellData . at newPos . _Just . entity . _Just . _Ag
           traceM $ "[simulateConsequences.messages] me: Just"
           return $ concatMap (perception myName myPos) $ readMessageSpace $ me ^. state
