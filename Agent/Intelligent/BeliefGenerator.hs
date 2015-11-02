@@ -86,6 +86,7 @@ simulateConsequences act mi as simulateAction = do
        isAlive = trace "[simulateConsequences.isAlive]" $ as ^. memory . memInd mi' . _4
    traceM $ "[simulateConsequences] reconstructed world: " ++ show currentWorld
    nextWorld <- simulateAction currentWorld --simulateStep currentWorld
+   traceM $ "[simulateConsequences] next world: " ++ show nextWorld
    traceM $ "[simulateConsequences] nextWorld computed."
    -- get the messages from the agent at its new position.
    -- the agent not being present means that it has died, so create an

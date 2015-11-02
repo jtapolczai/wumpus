@@ -166,7 +166,7 @@ data CellData = CD {
 instance Show CellData where
    show (CD e s b p g m f pl) =
       "Cell {entity=" ++ (case e of{Just _ -> "Just"; _ -> "Nothing"}) ++
-      ", stench=" ++ show s ++ ", breeze=" ++ show b ++ "pit=" ++ show p ++
+      ", stench=" ++ show s ++ ", breeze=" ++ show b ++ ", pit=" ++ show p ++
       ", gold=" ++ show g ++ ", meat=" ++ show m ++ ", fruit=" ++ show f ++
       ", plant=" ++ show pl
  
