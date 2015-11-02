@@ -193,7 +193,7 @@ type EdgeInd = (CellInd, SquareDirection)
 data EdgeData = ED {
    _edgeDataDanger :: Rational,
    _edgeDataFatigue :: Rational
-}
+} deriving (Show)
 
 instance Default EdgeData where
    def = ED 0 1
@@ -214,7 +214,7 @@ data World = World {
    _worldEdgeData :: M.Map EdgeInd EdgeData,
    _worldCellData :: M.Map CellInd CellData,
    _worldAgents :: M.Map EntityName CellInd
-}
+} deriving (Show)
 
 -- Agent minds
 -------------------------------------------------------------------------------

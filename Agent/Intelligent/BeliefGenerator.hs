@@ -84,6 +84,7 @@ simulateConsequences act mi as simulateAction = do
        myPos = trace "[simulateConsequences.myPos]" $ as ^. memory . memInd mi' . _3
        myName = trace "[simulateConsequences.myName]" $ as ^. name
        isAlive = trace "[simulateConsequences.isAlive]" $ as ^. memory . memInd mi' . _4
+   traceM $ "[simulateConsequences] reconstructed world: " ++ show currentWorld
    nextWorld <- simulateAction currentWorld --simulateStep currentWorld
    traceM $ "[simulateConsequences] nextWorld computed."
    -- get the messages from the agent at its new position.
@@ -99,6 +100,7 @@ simulateConsequences act mi as simulateAction = do
           traceM $ "[simulateConsequences.messages] my name: " ++ (as ^. name)
           newPos <- nextWorld ^. agents . at (as ^. name)
           traceM $ "[simulateConsequences.messages] newPos: " ++ show newPos
+          traceM $ "[simulateConsequences.messages] world cells: " ++ show (nextWorld ^. cellData)
           traceM $ "[simulateConsequences.messages] cell at my pos: " ++ show (nextWorld ^? cellData . at newPos . _Just)
           traceM $ "[simulateConsequences.messages] entity at my pos present: " ++ show (isJust $ nextWorld ^? cellData . at newPos . _Just . entity)
           traceM $ "[simulateConsequences.messages] agent at my pos present: " ++ show (isJust $ nextWorld ^? cellData . at newPos . _Just . entity . _Just . _Ag)
