@@ -420,13 +420,14 @@ filterCells f = (^. cellData . to (map fst . M.toList . M.filter f))
 
 
 -- |Applies an intensity map to a world, overwriting the values in affected cells.
+--  Cells which aren't included in the intensity map get a value of 0.
 applyIntensityMap :: Setter' CellData Rational
                   -> IntensityMap
                   -> World
                   -> World
-applyIntensityMap set intM = cellData %~ flip (ljoin set') intM
+applyIntensityMap setter intM = cellData %~ flip (ljoin set') intM . fmap (set setter 0)
    where
-      set' c b = c & set .~ b
+      set' = flip (set setter)
 
       ljoin :: Ord k => (a -> b -> a) -> M.Map k a -> M.Map k b -> M.Map k a
       ljoin f = M.mergeWithKey (\_ a b -> Just $ f a b) id (const M.empty)
