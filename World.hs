@@ -75,12 +75,16 @@ simulateStep = rwsBracket . simulateStepReader
 --  In addition, statistical data is written out.
 simulateStepReader :: (MonadReader WorldMetaInfo m, MonadWriter (WorldStats -> WorldStats) m, MonadIO m)
                    => World -> m World
-simulateStepReader world = trace "simulateStepReader" $ trace (replicate 80 '=') $
-   (worldData %~ advanceGlobalData)
-   . (cellData %~ fmap advanceLocalData)
-   -- . sendBodyMessages -- This is done in World.Perception now.
-   <$> foldM updateAgent world (worldAgents world)
+simulateStepReader world = trace "simulateStepReader" $ trace (replicate 80 '=')
+                           $ trace ("[simulateStepReader] old world: " ++ show world)
+                           $ do nw <- newWorld
+                                traceM ("[simulateStepReader] new world: " ++ show nw)
+                                traceM ("[simulateStepReader] new world: " ++ show (newWorld' nw))
+                                return (newWorld' nw)
    where
+      newWorld = foldM updateAgent world (worldAgents world)
+      newWorld' = (worldData %~ advanceGlobalData) . (cellData %~ fmap advanceLocalData)
+
       --sendBodyMessages :: World -> World
       --sendBodyMessages w = foldl' sendBodyMessage w (worldAgents w)
 
@@ -420,9 +424,12 @@ applyIntensityMap :: Setter' CellData Rational
                   -> IntensityMap
                   -> World
                   -> World
-applyIntensityMap set intM = cellData %~ M.intersectionWith set' intM
+applyIntensityMap set intM = cellData %~ flip (ljoin set') intM
    where
-      set' b c = c & set .~ b
+      set' c b = c & set .~ b
+
+      ljoin :: Ord k => (a -> b -> a) -> M.Map k a -> M.Map k b -> M.Map k a
+      ljoin f = M.mergeWithKey (\_ a b -> Just $ f a b) id (const M.empty)
 
 -- |Creates a map with sensation intenstities.
 --  The given list of @CellInd@ are the sources from which sensations (breeze,

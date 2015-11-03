@@ -166,22 +166,6 @@ insertMaybe keyExtractor x m = maybe m (\k -> insert' k x m) $ keyExtractor x
 insert' :: Ord k => k -> a -> M.Map k [a] -> M.Map k [a] 
 insert' k x = M.alter (Just . maybe [x] (x:)) k
 
--- |Does a full outer join of two maps, where one of the maps is
---  assumed to be collection of updates.
---
---  >>> keys (fjoin d m n) = union (keys m) (keys n)
---
---  If a key exists in both maps, the update function will be applied to its
---  value. If it only exists in the second one, its value is left unchanged.
---  If it only exists in the right one, the update will be applied
---  to a default value.
-fjoin :: Ord k
-      => a -- ^Default value if a key doesn't exist in the second map.
-      -> M.Map k (a -> a) -- ^Map of updates.
-      -> M.Map k a
-      -> M.Map k a
-fjoin x m n = M.mergeWithKey (\_ f x -> Just (f x)) (const M.empty) id m
-              $ M.union n (fmap (const x) m)
 
 -- |Gets the agent's latest position.
 myPosition :: [AgentMessage'] -> Maybe CellInd

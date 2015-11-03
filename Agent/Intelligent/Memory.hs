@@ -39,6 +39,7 @@ import Control.Lens
 import Control.Monad
 import Data.List
 import qualified Data.Map as M
+import Data.Map.Utils
 import Data.Maybe
 import qualified Data.Tree as T
 import Math.Geometry.Grid.Square (UnboundedSquareGrid(..))
