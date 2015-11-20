@@ -20,7 +20,7 @@ import Types
 import World.Constants
 import World.Utils
 
-import Debug.Trace.Disable
+import Debug.Trace
 
 -- |A map of all the emotions..
 --  Useful as an initial dictionary and for folding over lists of values.

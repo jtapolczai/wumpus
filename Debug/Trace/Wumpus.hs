@@ -1,5 +1,5 @@
 module Debug.Trace.Wumpus (
-   Debug.Trace,
+   module Debug.Trace,
    traceList,
    trace',
    ) where

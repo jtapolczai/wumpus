@@ -42,7 +42,7 @@ import Data.Maybe
 
 import Types
 
-import Debug.Trace
+import Debug.Trace.Wumpus
 
 -- |Creates an empty filter.
 instance Default (FilterMsg sn ri s) where
@@ -183,18 +183,38 @@ sendExcitementFrom = flip (F.foldl' (flip exciteNeighbors))
 -- |Inputs a list of messages into filter and returns the sum of the
 --  signifcances of actived output nodes (how "strongly" the filter responds
 --  to the messages).
+--
+--  This is like 'runFilter\'', but 'activatedSum' is already applied to the resultant filter
+--  to get the sums of the significances of the activated output nodes. 
 runFilter :: [AgentMessage]
-          -> Int -- ^The upper limit on the number of rounds. 0 means that nothing is done.
+          -> Int
           -> Filter
-          -> Rational -- ^Capped sum of the significances of activated output nodes.
-runFilter _ 0 f = {- trace "[runFilter (base case)]" $ -} activatedSum $ activateNodes f
+          -> Rational
+runFilter ms limit filt =
+   trace "[runFilter]"
+   $ trace "---------------------"
+   $ trace "Activated output nodes: "
+   $ traceList outNodes
+   $ activatedSum res
+   where
+      res = runFilter' ms limit filt
+      outNodes = map (\x -> (x, view significance $ (res ^. graph) HM.! x)) $ HS.toList $ res ^. outputNodes
+
+-- |Inputs a list of messages into filter and returns the sum of the
+--  signifcances of actived output nodes (how "strongly" the filter responds
+--  to the messages).
+runFilter' :: [AgentMessage]
+           -> Int -- ^The upper limit on the number of rounds. 0 means that nothing is done.
+           -> Filter
+           -> Filter -- ^Resultant filter with activated output nodes.
+runFilter' _ 0 f = {- trace "[runFilter (base case)]" $ -} activateNodes f
 -- Messages are only given to the nodes once. If no activations are caused,
 -- we can just abort the process. Otherwise, we repeat it and see whether the
 -- excitement sent out before causes new nodes to become active.
-runFilter ms limit filt = -- trace ("runFilter (step case, limit = " ++ show limit ++ ")]") $
-                          -- trace ("___activatedNodes: " ++ show (activatedNodes)) $
-                          if null activatedNodes then activatedSum filt
-                          else runFilter [] (limit - 1) filt''
+runFilter' ms limit filt = -- trace ("runFilter (step case, limit = " ++ show limit ++ ")]") $
+                           -- trace ("___activatedNodes: " ++ show (activatedNodes)) $
+                           if null activatedNodes then filt
+                           else runFilter' [] (limit - 1) filt''
    where
       processMsg f m = foldl' (\f' n -> f' & graph . ix n %~ exciteNode m) f $ candidateNodes m f
       filt' = activateNodes $ foldl' processMsg filt ms
