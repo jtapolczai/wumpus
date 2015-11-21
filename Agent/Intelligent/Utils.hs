@@ -18,6 +18,7 @@ import qualified Data.Map as M
 import Data.Maybe
 import Data.Monoid (First)
 import qualified Data.Tree as T
+import Numeric (showFFloat)
 import System.Random (randomRIO)
 
 import Types
@@ -211,3 +212,7 @@ subIndex (MI i) (MI j) = go i j
 --  length of the strings doesn't match.
 hamming :: String -> String -> Int
 hamming xs = sum . zipWith (\x y -> if x == y then 0 else 1) xs
+
+-- Prints a Rational as a float with 3 digits of precision.
+showF3 :: Rational -> String
+showF3 = flip (showFFloat (Just 3)) "" . (fromRational :: Rational -> Double)
