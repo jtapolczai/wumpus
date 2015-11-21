@@ -1,4 +1,16 @@
+{-# LANGUAGE ImpredicativeTypes #-}
+
 module Types.Agent.Intelligent.Affect.Fragments where
+
+import Control.Lens
+import Control.Monad.Supply
+import Control.Monad.Writer
+import qualified Data.Graph as G
+import qualified Data.HashMap.Strict as HM
+import qualified Data.HashSet as HS
+
+import Types.Agent.Intelligent
+import Types.Agent.Intelligent.Filter
 
 -- |Type of a PSBC-fragment.
 data PSBCFragmentType = Weak | Strong
@@ -7,6 +19,7 @@ data PSBCFragmentType = Weak | Strong
 -- |Type of an SJS-fragment
 data SJSFragmentType = Friendly | Hostile
    deriving (Show, Eq, Ord, Read, Enum, Bounded)
+
 
 -- |Settings for an anger template.
 data AngerSettings = AngerSettings {
@@ -132,3 +145,17 @@ data SocialSettings = SocialSettings {
    _socialSettingsGrudgeMaxVal :: Rational,
    _socialSettingsGrudgeImproveVal :: Rational
 } 
+
+
+type FilterNodeInd = [(AgentMessageName, Maybe RelInd, G.Vertex)]
+type FilterM a = WriterT FilterNodeInd (Supply SInt) a
+
+-- |A function that takes a list of coordinate-significance pairs and
+--  a starting vertex and returns a forest of filters, with
+--  a list of output nodes.
+type AreaFilter = [(Rational, RelInd)]
+                  -> FilterM (HM.HashMap G.Vertex (FilterNode AgentMessage),
+                              HS.HashSet G.Vertex)
+
+-- |A check that an 'AreaFilter' can perform on a cell.
+type AreaFilterCheck = (NodeName, Traversal' AgentMessage RelInd, AgentMessageName, Maybe (NodeCondition AgentMessage))
