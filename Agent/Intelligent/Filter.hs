@@ -52,26 +52,29 @@ instance Default (FilterMsg sn ri s) where
 -------------------------------------------------------------------------------
 
 -- Constructs a 'FilterNode'.
-mkFN :: NodeCondition s
+mkFN :: NodeName
+     -> NodeCondition s
      -> Int -- |Threshold for activation.
      -> Int -- |Increase in excitement if the condition is met.
      -> NodeSignificance -- |Significance (only relevant for output nodes).
      -> [(G.Vertex, Rational)] -- |Outgoing neighbors, with edge strengths in [0,1).
      -> FilterNode s
-mkFN c th exInc sign neigh = FN c 0 th exInc False sign neigh
+mkFN name c th exInc sign neigh = FN name c 0 th exInc False sign neigh
 
 -- |Creates a non-output 'FilterNode' with excitement threshold 1. 
-mkFNs :: NodeCondition s
+mkFNs :: String -- |Node name (for information).
+      -> NodeCondition s
       -> [(G.Vertex, Rational)]
       -> FilterNode s
-mkFNs c neigh = mkFN c 1 1 0 neigh
+mkFNs name c neigh = mkFN name c 1 1 0 neigh
 
 -- |Creates an output node with excitement threshold 1.
-mkFNo :: NodeCondition s
+mkFNo :: NodeName
+      -> NodeCondition s
       -> NodeSignificance
       -> [(G.Vertex, Rational)]
       -> FilterNode s
-mkFNo c sign neigh = mkFN c 1 1 sign neigh
+mkFNo name c sign neigh = mkFN name c 1 1 sign neigh
 
 -- |Creates an AND-graph in which a target node is activated if a list of source nodes
 --  are all activated. Definition:
@@ -106,13 +109,14 @@ orGraph fs tv t = mkGraphSchema (\s -> orEdgeStrength s t) fs tv
 --  @E_i = (- T_target) / T_i@. In addition, we create a second dummy node that's always
 --  active and sends @T@ excitement to the target node. If the source node is active, it
 --  neutralizes this dummy node's excitement.
-notGraph :: FilterNode s -- ^Source node.
+notGraph :: NodeName -- ^Name of the dummy node
+         -> FilterNode s -- ^Source node.
          -> G.Vertex -- ^Target node's vertex.
          -> FilterNode s -- ^Target node.
          -> [FilterNode s] -- ^The source node with an edge added, and a second dummy.
-notGraph s tv t = dummy : mkGraphSchema (\s -> negate $ orEdgeStrength s t) [s] tv
+notGraph dummyName s tv t = dummy : mkGraphSchema (\s -> negate $ orEdgeStrength s t) [s] tv
    where
-      dummy = mkFN NodeTrue 1 1 0 [(tv, fromIntegral $ t ^. threshold)]
+      dummy = mkFN dummyName NodeTrue 1 1 0 [(tv, fromIntegral $ t ^. threshold)]
 
 -- |Edge strength function for AND.
 andEdgeStrength :: Int -> FilterNode s -> FilterNode s -> Rational

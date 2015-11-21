@@ -46,7 +46,11 @@ data NodeCondition s =
    -- -| NodeOr (NodeCondition a) (NodeCondition a)
    -- -| NodeNot (NodeCondition a)
 
+type NodeName = String
+
 data FilterNode s = FN {
+   -- |The node's name, purely for information.
+   _filterNodeName :: NodeName,
    _filterNodeCondition :: NodeCondition s,
    -- |The node's current excitement.
    _filterNodeExcitement :: Int,
