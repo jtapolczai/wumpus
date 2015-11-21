@@ -202,7 +202,9 @@ runFilter ms limit filt =
    $ activatedSum res
    where
       res = runFilter' ms limit filt
-      outNodes = map (\x -> (x, view significance $ (res ^. graph) HM.! x)) $ HS.toList $ res ^. outputNodes
+      outNodes = map nodeInfo $ HS.toList $ res ^. outputNodes
+
+      nodeInfo x = (x, view name $ (res ^. graph) HM.! x, view significance $ (res ^. graph) HM.! x)
 
 -- |Inputs a list of messages into filter and returns the sum of the
 --  signifcances of actived output nodes (how "strongly" the filter responds
