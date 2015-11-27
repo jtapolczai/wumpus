@@ -155,9 +155,19 @@ runCondition NodeTrue _ = True
 runCondition NodeFalse _ = False
 
 -- |Excites a node based on an input.
-exciteNode :: (Ord a) => a -> FilterNode a -> FilterNode a
-exciteNode x = cond' (\fn -> runCondition (fn ^. condition) x)
-                     (\fn -> fn & excitement +~ (fn ^. excitementInc))
+exciteNode :: (Show a, Ord a) => Bool -> a -> FilterNode a -> FilterNode a
+exciteNode isOutputNode x n =
+   cond' (\fn -> runCondition (fn ^. condition) x) excite n
+   where
+      excite fn =
+         let
+            fn' = fn & excitement +~ (fn ^. excitementInc)
+         in
+         (if (fn' ^. excitement >= fn' ^. threshold) && isOutputNode
+            then trace ("[exciteNode] " ++ show (n ^. name) ++ " activated by " ++ show x)
+            else id) fn'
+
+      
 
 -- |Sends excitation along one edge to a neighbor.
 exciteNeighbor :: G.Vertex -- ^Target node.
@@ -222,8 +232,10 @@ runFilter' ms limit filt = -- trace ("runFilter (step case, limit = " ++ show li
                            if null activatedNodes then filt
                            else runFilter' [] (limit - 1) filt''
    where
-      processMsg f m = foldl' (\f' n -> f' & graph . ix n %~ exciteNode m) f $ candidateNodes m f
+      processMsg f m = foldl' (\f' n -> f' & graph . ix n %~ exciteNode (isOut f' n) m) f $ candidateNodes m f
       filt' = activateNodes $ foldl' processMsg filt ms
+
+      isOut f n = HS.member n (f ^. outputNodes)
 
       -- sends all the given messages to a node
       -- (s is the strength to add to the excitement value in case of a match).
