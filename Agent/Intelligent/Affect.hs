@@ -94,6 +94,12 @@ psbcComponent as = trace "[psbcComponent]" $ trace (replicate 80 '+')
    $ trace ("[psbcComponent] output nodes:")
    $ trace ("___Anger:")
    $ (traceList $ snd $ outputNodesTrace !! 0)
+   $ trace ("___Fear:")
+   $ (traceList $ snd $ outputNodesTrace !! 1)
+   $ trace ("___Enthusiasm:")
+   $ (traceList $ snd $ outputNodesTrace !! 2)
+   $ trace ("___Contentment:")
+   $ (traceList $ snd $ outputNodesTrace !! 3)
    $ trace ("[psbcComponent] new emotion map: " ++ show (ret_as ^. psbc . to (fmap fst)))
    $ return ret_as
    where
