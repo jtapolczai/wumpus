@@ -9,7 +9,10 @@ module Agent.Intelligent.Affect where
 import Control.Lens
 import Control.Monad (join)
 import Data.Default
+import Data.Graph
 import Data.List
+import qualified Data.HashMap.Strict as HM
+import qualified Data.HashSet as HS
 import qualified Data.Map as M
 import Data.Maybe
 
@@ -20,7 +23,7 @@ import Types
 import World.Constants
 import World.Utils
 
-import Debug.Trace
+import Debug.Trace.Wumpus
 
 -- |A map of all the emotions..
 --  Useful as an initial dictionary and for folding over lists of values.
@@ -88,6 +91,9 @@ sjsEntityEmotion ms other emo as = as & sjs . _1 . at other %~ changeLvl
 --  Messages about the four new emotional states are inserted.
 psbcComponent :: Monad m => AgentState -> m AgentState
 psbcComponent as = trace "[psbcComponent]" $ trace (replicate 80 '+')
+   $ trace ("[psbcComponent] output nodes:")
+   $ trace ("___Anger:")
+   $ (traceList $ snd $ outputNodesTrace !! 0)
    $ trace ("[psbcComponent] new emotion map: " ++ show (ret_as ^. psbc . to (fmap fst)))
    $ return ret_as
    where
@@ -100,6 +106,11 @@ psbcComponent as = trace "[psbcComponent]" $ trace (replicate 80 '+')
 
       emotionVal :: EmotionName -> AgentState -> Rational
       emotionVal en = view (psbc . at' en . _1)
+
+      outputNodesTrace = M.toList . fmap (getOutputNodes . snd) . view psbc $ as
+
+      getOutputNodes :: Filter -> [(Vertex, NodeName)]
+      getOutputNodes (FI gr out _) = map (\i -> (i, view name $ gr HM.! i)) $ HS.toList out
 
 -- |Updates one emotion based on messages.
 psbcEmotion :: [AgentMessage]
@@ -117,7 +128,9 @@ psbcEmotion ms emo as = trace ("[psbcEmotion: " ++ show emo ++ "] new_lvl: " ++ 
 emotionValue :: [AgentMessage]
              -> Filter
              -> Rational -- ^The strength of the emotional response (-1 to 1).
-emotionValue ms filt = {- trace "[emotionValue]" $ -} runFilter ms cAGENT_FILTER_ROUNDS filt
+emotionValue ms filt = res
+   where
+      res = runFilter ms cAGENT_FILTER_ROUNDS filt
 
 -- |Returns whether the second emotion is stronger, provided that the two
 --  conflict along the approach/avoidance, axis. If they don't conflict, the returns False.
