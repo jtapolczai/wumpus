@@ -35,10 +35,11 @@ import Control.Lens
 import Data.Default
 import qualified Data.Foldable as F
 import qualified Data.Graph as G
-import Data.List (foldl')
+import Data.List (foldl', sortBy)
 import qualified Data.HashMap.Strict as HM
 import qualified Data.HashSet as HS
 import Data.Maybe
+import Data.Ord (comparing)
 
 import Types
 
@@ -207,14 +208,16 @@ runFilter :: [AgentMessage]
 runFilter ms limit filt =
    trace "[runFilter]"
    $ trace "---------------------"
-   $ trace "Activated output nodes: "
+   $ trace ("num output nodes: " ++ (show $ length $ HS.toList $ res ^. outputNodes))
+   $ trace "Activated output nodes (id, name, sign, excitement, isActive): "
    $ traceList outNodes
    $ activatedSum res
    where
       res = runFilter' ms limit filt
-      outNodes = map nodeInfo $ HS.toList $ res ^. outputNodes
+      atGr x = (res ^. graph) HM.! x
+      outNodes = sortBy (comparing $ view _1) $ map nodeInfo $ HS.toList $ res ^. outputNodes
 
-      nodeInfo x = (x, view name $ (res ^. graph) HM.! x, view significance $ (res ^. graph) HM.! x)
+      nodeInfo x = (x, view name $ (res ^. graph) HM.! x, view significance $ atGr x, view excitement $ atGr x, view active $ atGr x)
 
 -- |Inputs a list of messages into filter and returns the sum of the
 --  signifcances of actived output nodes (how "strongly" the filter responds

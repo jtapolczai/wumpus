@@ -116,7 +116,7 @@ psbcComponent as = trace "[psbcComponent]" $ trace (replicate 80 '+')
       outputNodesTrace = M.toList . fmap (getOutputNodes . snd) . view psbc $ as
 
       getOutputNodes :: Filter -> [(Vertex, NodeName)]
-      getOutputNodes (FI gr out _) = map (\i -> (i, view name $ gr HM.! i)) $ HS.toList out
+      getOutputNodes (FI gr out _) = map (\i -> (i, view name $ gr HM.! i)) $ sort $ HS.toList out
 
 -- |Updates one emotion based on messages.
 psbcEmotion :: [AgentMessage]

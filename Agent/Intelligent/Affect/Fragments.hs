@@ -776,7 +776,7 @@ entityHere
    -> FilterM (HM.HashMap G.Vertex (FilterNode AgentMessage))
 entityHere name cons curPos@(RI (i, j)) sig = do
    src <- foldM mkCheck mempty cons
-   (ti,tn) <- indN $ mkFN (name ++ "_False") NodeFalse (length src) 0 sig []
+   (ti,tn) <- indN $ mkFN (name ++ "_False_(" ++ show i ++ ", " ++ show j ++ ")") NodeFalse (length src) 0 sig []
    let src' = (neighbors .~ [(ti, 1)]) <$> src
    return $! HM.insert ti tn src'
 
