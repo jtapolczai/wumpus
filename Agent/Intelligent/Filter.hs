@@ -209,15 +209,19 @@ runFilter ms limit filt =
    trace "[runFilter]"
    $ trace "---------------------"
    $ trace ("num output nodes: " ++ (show $ length $ HS.toList $ res ^. outputNodes))
-   $ trace "Activated output nodes (id, name, sign, excitement, isActive): "
+   $ trace "Activated output nodes (id, name, sign, excitement, threshold, isActive): "
    $ traceList outNodes
    $ activatedSum res
    where
       res = runFilter' ms limit filt
       atGr x = (res ^. graph) HM.! x
-      outNodes = sortBy (comparing $ view _1) $ map nodeInfo $ HS.toList $ res ^. outputNodes
+      outNodes = sortBy (comparing $ view _1) $ filter (\x -> view _4 x >= view _5 x) $ map nodeInfo $ HS.toList $ res ^. outputNodes
 
-      nodeInfo x = (x, view name $ (res ^. graph) HM.! x, view significance $ atGr x, view excitement $ atGr x, view active $ atGr x)
+      nodeInfo x = (x, view name $ (res ^. graph) HM.! x,
+                       view significance $ atGr x,
+                       view excitement $ atGr x,
+                       view threshold $ atGr x,
+                       view active $ atGr x)
 
 -- |Inputs a list of messages into filter and returns the sum of the
 --  signifcances of actived output nodes (how "strongly" the filter responds
