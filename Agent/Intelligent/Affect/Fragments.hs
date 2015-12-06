@@ -80,8 +80,12 @@ genericAnger ss = runFilterM $ do
                      stench1,
                      stench2]
 
-       graph = mconcat [HM.fromList singleFilt, wumpuses, agents]
-       output = mconcat [HS.fromList (map fst singleFilt), wumpusesOut, agentsOut]
+       --graph = mconcat [HM.fromList singleFilt, wumpuses, agents]
+       --output = mconcat [HS.fromList (map fst singleFilt), wumpusesOut, agentsOut]
+
+       -- for debugging. the above lines are the real filters.
+       graph = HM.fromList singleFilt
+       output = HS.fromList (map fst singleFilt)
 
    return $! FI graph output HM.empty
 
@@ -147,9 +151,13 @@ genericFear ss = runFilterM $ do
                      stench2,
                      breeze1,
                      breeze2]
-       graph = mconcat [HM.fromList singleFilt, wumpuses, wAgents, nAgents, sAgents, vAgents, friends, pits]
-       output = mconcat [HS.fromList (map fst singleFilt), wumpusOut, wAgentOut, nAgentOut,
-                         sAgentOut, vAgentOut, friendsOut, pitOut]
+       --graph = mconcat [HM.fromList singleFilt, wumpuses, wAgents, nAgents, sAgents, vAgents, friends, pits]
+       --output = mconcat [HS.fromList (map fst singleFilt), wumpusOut, wAgentOut, nAgentOut,
+       --                  sAgentOut, vAgentOut, friendsOut, pitOut]
+
+       -- for debugging. the above lines are the real filters.
+       graph = HM.fromList singleFilt
+       output = HS.fromList (map fst singleFilt)
 
    return $! FI graph output HM.empty
 
@@ -227,12 +235,16 @@ genericEnthusiasm ss = runFilterM $ do
                      gaveFruit,
                      plantHarvested,
                      healthIncreased]
-       graph = mconcat [HM.fromList singleFilt, youAreHere, sAgents, nAgents, wAgents,
-                        plants, plants2, plants3, plants4, plants5, gold, meat, fruit]
+       --graph = mconcat [HM.fromList singleFilt, youAreHere, sAgents, nAgents, wAgents,
+       --                 plants, plants2, plants3, plants4, plants5, gold, meat, fruit]
 
-       output = mconcat [HS.fromList (map fst singleFilt), HS.fromList youAreHereOut, sAgentOut, nAgentOut,
-                         wAgentOut, plantOut, plant2Out, plant3Out, plant4Out, plant5Out, goldOut,
-                         meatOut, fruitOut]
+       --output = mconcat [HS.fromList (map fst singleFilt), HS.fromList youAreHereOut, sAgentOut, nAgentOut,
+       --                  wAgentOut, plantOut, plant2Out, plant3Out, plant4Out, plant5Out, goldOut,
+       --                  meatOut, fruitOut]
+
+       -- for debugging. the above lines are the real filters.
+       graph = HM.fromList singleFilt
+       output = HS.fromList (map fst singleFilt)
 
    return $! FI graph output HM.empty
 
@@ -272,8 +284,12 @@ genericContentment ss = runFilterM $ do
                      haveMuchFruit,
                      haveMeat,
                      haveMuchMeat]
-       graph = mconcat [HM.fromList singleFilt, plants]
-       output = mconcat [HS.fromList (map fst singleFilt), plantOut]
+       --graph = mconcat [HM.fromList singleFilt, plants]
+       --output = mconcat [HS.fromList (map fst singleFilt), plantOut]
+
+       -- for debugging. the above two lines are the real filters.
+       graph = HM.fromList singleFilt
+       output = HS.fromList (map fst singleFilt)
 
    return $! FI graph output HM.empty
 
