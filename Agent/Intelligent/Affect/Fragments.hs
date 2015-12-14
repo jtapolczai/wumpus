@@ -82,12 +82,8 @@ genericAnger ss = runFilterM $ do
 
    youAreHere <- indG AMNYouAreHere $ mkFNs "aYouAreHere" (NodeIs _AMYouAreHere) $ map (\(x,_) -> (x,1)) singleFilt
 
-       --graph = mconcat [HM.fromList singleFilt, wumpuses, agents]
-       --output = mconcat [HS.fromList (map fst singleFilt), wumpusesOut, agentsOut]
-
-       -- for debugging. the above lines are the real filters.
-   let graph = HM.fromList singleFilt
-       output = HS.fromList (map fst singleFilt)
+   let graph = mconcat [HM.fromList singleFilt, wumpuses, agents, uncurry HM.singleton youAreHere]
+       output = mconcat [HS.fromList (map fst singleFilt), wumpusesOut, agentsOut]
 
    return $! FI graph output HM.empty
 
@@ -153,15 +149,14 @@ genericFear ss = runFilterM $ do
                      stench2,
                      breeze1,
                      breeze2]
-       --graph = mconcat [HM.fromList singleFilt, wumpuses, wAgents, nAgents, sAgents, vAgents, friends, pits]
-       --output = mconcat [HS.fromList (map fst singleFilt), wumpusOut, wAgentOut, nAgentOut,
-       --                  sAgentOut, vAgentOut, friendsOut, pitOut]
 
-       -- for debugging. the above lines are the real filters.
    youAreHere <- indG AMNYouAreHere $ mkFNs "fYouAreHere" (NodeIs _AMYouAreHere) $ map (\(x,_) -> (x,1)) singleFilt
 
-   let graph = HM.fromList singleFilt
-       output = HS.fromList (map fst singleFilt)
+   let graph = mconcat [HM.fromList singleFilt, wumpuses, wAgents, nAgents, sAgents, vAgents, friends, pits,
+                        uncurry HM.singleton youAreHere]
+       output = mconcat [HS.fromList (map fst singleFilt), wumpusOut, wAgentOut, nAgentOut,
+                         sAgentOut, vAgentOut, friendsOut, pitOut]
+
 
    return $! FI graph output HM.empty
 
@@ -236,20 +231,17 @@ genericEnthusiasm ss = runFilterM $ do
    let igCirc = circleAroundMeFilt (ss ^. goldIntensityVal) (ss ^. goldRadiusVal)
        imCirc = circleAroundMeFilt (ss ^. meatIntensityVal) (ss ^. meatRadiusVal)
        ifCirc = circleAroundMeFilt (ss ^. fruitIntensityVal) (ss ^. fruitRadiusVal)
+
    (gold, goldOut) <- itemHere "eGoldHere" Gold igCirc
    (meat, meatOut) <- itemHere "eMeatHere" Meat imCirc
    (fruit, fruitOut) <- itemHere "eFruitHere" Meat ifCirc
 
-       --graph = mconcat [HM.fromList singleFilt, youAreHere, sAgents, nAgents, wAgents,
-       --                 plants, plants2, plants3, plants4, plants5, gold, meat, fruit]
+   let graph = mconcat [HM.fromList singleFilt, youAreHere, sAgents, nAgents, wAgents,
+                        plants, plants2, plants3, plants4, plants5, gold, meat, fruit]
 
-       --output = mconcat [HS.fromList (map fst singleFilt), HS.fromList youAreHereOut, sAgentOut, nAgentOut,
-       --                  wAgentOut, plantOut, plant2Out, plant3Out, plant4Out, plant5Out, goldOut,
-       --                  meatOut, fruitOut]
-
-       -- for debugging. the above lines are the real filters.
-   let graph = HM.fromList singleFilt
-       output = HS.fromList (map fst singleFilt)
+       output = mconcat [HS.fromList (map fst singleFilt), HS.fromList youAreHereOut, sAgentOut, nAgentOut,
+                         wAgentOut, plantOut, plant2Out, plant3Out, plant4Out, plant5Out, goldOut,
+                         meatOut, fruitOut]
 
    return $! FI graph output HM.empty
 
@@ -291,12 +283,9 @@ genericContentment ss = runFilterM $ do
                      haveMuchMeat]
 
    youAreHere <- indG AMNYouAreHere $ mkFNs "cYouAreHere" (NodeIs _AMYouAreHere) $ map (\(x,_) -> (x,1)) singleFilt
-       --graph = mconcat [HM.fromList singleFilt, plants]
-       --output = mconcat [HS.fromList (map fst singleFilt), plantOut]
 
-       -- for debugging. the above two lines are the real filters.
-   let graph = HM.fromList singleFilt
-       output = HS.fromList (map fst singleFilt)
+   let graph = mconcat [HM.fromList singleFilt, plants, uncurry HM.singleton youAreHere]
+       output = mconcat [HS.fromList (map fst singleFilt), plantOut]
 
    return $! FI graph output HM.empty
 
