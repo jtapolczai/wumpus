@@ -173,7 +173,7 @@ genericEnthusiasm ss = runFilterM $ do
    gaveFruit <- indG AMNGaveFruit $ mkFNo' "eGaveFruit" (NodeIs _AMGaveFruit) (ss ^. gaveFruitVal) 2
    plantHarvested <- indG AMNPlantHarvested $ mkFNo' "ePlantHarvested" (NodeIs _AMPlantHarvested) (ss ^. plantHarvestedVal) 2
    healthIncreased <- indG AMNHealthIncreased $ mkFNo' "eHealthIncreased" (NodeIs _AMHealthIncreased) (ss ^. healthIncreasedVal) 2
-   staminaLost <- indG AMNStaminaDecreased $ mkFNo' "eStaminaLoss" (NodeGT _AMStaminaDecreased 0.05) (ss ^. staminaLostVal) 2
+   staminaLost <- indG AMNStaminaDecreased $ mkFNo' "eStaminaLost" (NodeGT _AMStaminaDecreased 0.05) (ss ^. staminaLostVal) 2
 
    let singleFilt = [quarterHealthLoss,
                      halfHealthLoss,
@@ -264,6 +264,7 @@ genericContentment ss = runFilterM $ do
    haveMuchFruit <- indG AMNHaveFruit $ mkFNo' "cHaveMuchFruit" (NodeGT _AMHaveFruit 5) (ss ^. haveMuchFruitVal) 2
    haveMeat <- indG AMNHaveMeat $ mkFNo' "cHaveMeat" (NodeGT _AMHaveMeat 1) (ss ^. haveMeatVal) 2
    haveMuchMeat <- indG AMNHaveMeat $ mkFNo' "cHaveMuchMeat" (NodeGT _AMHaveMeat 5) (ss ^. haveMuchMeatVal) 2
+   lowTemp <- indG AMNTemperature $ mkFNo' "cLowTemp" (NodeLT _AMTemperature Temperate) (ss ^. lowTempVal) 2
 
    -- plants next to it calm the agent down and make it reluctant to move
    let pCirc = circleAroundMeFilt (ss ^. plantIntensityVal) (ss ^. plantRadiusVal)
@@ -282,7 +283,8 @@ genericContentment ss = runFilterM $ do
                      haveFruit,
                      haveMuchFruit,
                      haveMeat,
-                     haveMuchMeat]
+                     haveMuchMeat,
+                     lowTemp]
 
    youAreHere <- indG AMNYouAreHere $ mkFNs "cYouAreHere" (NodeIs _AMYouAreHere) $ map (\(x,_) -> (x,1)) singleFilt
 
@@ -549,6 +551,7 @@ strongContentment = genericContentment ss
            0.02
            0.03
            0.02
+           0.08
            2 -- plant radius
            0.4
 
@@ -570,6 +573,7 @@ weakContentment = genericContentment ss
            0
            0.01
            0
+           0.02
            2 -- plant radius
            0.2
 

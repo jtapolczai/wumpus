@@ -130,6 +130,7 @@ data ContentmentSettings = ContentmentSettings {
    _contentmentSettingsHaveMuchFruitVal :: Rational,
    _contentmentSettingsHaveMeatVal :: Rational,
    _contentmentSettingsHaveMuchMeatVal :: Rational,
+   _contentmentSettingsLowTempVal :: Rational,
    _contentmentSettingsPlantRadiusVal :: Rational,
    _contentmentSettingsPlantIntensityVal :: Rational
 }
