@@ -19,6 +19,7 @@ module Agent.Intelligent.Filter (
    mkFN,
    mkFNs,
    mkFNo,
+   mkFNo',
    andGraph,
    orGraph,
    notGraph,
@@ -55,15 +56,15 @@ instance Default (FilterMsg sn ri s) where
 -- Constructs a 'FilterNode'.
 mkFN :: NodeName
      -> NodeCondition s
-     -> Int -- |Threshold for activation.
-     -> Int -- |Increase in excitement if the condition is met.
-     -> NodeSignificance -- |Significance (only relevant for output nodes).
-     -> [(G.Vertex, Rational)] -- |Outgoing neighbors, with edge strengths in [0,1).
+     -> Int -- ^Threshold for activation.
+     -> Int -- ^Increase in excitement if the condition is met.
+     -> NodeSignificance -- ^Significance (only relevant for output nodes).
+     -> [(G.Vertex, Rational)] -- ^Outgoing neighbors, with edge strengths in [0,1).
      -> FilterNode s
 mkFN name c th exInc sign neigh = FN name c 0 th exInc False sign neigh
 
 -- |Creates a non-output 'FilterNode' with excitement threshold 1. 
-mkFNs :: String -- |Node name (for information).
+mkFNs :: NodeName
       -> NodeCondition s
       -> [(G.Vertex, Rational)]
       -> FilterNode s
@@ -73,9 +74,17 @@ mkFNs name c neigh = mkFN name c 1 1 0 neigh
 mkFNo :: NodeName
       -> NodeCondition s
       -> NodeSignificance
-      -> [(G.Vertex, Rational)]
       -> FilterNode s
-mkFNo name c sign neigh = mkFN name c 1 1 sign neigh
+mkFNo name c sign = mkFN name c 1 1 sign []
+
+-- |Creates an output node with a custom excitement threshold.
+mkFNo' :: NodeName
+      -> NodeCondition s
+      -> NodeSignificance
+      -> Int -- ^Threshold for activation.
+      -> FilterNode s
+mkFNo' name c sign th = mkFN name c th 1 sign []
+
 
 -- |Creates an AND-graph in which a target node is activated if a list of source nodes
 --  are all activated. Definition:
