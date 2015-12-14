@@ -57,49 +57,25 @@ firstWhere p = S.head . map (view _2) . msgWhere p
 lastWhere :: Getting (First a) AgentMessage a -> [AgentMessage'] -> Maybe a
 lastWhere p = S.last . map (view _2) . msgWhere p
 
--- |Sieves out messages about global world data.
+-- |Sieves out messages about global world data and messages
+--  which "apply everywhere", such as 'AMHaveHealth'.
 globalMessage :: AgentMessage -> Maybe AgentMessage
 globalMessage x@AMTemperature{} = Just x
 globalMessage x@AMTime{} = Just x
+globalMessage x@AMPosition{} = Just x
+globalMessage x@AMDirection{} = Just x
+globalMessage x@AMHaveHealth{} = Just x
+globalMessage x@AMHaveStamina{} = Just x
+globalMessage x@AMHaveGold{} = Just x
+globalMessage x@AMHaveMeat{} = Just x
+globalMessage x@AMHaveFruit{} = Just x
+globalMessage x@AMLocalBreeze{} = Just x
+globalMessage x@AMLocalStench{} = Just x
+globalMessage x@AMHealthDecreased{} = Just x
+globalMessage x@AMHealthIncreased{} = Just x
+globalMessage x@AMStaminaDecreased{} = Just x
+globalMessage x@AMStaminaIncreased{} = Just x
 globalMessage _ = Nothing
-
--- |Sieves out cell-related messages (those which have a RelInd).
-{-cellMessage :: AgentMessage -> Maybe AgentMessage
-cellMessage x@AMVisualAgent{} = Just x
-cellMessage x@AMVisualWumpus{} = Just x
-cellMessage x@AMVisualEntityHealth{} = Just x
-cellMessage x@AMVisualEntityStamina{} = Just x
-cellMessage x@AMVisualFree{} = Just x
-cellMessage x@AMVisualPit{} = Just x
-cellMessage x@AMVisualGold{} = Just x
-cellMessage x@AMVisualMeat{} = Just x
-cellMessage x@AMVisualFruit{} = Just x
-cellMessage x@AMVisualPlant{} = Just x
-
-cellMessage _ = Nothing-}
-
-
--- TODO: replace this
-
--- |Sives out local messages (those which don't have an RelInd but are known
---  to pertain to relative index (0,0), e.g. LocalBreeze, HaveHealth,...).
-localMessage :: AgentMessage -> Maybe AgentMessage
-localMessage x@AMHaveHealth{} = Just x
-localMessage x@AMHaveStamina{} = Just x
-localMessage x@AMHaveGold{} = Just x
-localMessage x@AMHaveMeat{} = Just x
-localMessage x@AMHaveFruit{} = Just x
-localMessage x@AMLocalBreeze{} = Just x
-localMessage x@AMLocalStench{} = Just x
-
-localMessage _ = Nothing
-
-{-edgeMessage :: AgentMessage -> Maybe AgentMessage
-edgeMessage x@AMVisualEdgeDanger{} = Just x
-edgeMessage x@AMVisualEdgeFatigue{} = Just x
-edgeMessage _ = Nothing-}
-
--- todo: replace *message
 
 -- |Sieves out social messages. Social messages are all those that contain
 --  an EntityName.
@@ -132,14 +108,6 @@ sortByInd = foldl' collect (M.empty, M.empty)
       collect (cs, es) m =
          (insertMaybe (view $ _2 . _agentMessageCellInd) m cs,
           insertMaybe (view $ _2 . _agentMessageEdgeInd) m es)
-
-         --(maybe id (const $ insert' (RI (0,0)) (c,m,t)) (localMessage m)
-         -- $ maybe id (const $ insert' (msgPos m) (c,m,t)) (cellMessage m) cs,
-         -- maybe id (const $ insert' (msgEdg m) (c,m,t)) (edgeMessage m) es)
-
-
-      --msgPos m = fromMaybe (error "[sortByInd.msgPos]: Nothing") (m ^. _agentMessageCellInd)
-      --msgEdg m = fromMaybe (error "[sortByInd.msgEdg]: Nothing") (m ^. _agentMessageEdgeInd)
 
 -- |Goes through a message and space and groups messages by EntityName, provided
 --  they have such fields. If we have a 'AMVisualEntityName', 'AMVisualAgent' and

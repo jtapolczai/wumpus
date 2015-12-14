@@ -97,19 +97,19 @@ decisionMakerComponent asInit = trace "[decisionMakerComponent]" $ trace (replic
    where
       -- chooses another action related to the given emotion
       getNextAction :: IsImaginary -> EmotionName -> IO Action
-      getNextAction imag emotion =
+      getNextAction imag emotion = let sec = strongestEmotionCell imag emotion as in
          trace "[getNextAction]" $
          traceShow emotion $
          --traceShow (as ^. gestures) $
          --traceShow (as ^. messageSpace) $
          --traceShow myPos $
-         trace ("[getNextAction.SEC] " ++ show (strongestEmotionCell imag emotion as)) $
-         traceShow (makeAbs myPos $ strongestEmotionCell imag emotion as) $
+         trace ("[getNextAction.SEC] " ++ show sec) $
+         traceShow (makeAbs myPos sec) $
          traceShow "___getNextAction traces done" $
          choose $ emotionAction emotion
                                 (as ^. gestures)
                                 myPos
-                                (makeAbs myPos $ strongestEmotionCell imag emotion as)
+                                (makeAbs myPos sec)
 
       myPos = fromMaybe (error "[decisionMakerComponent.myPos] Nothing!") $ myPosition $ as ^. messageSpace
 
@@ -323,14 +323,10 @@ evaluateCells imag as = trace "[evaluateCells]"
       cells = M.mapWithKey addData $ fst $ sortByInd ms
 
       addData k = (if k == RI (0,0) then ((True, AMYouAreHere, ephemeral) :) else id)
-                  . (localData++)
                   . (globalData++)
 
       globalData :: [AgentMessage']
       globalData = mapMaybe (\(i,m,t) -> globalMessage m >$> (i,,t)) ms
-
-      localData :: [AgentMessage']
-      localData = mapMaybe (\(i,m,t) -> localMessage m >$> (i,,t)) ms
 
       evaluateCell :: [AgentMessage'] -> M.Map EmotionName Rational
       evaluateCell ms' = fmap (emotionValue (map (view _2) ms')) $ as ^. psbc . to (fmap snd)
