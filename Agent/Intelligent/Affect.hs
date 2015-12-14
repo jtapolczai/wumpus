@@ -105,7 +105,7 @@ psbcComponent as = trace "[psbcComponent]" $ trace (replicate 80 '+')
    where
       ret_as = foldr (\en as' -> addEmotionMessage en $ psbcEmotion msg en as') as [minBound..maxBound]
 
-      msg = map (view _2) $ as ^. messageSpace
+      msg = (AMYouAreHere:) $ map (view _2) $ as ^. messageSpace
       addEmotionMessage en as' =
            addMessage (False, AMEmotionChanged en (emotionVal en as' - emotionVal en as), ephemeral)
          . addMessage (False, emotionMessage en (emotionVal en as'), ephemeral) $ as'
