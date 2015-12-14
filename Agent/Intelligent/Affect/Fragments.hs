@@ -173,6 +173,7 @@ genericEnthusiasm ss = runFilterM $ do
    gaveFruit <- indG AMNGaveFruit $ mkFNo' "eGaveFruit" (NodeIs _AMGaveFruit) (ss ^. gaveFruitVal) 2
    plantHarvested <- indG AMNPlantHarvested $ mkFNo' "ePlantHarvested" (NodeIs _AMPlantHarvested) (ss ^. plantHarvestedVal) 2
    healthIncreased <- indG AMNHealthIncreased $ mkFNo' "eHealthIncreased" (NodeIs _AMHealthIncreased) (ss ^. healthIncreasedVal) 2
+   staminaLost <- indG AMNStaminaDecreased $ mkFNo' "eStaminaLoss" (NodeGT _AMStaminaDecreased 0.05) (ss ^. staminaLostVal) 2
 
    let singleFilt = [quarterHealthLoss,
                      halfHealthLoss,
@@ -183,7 +184,8 @@ genericEnthusiasm ss = runFilterM $ do
                      gaveMeat,
                      gaveFruit,
                      plantHarvested,
-                     healthIncreased]
+                     healthIncreased,
+                     staminaLost]
 
    -- Special detectors for hunger, basically.
    -- Only the planner gives us 'You are Here' messages.
@@ -455,6 +457,7 @@ strongEnthusiasm = genericEnthusiasm ss
            (-0.3)
            (-0.2) -- plant harvested
            (-0.25)
+           (-0.05)
            0.1
            0.15
            0.2
@@ -497,6 +500,7 @@ weakEnthusiasm = genericEnthusiasm ss
            (-0.4)
            (-0.3) -- plant harvested
            (-0.4)
+           (-0.1)
            0.03
            0.05
            0.1
