@@ -75,6 +75,25 @@ globalMessage x@AMHealthDecreased{} = Just x
 globalMessage x@AMHealthIncreased{} = Just x
 globalMessage x@AMStaminaDecreased{} = Just x
 globalMessage x@AMStaminaIncreased{} = Just x
+globalMessage x@AMAgentDied{} = Just x
+globalMessage x@AMWumpusDied{} = Just x
+globalMessage x@AMAttacked{} = Just x
+globalMessage x@AMAttackedBy{} = Just x
+globalMessage x@AMReceivedMeat{} = Just x
+globalMessage x@AMReceivedFruit{} = Just x
+globalMessage x@AMReceivedGold{} = Just x
+globalMessage x@AMGaveMeat{} = Just x
+globalMessage x@AMGaveFruit{} = Just x
+globalMessage x@AMGaveGold{} = Just x
+globalMessage x@AMGainedMeat{} = Just x
+globalMessage x@AMGainedFruit{} = Just x
+globalMessage x@AMGainedGold{} = Just x
+globalMessage x@AMLostMeat{} = Just x
+globalMessage x@AMLostFruit{} = Just x
+globalMessage x@AMLostGold{} = Just x
+globalMessage x@AMPlantHarvested{} = Just x
+globalMessage x@AMKilledAgent{} = Just x
+globalMessage x@AMKilledWumpus{} = Just x
 globalMessage _ = Nothing
 
 -- |Sieves out social messages. Social messages are all those that contain

@@ -324,9 +324,13 @@ evaluateCells imag as = trace "[evaluateCells]"
 
       addData k = (if k == RI (0,0) then ((True, AMYouAreHere, ephemeral) :) else id)
                   . (globalData++)
+                  . (socialData++)
 
       globalData :: [AgentMessage']
       globalData = mapMaybe (\(i,m,t) -> globalMessage m >$> (i,,t)) ms
+
+      socialData :: [AgentMessage']
+      socialData = mapMaybe (\(i,m,t) -> socialMessage m >$> (i,,t)) ms
 
       evaluateCell :: [AgentMessage'] -> M.Map EmotionName Rational
       evaluateCell ms' = fmap (emotionValue (map (view _2) ms')) $ as ^. psbc . to (fmap snd)
@@ -342,7 +346,6 @@ emotionAction Anger = angerActions
 emotionAction Fear = fearActions
 emotionAction Enthusiasm = enthusiasmActions
 emotionAction Contentment = contentmentActions
-
 
 -- |Selects anger-actions for a given cell.
 --  The selected action depends on the cell:
