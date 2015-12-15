@@ -29,12 +29,13 @@ data AngerSettings = AngerSettings {
    _angerSettingsGoodHealthVal :: Rational, 
    _angerSettingsHighHealthVal :: Rational, 
    _angerSettingsHighStaminaVal :: Rational,
+   _angerSettingsStench1Val :: Rational,
+   _angerSettingsStench2Val :: Rational,
+   _angerSettingsAttackedVal :: Rational,
    _angerSettingsWumpusRadiusVal :: Rational,
    _angerSettingsWumpusIntensityVal :: Rational,   
    _angerSettingsAgentRadiusVal :: Rational,
-   _angerSettingsAgentIntensityVal :: Rational,
-   _angerSettingsStench1Val :: Rational,
-   _angerSettingsStench2Val :: Rational
+   _angerSettingsAgentIntensityVal :: Rational
 } 
 
 -- |Settings for a fear template.

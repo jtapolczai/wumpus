@@ -66,6 +66,7 @@ genericAnger ss = runFilterM $ do
    highStamina <- indG AMNHaveStamina $ mkFNo' "aHighStamina" (NodeGT _AMHaveStamina 0.75) (NS $ ss ^. highStaminaVal) (NT 2)
    stench1 <- indG AMNLocalStench $ mkFNo' "aStench1" (NodeGT _AMLocalStench 0.1) (NS $ ss ^. stench1Val) (NT 2)
    stench2 <- indG AMNLocalStench $ mkFNo' "aStench2" (NodeGT _AMLocalStench 0.5) (NS $ ss ^. stench2Val) (NT 2)
+   attacked <- indG AMNAttacked $ mkFNo' "aAttacked" (NodeIs _AMAttacked) (NS $ ss ^. attackedVal) (NT 2)
 
    let wCirc = circleAroundMeFilt (ss ^. wumpusIntensityVal) (ss ^. wumpusRadiusVal)
        aCirc = circleAroundMeFilt (ss ^. agentIntensityVal) (ss ^. agentRadiusVal)
@@ -78,7 +79,8 @@ genericAnger ss = runFilterM $ do
                      highHealth,
                      highStamina,
                      stench1,
-                     stench2]
+                     stench2,
+                     attacked]
 
    youAreHere <- indG AMNYouAreHere $ mkFNs "aYouAreHere" (NodeIs _AMYouAreHere) $ map (\(x,_) -> (x,1)) singleFilt
 
@@ -347,13 +349,14 @@ strongAnger = genericAnger ss
            0.1
            0.01
            0.01
-           0.01
-           10
-           0.5
-           10
-           0.5
+           0.01 -- high stamina
            0.03
            0.05
+           (-0.3) -- attacked
+           10
+           0.5
+           10
+           0.5
 
 weakAnger :: Filter
 weakAnger = genericAnger ss
@@ -364,13 +367,14 @@ weakAnger = genericAnger ss
            0.03
            0
            0
-           0
-           7
-           0.4
-           7
-           0.4
+           0 -- high stamina
            0
            0.02
+           (-0.5) -- attacked
+           7
+           0.4
+           7
+           0.4
 
 -------------------------------------------------------------------------------
 
