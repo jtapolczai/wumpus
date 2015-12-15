@@ -180,6 +180,9 @@ genericEnthusiasm ss = runFilterM $ do
    plantHarvested <- indG AMNPlantHarvested $ mkFNo' "ePlantHarvested" (NodeIs _AMPlantHarvested) (NS $ ss ^. plantHarvestedVal) (NT 2)
    healthIncreased <- indG AMNHealthIncreased $ mkFNo' "eHealthIncreased" (NodeIs _AMHealthIncreased) (NS $ ss ^. healthIncreasedVal) (NT 2)
    staminaLost <- indG AMNStaminaDecreased $ mkFNo' "eStaminaLost" (NodeGT _AMStaminaDecreased 0.05) (NS $ ss ^. staminaLostVal) (NT 2)
+   gainedGold <- indG AMNHaveGold $ mkFNo' "eGainedGold" (NodeIs _AMGainedGold) (NS $ ss ^. gainedGoldVal) (NT 2)
+   gainedFruit <- indG AMNHaveFruit $ mkFNo' "eGainedFruit" (NodeIs _AMGainedFruit) (NS $ ss ^. gainedFruitVal) (NT 2)
+   gainedMeat <- indG AMNHaveMeat $ mkFNo' "eGainedMeat" (NodeIs _AMGainedMeat) (NS $ ss ^. gainedMeatVal) (NT 2)
 
    let singleFilt = [quarterHealthLoss,
                      halfHealthLoss,
@@ -191,7 +194,10 @@ genericEnthusiasm ss = runFilterM $ do
                      gaveFruit,
                      plantHarvested,
                      healthIncreased,
-                     staminaLost]
+                     staminaLost,
+                     gainedGold,
+                     gainedFruit,
+                     gainedMeat]
 
    -- Special detectors for hunger, basically.
    -- Only the planner gives us 'You are Here' messages.
@@ -478,7 +484,10 @@ strongEnthusiasm = genericEnthusiasm ss
            (-0.3)
            (-0.2) -- plant harvested
            (-0.25)
-           (-0.05)
+           (-0.05) -- stamina lost
+           (-0.15)
+           (-0.2)
+           (-0.2)
            0.1
            0.15
            0.2
@@ -521,7 +530,10 @@ weakEnthusiasm = genericEnthusiasm ss
            (-0.4)
            (-0.3) -- plant harvested
            (-0.4)
-           (-0.1)
+           (-0.1) -- stamina lost
+           (-0.2)
+           (-0.25)
+           (-0.25)
            0.03
            0.05
            0.1
