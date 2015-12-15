@@ -59,13 +59,13 @@ sympathyFragment _ x = error $ "sympathyFragment called with unsupported type "+
 
 genericAnger :: AngerSettings -> Filter
 genericAnger ss = runFilterM $ do
-   wumpusDied <- indG AMNWumpusDied $ mkFNo' "aWumpusDied" (NodeIs _AMWumpusDied) (ss ^. wumpusDiedVal) 2
-   highTemp <- indG AMNTemperature $ mkFNo' "aHighTemp" (NodeGT _AMTemperature Warm) (ss ^. highTempVal) 2
-   goodHealth <- indG AMNHaveHealth $ mkFNo' "aGoodHealth" (NodeGT _AMHaveHealth 1.0) (ss ^. goodHealthVal) 2
-   highHealth <- indG AMNHaveHealth $ mkFNo' "aHighHealth" (NodeGT _AMHaveHealth 1.5) (ss ^. highHealthVal) 2
-   highStamina <- indG AMNHaveStamina $ mkFNo' "aHighStamina" (NodeGT _AMHaveStamina 0.75) (ss ^. highStaminaVal) 2
-   stench1 <- indG AMNLocalStench $ mkFNo' "aStench1" (NodeGT _AMLocalStench 0.1) (ss ^. stench1Val) 2
-   stench2 <- indG AMNLocalStench $ mkFNo' "aStench2" (NodeGT _AMLocalStench 0.5) (ss ^. stench2Val) 2
+   wumpusDied <- indG AMNWumpusDied $ mkFNo' "aWumpusDied" (NodeIs _AMWumpusDied) (NS $ ss ^. wumpusDiedVal) (NT 2)
+   highTemp <- indG AMNTemperature $ mkFNo' "aHighTemp" (NodeGT _AMTemperature Warm) (NS $ ss ^. highTempVal) (NT 2)
+   goodHealth <- indG AMNHaveHealth $ mkFNo' "aGoodHealth" (NodeGT _AMHaveHealth 1.0) (NS $ ss ^. goodHealthVal) (NT 2)
+   highHealth <- indG AMNHaveHealth $ mkFNo' "aHighHealth" (NodeGT _AMHaveHealth 1.5) (NS $ ss ^. highHealthVal) (NT 2)
+   highStamina <- indG AMNHaveStamina $ mkFNo' "aHighStamina" (NodeGT _AMHaveStamina 0.75) (NS $ ss ^. highStaminaVal) (NT 2)
+   stench1 <- indG AMNLocalStench $ mkFNo' "aStench1" (NodeGT _AMLocalStench 0.1) (NS $ ss ^. stench1Val) (NT 2)
+   stench2 <- indG AMNLocalStench $ mkFNo' "aStench2" (NodeGT _AMLocalStench 0.5) (NS $ ss ^. stench2Val) (NT 2)
 
    let wCirc = circleAroundMeFilt (ss ^. wumpusIntensityVal) (ss ^. wumpusRadiusVal)
        aCirc = circleAroundMeFilt (ss ^. agentIntensityVal) (ss ^. agentRadiusVal)
@@ -89,22 +89,22 @@ genericAnger ss = runFilterM $ do
 
 genericFear :: FearSettings -> Filter
 genericFear ss = runFilterM $ do
-   quarterHealthLoss <- indG AMNHealthDecreased $ mkFNo' "f1/4HealthLoss" (NodeGT _AMHealthDecreased 0.25) (ss ^. quarterHealthLossVal) 2
-   halfHealthLoss <- indG AMNHealthDecreased $ mkFNo' "f1/2HealthLoss" (NodeGT _AMHealthDecreased 0.5) (ss ^. halfHealthLossVal) 2
-   threeQuarterHealthLoss <- indG AMNHealthDecreased $ mkFNo' "f3/4HealthLoss" (NodeGT _AMHealthDecreased 0.5) (ss ^. threeQuarterHealthLossVal) 2
-   died <- indG AMNYouDied $ mkFNo' "fDied" (NodeIs _AMYouDied) (ss ^. diedVal) 2
-   highTemp <- indG AMNTemperature $ mkFNo' "fHighTemp" (NodeGT _AMTemperature Warm) (ss ^. highTempVal) 2
-   lowTemp <- indG AMNTemperature $ mkFNo' "fLowTemp" (NodeLT _AMTemperature Temperate)(ss ^. lowTempVal) 2
-   badHealth <- indG AMNHaveHealth $ mkFNo' "fBadHealth" (NodeLT _AMHaveHealth 0.75) (ss ^. badHealthVal) 2
-   veryBadHealth <- indG AMNHaveHealth $ mkFNo' "fVeryBadHealth" (NodeLT _AMHaveHealth 0.4) (ss ^. veryBadHealthVal) 2
-   criticalHealth <- indG AMNHaveHealth $ mkFNo' "fCriticalHealth" (NodeLT _AMHaveHealth 0.1) (ss ^. criticalHealthVal) 2
-   goodHealth <- indG AMNHaveHealth $ mkFNo' "fGoodHealth" (NodeLT _AMHaveHealth 1.5) (ss ^. goodHealthVal) 2
-   healthGain <- indG AMNHealthIncreased $ mkFNo' "fHealthGain" (NodeIs _AMHealthIncreased) (ss ^. healthGainVal) 2
-   lowStamina <- indG AMNHaveStamina $ mkFNo' "fLowStamina" (NodeLT _AMHaveStamina 0.25) (ss ^. lowStaminaVal) 2
-   stench1 <- indG AMNLocalStench $ mkFNo' "fStench1" (NodeGT _AMLocalStench 0.1) (ss ^. stench1Val) 2
-   stench2 <- indG AMNLocalStench $ mkFNo' "fStench2" (NodeGT _AMLocalStench 0.5) (ss ^. stench2Val) 2
-   breeze1 <- indG AMNLocalBreeze $ mkFNo' "fBreeze1" (NodeGT _AMLocalBreeze 0.1) (ss ^. breeze1Val) 2
-   breeze2 <- indG AMNLocalBreeze $ mkFNo' "fBreeze2" (NodeGT _AMLocalBreeze 0.5) (ss ^. breeze2Val) 2
+   quarterHealthLoss <- indG AMNHealthDecreased $ mkFNo' "f1/4HealthLoss" (NodeGT _AMHealthDecreased 0.25) (NS $ ss ^. quarterHealthLossVal) (NT 2)
+   halfHealthLoss <- indG AMNHealthDecreased $ mkFNo' "f1/2HealthLoss" (NodeGT _AMHealthDecreased 0.5) (NS $ ss ^. halfHealthLossVal) (NT 2)
+   threeQuarterHealthLoss <- indG AMNHealthDecreased $ mkFNo' "f3/4HealthLoss" (NodeGT _AMHealthDecreased 0.5) (NS $ ss ^. threeQuarterHealthLossVal) (NT 2)
+   died <- indG AMNYouDied $ mkFNo' "fDied" (NodeIs _AMYouDied) (NS $ ss ^. diedVal) (NT 2)
+   highTemp <- indG AMNTemperature $ mkFNo' "fHighTemp" (NodeGT _AMTemperature Warm) (NS $ ss ^. highTempVal) (NT 2)
+   lowTemp <- indG AMNTemperature $ mkFNo' "fLowTemp" (NodeLT _AMTemperature Temperate)(NS $ ss ^. lowTempVal) (NT 2)
+   badHealth <- indG AMNHaveHealth $ mkFNo' "fBadHealth" (NodeLT _AMHaveHealth 0.75) (NS $ ss ^. badHealthVal) (NT 2)
+   veryBadHealth <- indG AMNHaveHealth $ mkFNo' "fVeryBadHealth" (NodeLT _AMHaveHealth 0.4) (NS $ ss ^. veryBadHealthVal) (NT 2)
+   criticalHealth <- indG AMNHaveHealth $ mkFNo' "fCriticalHealth" (NodeLT _AMHaveHealth 0.1) (NS $ ss ^. criticalHealthVal) (NT 2)
+   goodHealth <- indG AMNHaveHealth $ mkFNo' "fGoodHealth" (NodeLT _AMHaveHealth 1.5) (NS $ ss ^. goodHealthVal) (NT 2)
+   healthGain <- indG AMNHealthIncreased $ mkFNo' "fHealthGain" (NodeIs _AMHealthIncreased) (NS $ ss ^. healthGainVal) (NT 2)
+   lowStamina <- indG AMNHaveStamina $ mkFNo' "fLowStamina" (NodeLT _AMHaveStamina 0.25) (NS $ ss ^. lowStaminaVal) (NT 2)
+   stench1 <- indG AMNLocalStench $ mkFNo' "fStench1" (NodeGT _AMLocalStench 0.1) (NS $ ss ^. stench1Val) (NT 2)
+   stench2 <- indG AMNLocalStench $ mkFNo' "fStench2" (NodeGT _AMLocalStench 0.5) (NS $ ss ^. stench2Val) (NT 2)
+   breeze1 <- indG AMNLocalBreeze $ mkFNo' "fBreeze1" (NodeGT _AMLocalBreeze 0.1) (NS $ ss ^. breeze1Val) (NT 2)
+   breeze2 <- indG AMNLocalBreeze $ mkFNo' "fBreeze2" (NodeGT _AMLocalBreeze 0.5) (NS $ ss ^. breeze2Val) (NT 2)
 
    --high-health wumpus detectors in a 10-large circle
    let wCirc = circleAroundMeFilt (ss ^. wumpusIntensityVal) (ss ^. wumpusRadiusVal)
@@ -163,17 +163,17 @@ genericFear ss = runFilterM $ do
 
 genericEnthusiasm :: EnthusiasmSettings -> Filter
 genericEnthusiasm ss = runFilterM $ do
-   quarterHealthLoss <- indG AMNHealthDecreased $ mkFNo' "e1/4HealthLoss" (NodeGT _AMHealthDecreased 0.25) (ss ^. quarterHealthLossVal) 2
-   halfHealthLoss <- indG AMNHealthDecreased $ mkFNo' "e1/2HealthLoss" (NodeGT _AMHealthDecreased 0.5) (ss ^. halfHealthLossVal) 2
-   highTemp <- indG AMNTemperature $ mkFNo' "eHighTemp" (NodeGT _AMTemperature Warm) (ss ^. highTempVal) 2
-   lowTemp <- indG AMNTemperature $ mkFNo' "eLowTemp" (NodeLT _AMTemperature Temperate) (ss ^. lowTempVal) 2
-   lowStamina <- indG AMNHaveStamina $ mkFNo' "eLowStamina" (NodeLT _AMHaveStamina 0.5) (ss ^. lowStaminaVal) 2
-   gaveGold <- indG AMNGaveGold $ mkFNo' "eGaveGold" (NodeIs _AMGaveGold) (ss ^. gaveGoldVal) 2
-   gaveMeat <- indG AMNGaveMeat $ mkFNo' "eGaveMeat" (NodeIs _AMGaveMeat) (ss ^. gaveMeatVal) 2
-   gaveFruit <- indG AMNGaveFruit $ mkFNo' "eGaveFruit" (NodeIs _AMGaveFruit) (ss ^. gaveFruitVal) 2
-   plantHarvested <- indG AMNPlantHarvested $ mkFNo' "ePlantHarvested" (NodeIs _AMPlantHarvested) (ss ^. plantHarvestedVal) 2
-   healthIncreased <- indG AMNHealthIncreased $ mkFNo' "eHealthIncreased" (NodeIs _AMHealthIncreased) (ss ^. healthIncreasedVal) 2
-   staminaLost <- indG AMNStaminaDecreased $ mkFNo' "eStaminaLost" (NodeGT _AMStaminaDecreased 0.05) (ss ^. staminaLostVal) 2
+   quarterHealthLoss <- indG AMNHealthDecreased $ mkFNo' "e1/4HealthLoss" (NodeGT _AMHealthDecreased 0.25) (NS $ ss ^. quarterHealthLossVal) (NT 2)
+   halfHealthLoss <- indG AMNHealthDecreased $ mkFNo' "e1/2HealthLoss" (NodeGT _AMHealthDecreased 0.5) (NS $ ss ^. halfHealthLossVal) (NT 2)
+   highTemp <- indG AMNTemperature $ mkFNo' "eHighTemp" (NodeGT _AMTemperature Warm) (NS $ ss ^. highTempVal) (NT 2)
+   lowTemp <- indG AMNTemperature $ mkFNo' "eLowTemp" (NodeLT _AMTemperature Temperate) (NS $ ss ^. lowTempVal) (NT 2)
+   lowStamina <- indG AMNHaveStamina $ mkFNo' "eLowStamina" (NodeLT _AMHaveStamina 0.5) (NS $ ss ^. lowStaminaVal) (NT 2)
+   gaveGold <- indG AMNGaveGold $ mkFNo' "eGaveGold" (NodeIs _AMGaveGold) (NS $ ss ^. gaveGoldVal) (NT 2)
+   gaveMeat <- indG AMNGaveMeat $ mkFNo' "eGaveMeat" (NodeIs _AMGaveMeat) (NS $ ss ^. gaveMeatVal) (NT 2)
+   gaveFruit <- indG AMNGaveFruit $ mkFNo' "eGaveFruit" (NodeIs _AMGaveFruit) (NS $ ss ^. gaveFruitVal) (NT 2)
+   plantHarvested <- indG AMNPlantHarvested $ mkFNo' "ePlantHarvested" (NodeIs _AMPlantHarvested) (NS $ ss ^. plantHarvestedVal) (NT 2)
+   healthIncreased <- indG AMNHealthIncreased $ mkFNo' "eHealthIncreased" (NodeIs _AMHealthIncreased) (NS $ ss ^. healthIncreasedVal) (NT 2)
+   staminaLost <- indG AMNStaminaDecreased $ mkFNo' "eStaminaLost" (NodeGT _AMStaminaDecreased 0.05) (NS $ ss ^. staminaLostVal) (NT 2)
 
    let singleFilt = [quarterHealthLoss,
                      halfHealthLoss,
@@ -195,11 +195,11 @@ genericEnthusiasm ss = runFilterM $ do
    -- This is a star formation with an 'AMYouAreHere' at the center, which
    -- is necessary to activate the outer health-detectors.
    youAreHereT <- mapM (indG AMNHaveHealth)
-                       [mkFN "eYouAreHere_HaveHealth0.8" (NodeLT _AMHaveHealth 0.8) 2 1 0.1 [],
-                        mkFN "eYouAreHere_HaveHealth0.6" (NodeLT _AMHaveHealth 0.6) 2 1 0.15 [],
-                        mkFN "eYouAreHere_HaveHealth0.4" (NodeLT _AMHaveHealth 0.4) 2 1 0.2 [],
-                        mkFN "eYouAreHere_HaveHealth0.2" (NodeLT _AMHaveHealth 0.2) 2 1 0.1 [],
-                        mkFN "eYouAreHere_HaveHealth0.1" (NodeLT _AMHaveHealth 0.1) 2 1 0.2 []]
+                       [mkFN "eYouAreHere_HaveHealth0.8" (NodeLT _AMHaveHealth 0.8) (NT 2) (NE 1) (NS 0.1) [],
+                        mkFN "eYouAreHere_HaveHealth0.6" (NodeLT _AMHaveHealth 0.6) (NT 2) (NE 1) (NS 0.15) [],
+                        mkFN "eYouAreHere_HaveHealth0.4" (NodeLT _AMHaveHealth 0.4) (NT 2) (NE 1) (NS 0.2) [],
+                        mkFN "eYouAreHere_HaveHealth0.2" (NodeLT _AMHaveHealth 0.2) (NT 2) (NE 1) (NS 0.1) [],
+                        mkFN "eYouAreHere_HaveHealth0.1" (NodeLT _AMHaveHealth 0.1) (NT 2) (NE 1) (NS 0.2) []]
    let youAreHereOut = map fst youAreHereT ++ map fst singleFilt
    youAreHereS <- indG AMNYouAreHere $ mkFNs "eYouAreHereS" (NodeIs _AMYouAreHere) $ map (,1) youAreHereOut
    let youAreHere = uncurry HM.insert youAreHereS $ HM.fromList youAreHereT
@@ -250,21 +250,21 @@ genericEnthusiasm ss = runFilterM $ do
 
 genericContentment :: ContentmentSettings -> Filter
 genericContentment ss = runFilterM $ do
-   quarterHealthLoss <- indG AMNHealthDecreased $ mkFNo' "c1/4HealthLoss" (NodeGT _AMHealthDecreased 0.25) (ss ^. quarterHealthLossVal) 2
-   halfHealthLoss <- indG AMNHealthDecreased $ mkFNo' "c1/2HealthLoss" (NodeGT _AMHealthDecreased 0.5) (ss ^. halfHealthLossVal) 2
-   badHealth <- indG AMNHaveHealth $ mkFNo' "cBadHealth" (NodeLT _AMHaveHealth 0.75) (ss ^. badHealthVal) 2
-   veryBadHealth <- indG AMNHaveHealth $ mkFNo' "cVeryBadHealth" (NodeLT _AMHaveHealth 0.4) (ss ^. veryBadHealthVal) 2
-   criticalHealth <- indG AMNHaveHealth $ mkFNo' "cCriticalHealth" (NodeLT _AMHaveHealth 0.1) (ss ^. criticalHealthVal) 2
-   staminaLoss <- indG AMNStaminaDecreased $ mkFNo' "cStaminaLoss" (NodeGT _AMStaminaDecreased 0.1) (ss ^. staminaLossVal) 2
-   highHealth <- indG AMNHaveHealth $ mkFNo' "cHighHealth" (NodeGT _AMHaveHealth 1.2) (ss ^. highHealthVal) 2
-   veryHighHealth <- indG AMNHaveHealth $ mkFNo' "cVeryHighHealth" (NodeGT _AMHaveHealth 1.75) (ss ^. veryHighHealthVal) 2
-   excellentHealth <- indG AMNHaveHealth $ mkFNo' "cExcellentHealth" (NodeGT _AMHaveHealth 1.90) (ss ^. excellentHealthVal) 2
-   haveGold <- indG AMNHaveGold $ mkFNo' "cHaveGold" (NodeGT _AMHaveGold 5) (ss ^. haveGoldVal) 2
-   haveFruit <- indG AMNHaveFruit $ mkFNo' "cHaveFruit" (NodeGT _AMHaveFruit 1) (ss ^. haveFruitVal) 2
-   haveMuchFruit <- indG AMNHaveFruit $ mkFNo' "cHaveMuchFruit" (NodeGT _AMHaveFruit 5) (ss ^. haveMuchFruitVal) 2
-   haveMeat <- indG AMNHaveMeat $ mkFNo' "cHaveMeat" (NodeGT _AMHaveMeat 1) (ss ^. haveMeatVal) 2
-   haveMuchMeat <- indG AMNHaveMeat $ mkFNo' "cHaveMuchMeat" (NodeGT _AMHaveMeat 5) (ss ^. haveMuchMeatVal) 2
-   lowTemp <- indG AMNTemperature $ mkFNo' "cLowTemp" (NodeLT _AMTemperature Temperate) (ss ^. lowTempVal) 2
+   quarterHealthLoss <- indG AMNHealthDecreased $ mkFNo' "c1/4HealthLoss" (NodeGT _AMHealthDecreased 0.25) (NS $ ss ^. quarterHealthLossVal) (NT 2)
+   halfHealthLoss <- indG AMNHealthDecreased $ mkFNo' "c1/2HealthLoss" (NodeGT _AMHealthDecreased 0.5) (NS $ ss ^. halfHealthLossVal) (NT 2)
+   badHealth <- indG AMNHaveHealth $ mkFNo' "cBadHealth" (NodeLT _AMHaveHealth 0.75) (NS $ ss ^. badHealthVal) (NT 2)
+   veryBadHealth <- indG AMNHaveHealth $ mkFNo' "cVeryBadHealth" (NodeLT _AMHaveHealth 0.4) (NS $ ss ^. veryBadHealthVal) (NT 2)
+   criticalHealth <- indG AMNHaveHealth $ mkFNo' "cCriticalHealth" (NodeLT _AMHaveHealth 0.1) (NS $ ss ^. criticalHealthVal) (NT 2)
+   staminaLoss <- indG AMNStaminaDecreased $ mkFNo' "cStaminaLoss" (NodeGT _AMStaminaDecreased 0.1) (NS $ ss ^. staminaLossVal) (NT 2)
+   highHealth <- indG AMNHaveHealth $ mkFNo' "cHighHealth" (NodeGT _AMHaveHealth 1.2) (NS $ ss ^. highHealthVal) (NT 2)
+   veryHighHealth <- indG AMNHaveHealth $ mkFNo' "cVeryHighHealth" (NodeGT _AMHaveHealth 1.75) (NS $ ss ^. veryHighHealthVal) (NT 2)
+   excellentHealth <- indG AMNHaveHealth $ mkFNo' "cExcellentHealth" (NodeGT _AMHaveHealth 1.90) (NS $ ss ^. excellentHealthVal) (NT 2)
+   haveGold <- indG AMNHaveGold $ mkFNo' "cHaveGold" (NodeGT _AMHaveGold 5) (NS $ ss ^. haveGoldVal) (NT 2)
+   haveFruit <- indG AMNHaveFruit $ mkFNo' "cHaveFruit" (NodeGT _AMHaveFruit 1) (NS $ ss ^. haveFruitVal) (NT 2)
+   haveMuchFruit <- indG AMNHaveFruit $ mkFNo' "cHaveMuchFruit" (NodeGT _AMHaveFruit 5) (NS $ ss ^. haveMuchFruitVal) (NT 2)
+   haveMeat <- indG AMNHaveMeat $ mkFNo' "cHaveMeat" (NodeGT _AMHaveMeat 1) (NS $ ss ^. haveMeatVal) (NT 2)
+   haveMuchMeat <- indG AMNHaveMeat $ mkFNo' "cHaveMuchMeat" (NodeGT _AMHaveMeat 5) (NS $ ss ^. haveMuchMeatVal) (NT 2)
+   lowTemp <- indG AMNTemperature $ mkFNo' "cLowTemp" (NodeLT _AMTemperature Temperate) (NS $ ss ^. lowTempVal) (NT 2)
 
    -- plants next to it calm the agent down and make it reluctant to move
    let pCirc = circleAroundMeFilt (ss ^. plantIntensityVal) (ss ^. plantRadiusVal)
@@ -299,14 +299,14 @@ genericSocial ss gestures = runFilterM $ do
        friendlyGest = gestures M.! (Sympathy, Positive)
 
    -- hostile actions
-   attacked <- indG AMNAttackedBy $ mkFNo "sAttacked" (NodeIs _AMAttackedBy) (ss ^. attackedVal)
-   hostileGesture <- indG AMNGesture $ mkFNo "sHostileGesture" (NodeEQ (_AMGesture . _2) unfriendlyGest) (ss ^. hostileGestureVal)
+   attacked <- indG AMNAttackedBy $ mkFNo "sAttacked" (NodeIs _AMAttackedBy) (NS $ ss ^. attackedVal)
+   hostileGesture <- indG AMNGesture $ mkFNo "sHostileGesture" (NodeEQ (_AMGesture . _2) unfriendlyGest) (NS $ ss ^. hostileGestureVal)
 
    -- friendly actions
-   receivedGold <- indG AMNReceivedGold $ mkFNo "sReceiveGold" (NodeIs _AMReceivedGold) (ss ^. receivedGoldVal)
-   receivedMeat <- indG AMNReceivedMeat $ mkFNo "sReceiveMeat" (NodeIs _AMReceivedMeat) (ss ^. receivedMeatVal)
-   receivedFruit <- indG AMNReceivedFruit $ mkFNo "sReceiveFuit" (NodeIs _AMReceivedGold) (ss ^. receivedFruitVal)
-   friendlyGesture <- indG AMNGesture $ mkFNo "sFriendlyGesture" (NodeEQ (_AMGesture . _2) friendlyGest) (ss ^. friendlyGestureVal)
+   receivedGold <- indG AMNReceivedGold $ mkFNo "sReceiveGold" (NodeIs _AMReceivedGold) (NS $ ss ^. receivedGoldVal)
+   receivedMeat <- indG AMNReceivedMeat $ mkFNo "sReceiveMeat" (NodeIs _AMReceivedMeat) (NS $ ss ^. receivedMeatVal)
+   receivedFruit <- indG AMNReceivedFruit $ mkFNo "sReceiveFuit" (NodeIs _AMReceivedGold) (NS $ ss ^. receivedFruitVal)
+   friendlyGesture <- indG AMNGesture $ mkFNo "sFriendlyGesture" (NodeEQ (_AMGesture . _2) friendlyGest) (NS $ ss ^. friendlyGestureVal)
 
    -- if it's above -0.5, sympathy increases by 0.01 (up to 0.15) if the agent is not attacked, i.e.
    -- small grudges are "forgotten"
@@ -318,7 +318,7 @@ genericSocial ss gestures = runFilterM $ do
    let notAttacked = [(i1, mkFNs "sNotAttaced_AttackedBy" (NodeIs _AMAttackedBy) [(i4, negate 1)]),
                       (i2, mkFNs "sNotAttacked_Sympathy<0.15" (NodeLT (_AMEmotionSympathy . _2) 0.15) [(i4, 1)]),
                       (i3, mkFNs "sNotAttacked_Sympathy>-0.5" (NodeGT (_AMEmotionSympathy . _2) (negate 0.5)) [(i4, 1)]),
-                      (i4, mkFN "sNotAttacked_False" NodeFalse 2 0 0.01 [])]
+                      (i4, mkFN "sNotAttacked_False" NodeFalse (NT 2) (NE 0) (NS 0.01) [])]
    
 
    let singleFilt = [attacked,
@@ -733,7 +733,7 @@ plantHere :: NodeName -- ^Prefix for the created nodes.
 plantHere name v circ = do
    (nodes, outNodes) <- entityHereFilt name circ [plant]
    (li, lowHealth) <- indG AMNHaveHealth $ mkFNs (name ++ "_HaveHealth") (NodeLT _AMHaveHealth v) $ map (,1) $ HS.toList outNodes
-   let nodes' = fmap (threshold +~ 1) nodes
+   let nodes' = fmap (threshold . _Wrapped +~ 1) nodes
    return $! (HM.insert li lowHealth nodes', outNodes)
 
    where
@@ -779,7 +779,7 @@ entityHereFilt
    -> FilterM (HM.HashMap G.Vertex (FilterNode AgentMessage), HS.HashSet G.Vertex)
 entityHereFilt name circ checks = foldM mkCheck mempty circ
    where
-      mkCheck (fs,out) (int, pos) = do nodes <- entityHere name checks pos int
+      mkCheck (fs,out) (int, pos) = do nodes <- entityHere name checks pos (NS int)
                                        (SI outN) <- lift peek
                                        return (fs `HM.union` nodes, HS.insert (outN - 1) out)  
 
@@ -789,14 +789,14 @@ entityHere
       -- |Checks to perform on the cell. VisualWumpus, health, sympathy etc.
    -> [AreaFilterCheck]
    -> RelInd -- ^Coordinates to check.
-   -> Rational -- ^Significance of the target node.
+   -> NodeSignificance -- ^Significance of the target node.
       -- |1 target (output) node, plus the following number of source
       --  nodes: 2 for every check without a 'NodeCondition' and 3 for every
       --  check with one.
    -> FilterM (HM.HashMap G.Vertex (FilterNode AgentMessage))
 entityHere name cons curPos@(RI (i, j)) sig = do
    src <- foldM mkCheck mempty cons
-   (ti,tn) <- indN $ mkFN (name ++ "_False_(" ++ show i ++ ", " ++ show j ++ ")") NodeFalse (length src) 0 sig []
+   (ti,tn) <- indN $ mkFN (name ++ "_False_(" ++ show i ++ ", " ++ show j ++ ")") NodeFalse (NT $ length src) (NE 0) sig []
    let src' = (neighbors .~ [(ti, 1)]) <$> src
    return $! HM.insert ti tn src'
 
