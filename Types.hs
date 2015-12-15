@@ -6,6 +6,7 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE TypeFamilies #-}
 
 -- |General stuff on which other modules depend.
 module Types (
@@ -85,6 +86,12 @@ makeFields ''AngerSettings
 makeFields ''FearSettings
 makeFields ''EnthusiasmSettings
 makeFields ''ContentmentSettings
+makeFields ''NodeExcitement
+makeFields ''NodeThreshold
+makeFields ''NodeSignificance
+makeWrapped ''NodeExcitement
+makeWrapped ''NodeThreshold
+makeWrapped ''NodeSignificance
 
 -- |Safe version of (!!)
 lIndex :: [a] -> Int -> Maybe a

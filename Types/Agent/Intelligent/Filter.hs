@@ -13,8 +13,6 @@ import Data.Graph
 import qualified Data.HashMap.Strict as HM
 import qualified Data.HashSet as HS
 
-type NodeSignificance = Rational
-
 -- |A condition for the firing of a node.
 --  A condition consists of a condition kind (the constructor; EQ, GT, LT),
 --  a getter, and a comparison value. The assumption is that NodeCondition
@@ -48,18 +46,22 @@ data NodeCondition s =
 
 type NodeName = String
 
+newtype NodeExcitement = NE{_nodeExcitementFromNE::Int} deriving (Show, Eq, Ord, Read)
+newtype NodeThreshold = NT{_nodeThresholdFromNT::Int} deriving (Show, Eq, Ord, Read)
+newtype NodeSignificance = NS{_nodeSignificanceFromNS::Rational} deriving (Show, Eq, Ord, Read)
+
 data FilterNode s = FN {
    -- |The node's name, purely for information.
    _filterNodeName :: NodeName,
    _filterNodeCondition :: NodeCondition s,
    -- |The node's current excitement.
-   _filterNodeExcitement :: Int,
+   _filterNodeExcitement :: NodeExcitement,
    -- |Excitement threshold for a node's activation. When a node becomes
    --  activated, this value, multiplied by the edge's strength, will be sent to
    --  outgoing neighbors as excitement.
-   _filterNodeThreshold :: Int,
+   _filterNodeThreshold :: NodeThreshold,
    -- |The increase in node excitement if the node's condition is met.
-   _filterNodeExcitementInc :: Int,
+   _filterNodeExcitementInc :: NodeExcitement,
    _filterNodeActive :: Bool,
    -- |Significance of an output node.
    _filterNodeSignificance :: NodeSignificance,

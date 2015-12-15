@@ -56,34 +56,34 @@ instance Default (FilterMsg sn ri s) where
 -- Constructs a 'FilterNode'.
 mkFN :: NodeName
      -> NodeCondition s
-     -> Int -- ^Threshold for activation.
-     -> Int -- ^Increase in excitement if the condition is met.
+     -> NodeThreshold
+     -> NodeExcitement -- ^Increase in excitement if the condition is met.
      -> NodeSignificance -- ^Significance (only relevant for output nodes).
      -> [(G.Vertex, Rational)] -- ^Outgoing neighbors, with edge strengths in [0,1).
      -> FilterNode s
-mkFN name c th exInc sign neigh = FN name c 0 th exInc False sign neigh
+mkFN name c th exInc sign neigh = FN name c (NE 0) th exInc False sign neigh
 
 -- |Creates a non-output 'FilterNode' with excitement threshold 1. 
 mkFNs :: NodeName
       -> NodeCondition s
       -> [(G.Vertex, Rational)]
       -> FilterNode s
-mkFNs name c neigh = mkFN name c 1 1 0 neigh
+mkFNs name c neigh = mkFN name c (NT 1) (NE 1) (NS 0) neigh
 
 -- |Creates an output node with excitement threshold 1.
 mkFNo :: NodeName
       -> NodeCondition s
       -> NodeSignificance
       -> FilterNode s
-mkFNo name c sign = mkFN name c 1 1 sign []
+mkFNo name c sign = mkFN name c (NT 1) (NE 1) sign []
 
 -- |Creates an output node with a custom excitement threshold.
 mkFNo' :: NodeName
       -> NodeCondition s
       -> NodeSignificance
-      -> Int -- ^Threshold for activation.
+      -> NodeThreshold
       -> FilterNode s
-mkFNo' name c sign th = mkFN name c th 1 sign []
+mkFNo' name c sign th = mkFN name c th (NE 1) sign []
 
 
 -- |Creates an AND-graph in which a target node is activated if a list of source nodes
@@ -126,22 +126,22 @@ notGraph :: NodeName -- ^Name of the dummy node
          -> [FilterNode s] -- ^The source node with an edge added, and a second dummy.
 notGraph dummyName s tv t = dummy : mkGraphSchema (\s -> negate $ orEdgeStrength s t) [s] tv
    where
-      dummy = mkFN dummyName NodeTrue 1 1 0 [(tv, fromIntegral $ t ^. threshold)]
+      dummy = mkFN dummyName NodeTrue (NT 1) (NE 1) (NS 0) [(tv, fromIntegral $ t ^. threshold . fromNT)]
 
 -- |Edge strength function for AND.
 andEdgeStrength :: Int -> FilterNode s -> FilterNode s -> Rational
 andEdgeStrength n s t = t' / (n' * s')
    where
-      t' = fromIntegral $ t ^. threshold
+      t' = fromIntegral $ t ^. threshold . fromNT
       n' = fromIntegral n
-      s' = fromIntegral $ s ^. threshold
+      s' = fromIntegral $ s ^. threshold . fromNT
 
 -- |Edge strength function for OR.
 orEdgeStrength :: FilterNode s -> FilterNode s -> Rational
 orEdgeStrength s t = t' / s'
    where
-      t' = fromIntegral $ t ^. threshold
-      s' = fromIntegral $ s ^. threshold
+      t' = fromIntegral $ t ^. threshold . fromNT
+      s' = fromIntegral $ s ^. threshold . fromNT
 
 -- |Makes a graph with edges from a list of source nodes to a single target node.
 mkGraphSchema :: Functor f
@@ -171,9 +171,9 @@ exciteNode isOutputNode x n =
    where
       excite fn =
          let
-            fn' = fn & excitement +~ (fn ^. excitementInc)
+            fn' = fn & excitement . _Wrapped' +~ (fn ^. excitementInc . fromNE)
          in
-         (if (fn' ^. excitement >= fn' ^. threshold) && isOutputNode
+         (if (fn' ^. excitement . fromNE >= fn' ^. threshold . fromNT) && isOutputNode
             then trace ("[exciteNode] " ++ show (n ^. name) ++ " activated by " ++ show x)
             else id) fn'
 
@@ -186,7 +186,7 @@ exciteNeighbor :: G.Vertex -- ^Target node.
                -> Filter
 exciteNeighbor nk es f = f & graph . ix nk %~ exInc
    where
-      exInc n = n & excitement +~ round (fromIntegral (n ^. threshold) * es)
+      exInc n = n & excitement . _Wrapped +~ round (fromIntegral (n ^. threshold . fromNT) * es)
 
 -- send excitement to every neighbor of a node.
 exciteNeighbors :: G.Vertex
@@ -227,9 +227,9 @@ runFilter ms limit filt =
       outNodes = sortBy (comparing $ view _1) $ filter (\x -> view _4 x >= view _5 x) $ map nodeInfo $ HS.toList $ res ^. outputNodes
 
       nodeInfo x = (x, view name $ (res ^. graph) HM.! x,
-                       view significance $ atGr x,
-                       view excitement $ atGr x,
-                       view threshold $ atGr x,
+                       view (significance . fromNS) $ atGr x,
+                       view (excitement . fromNE) $ atGr x,
+                       view (threshold . fromNT) $ atGr x,
                        view active $ atGr x)
 
 -- |Inputs a list of messages into filter and returns the sum of the
@@ -277,13 +277,13 @@ activatedSum :: Filter -> Rational
 activatedSum filt = max (-1) $ min 1 $ F.foldl' add 0 $ HM.filterWithKey isOutput $ filt ^. graph
    where
       isOutput k _ = filt ^. outputNodes . to (HS.member k)
-      add acc n = if n ^. active then acc + (n ^. significance) else acc
+      add acc n = if n ^. active then acc + (n ^. significance . fromNS) else acc
 
 -- |Sets the 'activated' flag on nodes with sufficiently high excitement.
 activateNodes :: Filter -> Filter
 activateNodes = graph %~ fmap activate
    where
-      activate = cond' (\n -> n ^. excitement >= n ^. threshold) (active .~ True)
+      activate = cond' (\n -> n ^. excitement . fromNE >= n ^. threshold . fromNT) (active .~ True)
 
 -- |Overwrites a filter's filterIndex, creating a new one based on a list of index entries.
 mkFilterIndex :: [(AgentMessageName, Maybe RelInd, G.Vertex)] -> Filter -> Filter
