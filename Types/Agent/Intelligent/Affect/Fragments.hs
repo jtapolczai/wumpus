@@ -132,7 +132,9 @@ data ContentmentSettings = ContentmentSettings {
    _contentmentSettingsHaveMuchMeatVal :: Rational,
    _contentmentSettingsLowTempVal :: Rational,
    _contentmentSettingsPlantRadiusVal :: Rational,
-   _contentmentSettingsPlantIntensityVal :: Rational
+   _contentmentSettingsPlantIntensityVal :: Rational,
+   _contentmentSettingsEmptyRadiusVal :: Rational,
+   _contentmentSettingsEmptyIntensityVal :: Rational
 }
 
 -- |Settings for a sympathy template.

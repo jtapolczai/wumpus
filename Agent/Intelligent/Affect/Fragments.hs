@@ -270,6 +270,9 @@ genericContentment ss = runFilterM $ do
    let pCirc = circleAroundMeFilt (ss ^. plantIntensityVal) (ss ^. plantRadiusVal)
    (plants, plantOut) <- plantHere "cPlantHere" 2 pCirc
 
+   let fCirc = circleAroundMeFilt (ss ^. emptyIntensityVal) (ss ^. emptyRadiusVal)
+   (frees, freeOut) <- freeHere "cEmptyHere" fCirc
+
    let singleFilt = [quarterHealthLoss,
                      halfHealthLoss,
                      badHealth,
@@ -288,8 +291,8 @@ genericContentment ss = runFilterM $ do
 
    youAreHere <- indG AMNYouAreHere $ mkFNs "cYouAreHere" (NodeIs _AMYouAreHere) $ map (\(x,_) -> (x,1)) singleFilt
 
-   let graph = mconcat [HM.fromList singleFilt, plants, uncurry HM.singleton youAreHere]
-       output = mconcat [HS.fromList (map fst singleFilt), plantOut]
+   let graph = mconcat [HM.fromList singleFilt, plants, frees, uncurry HM.singleton youAreHere]
+       output = mconcat [HS.fromList (map fst singleFilt), plantOut, freeOut]
 
    return $! FI graph output HM.empty
 
@@ -554,6 +557,8 @@ strongContentment = genericContentment ss
            0.08
            2 -- plant radius
            0.4
+           5 -- empty radius
+           0.01
 
 weakContentment :: Filter
 weakContentment = genericContentment ss
@@ -576,6 +581,8 @@ weakContentment = genericContentment ss
            0.02
            2 -- plant radius
            0.2
+           5 -- empty radius
+           0.005
 
 -------------------------------------------------------------------------------
 
@@ -739,6 +746,14 @@ plantHere name v circ = do
    where
       plant :: AreaFilterCheck
       plant = ("plant", _AMVisualPlant . _1, AMNVisualPlant, Nothing)
+
+-- |See 'entityHereFilt'. Gets free cells in proximity.
+freeHere :: NodeName -- ^Prefix for the created nodes.
+          -> AreaFilter
+freeHere name circ = entityHereFilt name circ [free]
+   where
+      free :: AreaFilterCheck
+      free = ("agent", _AMVisualFree, AMNVisualFree, Nothing)
 
 -- |Gets fields which have at least 1 of a given item
 itemHere :: NodeName
