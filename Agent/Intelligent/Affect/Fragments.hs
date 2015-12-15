@@ -271,6 +271,9 @@ genericContentment ss = runFilterM $ do
    haveMeat <- indG AMNHaveMeat $ mkFNo' "cHaveMeat" (NodeGT _AMHaveMeat 1) (NS $ ss ^. haveMeatVal) (NT 2)
    haveMuchMeat <- indG AMNHaveMeat $ mkFNo' "cHaveMuchMeat" (NodeGT _AMHaveMeat 5) (NS $ ss ^. haveMuchMeatVal) (NT 2)
    lowTemp <- indG AMNTemperature $ mkFNo' "cLowTemp" (NodeLT _AMTemperature Temperate) (NS $ ss ^. lowTempVal) (NT 2)
+   gainedGold <- indG AMNHaveGold $ mkFNo' "cGainedGold" (NodeIs _AMGainedGold) (NS $ ss ^. gainedGoldVal) (NT 2)
+   gainedFruit <- indG AMNHaveFruit $ mkFNo' "cGainedFruit" (NodeIs _AMGainedFruit) (NS $ ss ^. gainedFruitVal) (NT 2)
+   gainedMeat <- indG AMNHaveMeat $ mkFNo' "cGainedMeat" (NodeIs _AMGainedMeat) (NS $ ss ^. gainedMeatVal) (NT 2)
 
    -- plants next to it calm the agent down and make it reluctant to move
    let pCirc = circleAroundMeFilt (ss ^. plantIntensityVal) (ss ^. plantRadiusVal)
@@ -293,7 +296,10 @@ genericContentment ss = runFilterM $ do
                      haveMuchFruit,
                      haveMeat,
                      haveMuchMeat,
-                     lowTemp]
+                     lowTemp,
+                     gainedGold,
+                     gainedFruit,
+                     gainedMeat]
 
    youAreHere <- indG AMNYouAreHere $ mkFNs "cYouAreHere" (NodeIs _AMYouAreHere) $ map (\(x,_) -> (x,1)) singleFilt
 
@@ -563,8 +569,11 @@ strongContentment = genericContentment ss
            0.03
            0.02
            0.03
-           0.02
-           0.08
+           0.02 
+           0.08 -- low temp
+           0.1
+           0.15
+           0.15
            2 -- plant radius
            0.4
            5 -- empty radius
@@ -588,7 +597,10 @@ weakContentment = genericContentment ss
            0
            0.01
            0
-           0.02
+           0.02 -- low temp
+           0
+           0.08
+           0.08
            2 -- plant radius
            0.2
            5 -- empty radius
