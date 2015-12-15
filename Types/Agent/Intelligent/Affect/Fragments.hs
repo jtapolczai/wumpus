@@ -24,7 +24,8 @@ data SJSFragmentType = Friendly | Hostile
 -- |Settings for an anger template.
 data AngerSettings = AngerSettings {
    _angerSettingsWumpusDiedVal :: Rational,
-   _angerSettingsAgentDiedVal :: Rational,
+   _angerSettingsKilledWumpusVal :: Rational,
+   _angerSettingsKilledAgentVal :: Rational,
    _angerSettingsHighTempVal :: Rational,
    _angerSettingsGoodHealthVal :: Rational, 
    _angerSettingsHighHealthVal :: Rational, 

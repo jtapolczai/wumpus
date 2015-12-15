@@ -60,6 +60,8 @@ sympathyFragment _ x = error $ "sympathyFragment called with unsupported type "+
 genericAnger :: AngerSettings -> Filter
 genericAnger ss = runFilterM $ do
    wumpusDied <- indG AMNWumpusDied $ mkFNo' "aWumpusDied" (NodeIs _AMWumpusDied) (NS $ ss ^. wumpusDiedVal) (NT 2)
+   killedWumpus <- indG AMNKilledWumpus $ mkFNo' "aKilledWumpus" (NodeIs _AMKilledWumpus) (NS $ ss ^. killedWumpusVal) (NT 2)
+   killedAgent <- indG AMNKilledAgent $ mkFNo' "aKilledAgent" (NodeIs _AMKilledAgent) (NS $ ss ^. killedAgentVal) (NT 2)
    highTemp <- indG AMNTemperature $ mkFNo' "aHighTemp" (NodeGT _AMTemperature Warm) (NS $ ss ^. highTempVal) (NT 2)
    goodHealth <- indG AMNHaveHealth $ mkFNo' "aGoodHealth" (NodeGT _AMHaveHealth 1.0) (NS $ ss ^. goodHealthVal) (NT 2)
    highHealth <- indG AMNHaveHealth $ mkFNo' "aHighHealth" (NodeGT _AMHaveHealth 1.5) (NS $ ss ^. highHealthVal) (NT 2)
@@ -74,6 +76,8 @@ genericAnger ss = runFilterM $ do
    (agents, agentsOut) <- weakEnemyHere "aWeakEnemy" aCirc
 
    let singleFilt = [wumpusDied,
+                     killedWumpus,
+                     killedAgent,
                      highTemp,
                      goodHealth,
                      highHealth,
@@ -344,7 +348,8 @@ strongAnger :: Filter
 strongAnger = genericAnger ss
    where
       ss = AngerSettings
-           (-0.5)
+           (-0.1)
+           (-0.4)
            (-0.5)
            0.1
            0.01
@@ -362,7 +367,8 @@ weakAnger :: Filter
 weakAnger = genericAnger ss
    where
       ss = AngerSettings
-           (-0.65)
+           (-0.2)
+           (-0.45)
            (-0.65)
            0.03
            0
