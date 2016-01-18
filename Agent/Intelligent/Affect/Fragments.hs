@@ -250,12 +250,15 @@ genericEnthusiasm ss = runFilterM $ do
    (meat, meatOut) <- itemHere "eMeatHere" Meat imCirc
    (fruit, fruitOut) <- itemHere "eFruitHere" Meat ifCirc
 
-   let graph = mconcat [HM.fromList singleFilt, youAreHere, sAgents, nAgents, wAgents,
-                        plants, plants2, plants3, plants4, plants5, gold, meat, fruit]
+   let --graph = mconcat [HM.fromList singleFilt, youAreHere, sAgents, nAgents, wAgents,
+       --                 plants, plants2, plants3, plants4, plants5, gold, meat, fruit]
 
-       output = mconcat [HS.fromList (map fst singleFilt), HS.fromList youAreHereOut, sAgentOut, nAgentOut,
-                         wAgentOut, plantOut, plant2Out, plant3Out, plant4Out, plant5Out, goldOut,
-                         meatOut, fruitOut]
+       --output = mconcat [HS.fromList (map fst singleFilt), HS.fromList youAreHereOut, sAgentOut, nAgentOut,
+       --                  wAgentOut, plantOut, plant2Out, plant3Out, plant4Out, plant5Out, goldOut,
+       --                  meatOut, fruitOut]
+
+       graph = mconcat [HM.fromList singleFilt, youAreHere]
+       output = mconcat [HS.fromList (map fst singleFilt), HS.fromList youAreHereOut]
 
    return $! FI graph output HM.empty
 
@@ -309,8 +312,11 @@ genericContentment ss = runFilterM $ do
 
    youAreHere <- indG AMNYouAreHere $ mkFNs "cYouAreHere" (NodeIs _AMYouAreHere) $ map (\(x,_) -> (x,1)) singleFilt
 
-   let graph = mconcat [HM.fromList singleFilt, plants, frees, uncurry HM.singleton youAreHere]
-       output = mconcat [HS.fromList (map fst singleFilt), plantOut, freeOut]
+   let --graph = mconcat [HM.fromList singleFilt, plants, frees, uncurry HM.singleton youAreHere]
+       --output = mconcat [HS.fromList (map fst singleFilt), plantOut, freeOut]
+
+       graph = mconcat [HM.fromList singleFilt, uncurry HM.singleton youAreHere]
+       output = mconcat [HS.fromList (map fst singleFilt)]
 
    return $! FI graph output HM.empty
 

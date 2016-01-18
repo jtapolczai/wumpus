@@ -224,7 +224,11 @@ runFilter ms limit filt =
    where
       res = runFilter' ms limit filt
       atGr x = (res ^. graph) HM.! x
-      outNodes = sortBy (comparing $ view _1) $ filter (\x -> view _4 x >= view _5 x) $ map nodeInfo $ HS.toList $ res ^. outputNodes
+      outNodes = sortBy (comparing $ view _1)
+                 $ filter (\x -> view _4 x >= view _5 x)
+                 $ map nodeInfo
+                 $ HS.toList
+                 $ res ^. outputNodes
 
       nodeInfo x = (x, view name $ (res ^. graph) HM.! x,
                        view (significance . fromNS) $ atGr x,
