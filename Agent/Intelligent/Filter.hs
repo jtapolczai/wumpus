@@ -188,11 +188,13 @@ exciteNeighbor :: String-- ^Source node (just for debugging; isn't used).
                -> Filter
 exciteNeighbor s nk (NE srcEx) es f = f & graph . ix nk %~ exInc
    where
-      exInc n = trace ("[exciteNeighbor] " ++ show (n ^. name) ++ " excited from neighbor " ++ s ++ ". Excitement: " ++ show from ++ " -> " ++ show to)
+      exInc n = trace ("[exciteNeighbor] " ++ show (n ^. name) ++ " excited from neighbor " ++ s ++ ". Excitement: " ++ show from ++ " -> " ++ show to ++ " out of " ++ show thresh)
                 $ n & excitement . _Wrapped +~ round (fromIntegral srcEx * es)
          where
+            n' = n & excitement . _Wrapped +~ round (fromIntegral srcEx * es)
             from = n ^. excitement . fromNE
-            to = from + (round $ fromIntegral srcEx * es)
+            to = n' ^. excitement . fromNE
+            thresh = n ^. threshold . fromNT
 
 -- send excitement to every neighbor of a node.
 exciteNeighbors :: G.Vertex -- ^Source node.
@@ -298,9 +300,9 @@ activatedSum filt = max (-1) $ min 1 $ F.foldl' add 0 $ HM.filterWithKey isOutpu
 activateNodes :: Filter -> Filter
 activateNodes = graph %~ fmap activate
    where
-      activate = cond' f (active .~ True)
+      activate = cond' f (\n -> trace ("[activeNodes] " ++ n ^. name ++ " activated.") (n & active .~ True))
 
-      f n = trace ("[activeNodes] " ++ n ^. name ++ " activated.") (n ^. excitement . fromNE >= n ^. threshold . fromNT)
+      f n = n ^. excitement . fromNE >= n ^. threshold . fromNT
 
 -- |Overwrites a filter's filterIndex, creating a new one based on a list of index entries.
 mkFilterIndex :: [(AgentMessageName, Maybe RelInd, G.Vertex)] -> Filter -> Filter
