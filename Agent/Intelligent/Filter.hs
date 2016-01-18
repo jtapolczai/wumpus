@@ -173,36 +173,44 @@ exciteNode isOutputNode x n =
          let
             fn' = fn & excitement . _Wrapped' +~ (fn ^. excitementInc . fromNE)
          in
-         (if (fn' ^. excitement . fromNE >= fn' ^. threshold . fromNT) && isOutputNode
+           (if (fn' ^. excitement . fromNE >= fn' ^. threshold . fromNT) && isOutputNode
             then trace ("[exciteNode] " ++ show (n ^. name) ++ " activated by " ++ show x)
             else id) fn'
 
       
 
 -- |Sends excitation along one edge to a neighbor.
-exciteNeighbor :: G.Vertex -- ^Target node.
+exciteNeighbor :: String-- ^Source node (just for debugging; isn't used).
+               -> G.Vertex -- ^Target node.
+               -> NodeExcitement -- ^Excitement of the source node.
                -> Rational -- ^Edge strength to target node.
                -> Filter
                -> Filter
-exciteNeighbor nk es f = f & graph . ix nk %~ exInc
+exciteNeighbor s nk (NE srcEx) es f = f & graph . ix nk %~ exInc
    where
-      exInc n = n & excitement . _Wrapped +~ round (fromIntegral (n ^. threshold . fromNT) * es)
+      exInc n = trace ("[exciteNeighbor] " ++ show (n ^. name) ++ " excited from neighbor " ++ s ++ ". Excitement: " ++ show from ++ " -> " ++ show to)
+                $ n & excitement . _Wrapped +~ round (fromIntegral srcEx * es)
+         where
+            from = n ^. excitement . fromNE
+            to = from + (round $ fromIntegral srcEx * es)
 
 -- send excitement to every neighbor of a node.
-exciteNeighbors :: G.Vertex
+exciteNeighbors :: G.Vertex -- ^Source node.
+                -> String -- ^Name of the source node (just for debugging; isn't used).
                 -> Filter
                 -> Filter
-exciteNeighbors k f = foldr excite f neighbors'
+exciteNeighbors k kname f = foldr excite f neighbors'
    where
-      excite (nk, es) f' = exciteNeighbor nk es f'
+      srcEx = f ^. graph . at k . to (fromMaybe $ error "[exciteNeighbors]: Nothing") . excitement
+      excite (nk, es) f' = exciteNeighbor (kname ++ " (" ++ show k ++ ")") nk srcEx es f'
       neighbors' = f ^. graph . at k . to (fromMaybe $ error "[exciteNeighbors]: Nothing") . neighbors
 
 -- |Takes a list of nodes (presumably those who are newly activated) and
 --  sends excitement to all their neighbors via 'excitNeighbors'.
-sendExcitementFrom :: [G.Vertex]
+sendExcitementFrom :: [(G.Vertex, String)] -- ^Source nodes with names (the names are just for debugging).
                    -> Filter
                    -> Filter
-sendExcitementFrom = flip (F.foldl' (flip exciteNeighbors))
+sendExcitementFrom = flip (F.foldl' (\filt (k,kname) -> exciteNeighbors k kname filt))
 
 -- |Inputs a list of messages into filter and returns the sum of the
 --  signifcances of actived output nodes (how "strongly" the filter responds
@@ -248,8 +256,8 @@ runFilter' _ 0 f = {- trace "[runFilter (base case)]" $ -} activateNodes f
 -- we can just abort the process. Otherwise, we repeat it and see whether the
 -- excitement sent out before causes new nodes to become active.
 runFilter' ms limit filt = -- trace ("runFilter (step case, limit = " ++ show limit ++ ")]") $
-                           -- trace ("___activatedNodes: " ++ show (activatedNodes)) $
-                           if null activatedNodes then filt
+                           -- trace ("___activatedNodes: " ++ show (newlyActivatedNodes)) $
+                           if null newlyActivatedNodes then filt
                            else runFilter' [] (limit - 1) filt''
    where
       processMsg f m = foldl' (\f' n -> f' & graph . ix n %~ exciteNode (isOut f' n) m) f $ candidateNodes m f
@@ -269,10 +277,13 @@ runFilter' ms limit filt = -- trace ("runFilter (step case, limit = " ++ show li
       oldActiveNodes = HM.filter (^. active) (filt ^. graph)
 
       -- newly activated nodes send excitement along their outgoing edges.
-      activatedNodes = HM.keys $ HM.difference curActiveNodes oldActiveNodes
+      newlyActivatedNodes = {- HM.keys $ -} HM.difference curActiveNodes oldActiveNodes
+
+      -- we add the node names so that sendExcitementFrom can display them for debugging.
+      newlyActivatedNodes' = map (\(k,v) -> (k, v ^. name)) $ HM.toList newlyActivatedNodes
 
       -- lastly, send out excitement from the newly activated nodes
-      filt'' = sendExcitementFrom activatedNodes filt'
+      filt'' = sendExcitementFrom newlyActivatedNodes' filt'
 
 
 -- |Returns the sum of the significances of all activated output nodes,
@@ -287,7 +298,9 @@ activatedSum filt = max (-1) $ min 1 $ F.foldl' add 0 $ HM.filterWithKey isOutpu
 activateNodes :: Filter -> Filter
 activateNodes = graph %~ fmap activate
    where
-      activate = cond' (\n -> n ^. excitement . fromNE >= n ^. threshold . fromNT) (active .~ True)
+      activate = cond' f (active .~ True)
+
+      f n = trace ("[activeNodes] " ++ n ^. name ++ " activated.") (n ^. excitement . fromNE >= n ^. threshold . fromNT)
 
 -- |Overwrites a filter's filterIndex, creating a new one based on a list of index entries.
 mkFilterIndex :: [(AgentMessageName, Maybe RelInd, G.Vertex)] -> Filter -> Filter
