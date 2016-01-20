@@ -188,8 +188,8 @@ exciteNeighbor :: String-- ^Source node (just for debugging; isn't used).
                -> Filter
 exciteNeighbor s nk (NE srcEx) es f = f & graph . ix nk %~ exInc
    where
-      exInc n = trace ("[exciteNeighbor] " ++ show (n ^. name) ++ " excited from neighbor " ++ s ++ ". Excitement: " ++ show from ++ " -> " ++ show to ++ " out of " ++ show thresh)
-                $ n & excitement . _Wrapped +~ round (fromIntegral srcEx * es)
+      exInc n = {- trace ("[exciteNeighbor] " ++ show (n ^. name) ++ " excited from neighbor " ++ s ++ ". Excitement: " ++ show from ++ " -> " ++ show to ++ " out of " ++ show thresh)
+                $ -} n & excitement . _Wrapped +~ round (fromIntegral srcEx * es)
          where
             n' = n & excitement . _Wrapped +~ round (fromIntegral srcEx * es)
             from = n ^. excitement . fromNE
@@ -300,7 +300,7 @@ activatedSum filt = max (-1) $ min 1 $ F.foldl' add 0 $ HM.filterWithKey isOutpu
 activateNodes :: Filter -> Filter
 activateNodes = graph %~ fmap activate
    where
-      activate = cond' f (\n -> trace ("[activeNodes] " ++ n ^. name ++ " activated.") (n & active .~ True))
+      activate = cond' f (\n -> {- trace ("[activeNodes] " ++ n ^. name ++ " activated.") -} (n & active .~ True))
 
       f n = n ^. excitement . fromNE >= n ^. threshold . fromNT
 
