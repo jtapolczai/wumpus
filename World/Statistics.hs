@@ -8,18 +8,19 @@ import Control.Lens
 import qualified Data.Foldable as F
 import Data.List (intercalate)
 import qualified Data.Map as M
+import qualified Data.Sequence as S
 
 import Types
 
 instance Monoid WorldStats where
-   mempty = WS (M.fromList $ map (,0) index) 0 0 (M.fromList $ map (,0) r) 0 0
+   mempty = WS (M.fromList $ map (,0) index) 0 0 (M.fromList $ map (,0) r) 0 0 S.empty
       where
          r :: (Bounded t, Enum t) => [t]
          r = [minBound..maxBound]
 
          index = (,,,,) <$> r <*> r <*> r <*> r <*> r
-   mappend (WS a w h i g p) (WS a' w' h' i' g' p') =
-      WS (M.unionWith (+) a a') (w+w') (h+h') (M.unionWith (+) i i') (g+g') (p+p')
+   mappend (WS a w h i g p as) (WS a' w' h' i' g' p' as') =
+      WS (M.unionWith (+) a a') (w+w') (h+h') (M.unionWith (+) i i') (g+g') (p+p') (as S.>< as')
 
 
 agentDied :: AgentIndex -> WorldStats -> WorldStats
@@ -39,6 +40,14 @@ gestureSent = numGesturesSent +~ 1
 
 attackPerformed :: WorldStats -> WorldStats
 attackPerformed = numAttacksPerformed +~ 1
+
+-- |Records that an agent performed a given action. No target is specified.
+did :: EntityName -> CellInd -> Action -> WorldStats -> WorldStats
+did x i a = actions %~ (S.|> (x,i,a,Nothing))
+
+-- |Records that an agent performed a given action with another entity as the target.
+didT :: EntityName -> CellInd -> Action -> EntityName -> WorldStats -> WorldStats
+didT x i a t = actions %~ (S.|> (x,i,a,Just t))
 
 -- |Creates statistics from a world. The number of living agents and Wumpuses will
 --  be filled in. Everything else will be 0.
@@ -62,7 +71,6 @@ showStats ws =
    ++ "   fruit: " ++ show (ws ^. numItemsGiven . at' Fruit) ++ "\n"
    ++ "gestures: " ++ show (ws ^. numGesturesSent) ++ "\n"
    ++ "attacks: " ++ show (ws ^. numAttacksPerformed) ++ "\n"
-
    where
       showFT Weak = "w"
       showFT Strong = "s"

@@ -1,6 +1,7 @@
 module Types.World.Statistics where
 
 import qualified Data.Map as M
+import qualified Data.Sequence as S
 
 import Types.Agent.Intelligent.Affect.Fragments
 import Types.World
@@ -20,7 +21,8 @@ data WorldStats = WS {
    _worldStatsNumHarvests :: Int,
    _worldStatsNumItemsGiven :: M.Map Item Int,
    _worldStatsNumGesturesSent :: Int, 
-   _worldStatsNumAttacksPerformed :: Int
+   _worldStatsNumAttacksPerformed :: Int,
+   _worldStatsActions :: S.Seq ActionRecord
    }
    deriving (Show, Eq, Ord)
 
@@ -28,3 +30,7 @@ data WorldMetaInfo = WMI {
    _worldMetaInfoAgentPersonalities :: M.Map EntityName AgentIndex
    }
    deriving (Show, Eq, Ord)
+
+-- |A record of an action performed by an agent on a given cell, with
+--  possibly a target entity.
+type ActionRecord = (EntityName, CellInd, Action, Maybe EntityName)
