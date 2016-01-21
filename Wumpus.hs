@@ -1,9 +1,14 @@
 module Wumpus where
 
+import Control.Lens
+import qualified Data.Foldable as F
 import Data.MList
+
+import Types
 import World.Read
 import World.Statistics
 import World
+
 
 main' :: String -> IO ()
 main' w = do
@@ -13,10 +18,15 @@ main' w = do
    print wmi
    putStrLn $ showStats $ mkStats wmi world
    putStrLn "--------"
-   ((resWorld, worldStats):_) <- fromMList $ takeM 10 (runWorld wmi world)
+   ((resWorld, worldStats):_) <- fromMList $ takeM 10 $ fmapM printActions $ runWorld wmi world
    putStrLn $ showStats worldStats
    putStrLn (replicate 40 '-')
    return ()
+
+printActions (w, ws) = do
+   putStrLn "Actions: "
+   mapM_ (putStrLn . showAction) . F.toList . view actions $ ws
+   return (w,ws)
 
 main :: IO ()
 main = main' "world4"
