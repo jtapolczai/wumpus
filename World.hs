@@ -56,10 +56,11 @@ makeWorld cells edges = initBreeze newWorld
 
 -- |Simulates a world over several iterations.
 runWorld :: WorldMetaInfo -> World -> MList IO (World, WorldStats)
-runWorld wmi w = (w, mkStats wmi w) :.: rest w
+runWorld wmi w = MList $ return $ Just ((w, mkStats wmi w), rest w)
    where
-      rest w' = do (newW, _, stats) <- RWS.runRWST (simulateStepReader w') wmi ()
-                   return $ (newW, stats mempty) :.: rest newW
+      rest w' = MList $ do
+         (newW, _, stats) <- RWS.runRWST (simulateStepReader w') wmi ()
+         return $ Just $ ((newW, stats mempty), rest newW)
 
 -- |Advances the world state by one time step. The actors perform their actions,
 --  the plants regrow, the stench is updated.
