@@ -8,9 +8,11 @@ import Control.Lens
 import qualified Data.Foldable as F
 import Data.List (intercalate)
 import qualified Data.Map as M
+import Data.Maybe
 import qualified Data.Sequence as S
 
 import Types
+import World.Utils
 
 instance Monoid WorldStats where
    mempty = WS (M.fromList $ map (,0) index) 0 0 (M.fromList $ map (,0) r) 0 0 S.empty
@@ -83,3 +85,19 @@ showStats ws =
 
       printAgents :: M.Map AgentIndex Int -> [String]
       printAgents = map (\(k,v) -> "   " ++ showInd k ++ ": " ++ show v ++ "\n") . M.toList
+
+showAction :: ActionRecord -> String
+showAction (n, i, a, t) = mconcat [n, " at ", show i, " ", go a]
+   where
+      t' = fromMaybe "<UNKNOWN>" t
+
+      go NoOp = "did nothing." 
+      go (Rotate d) = mconcat ["turned ", show d, "."]
+      go (Move d) = mconcat ["moved ", show d, " to ", show (inDirection i d), "."]
+      go (Attack d) = mconcat ["attacked ", t', "to its ", show d, "."]
+      go (Give d it) = mconcat ["gave ", show it, " to ", t', " to its ", show d, "." ]
+      go (Gather) = mconcat ["harvested a plant."]
+      go (Collect it) = mconcat ["picked up ", show it, "."]
+      go (Drop it) = mconcat ["dropped ", show it, "."]
+      go (Eat it) = mconcat ["ate ", show it, "."]
+      go (Gesture d g) = mconcat ["gestured '", g, "' to ", t', " to its ", show d, "."]
