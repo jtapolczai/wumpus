@@ -18,7 +18,7 @@ main' w = do
    print wmi
    putStrLn $ showStats $ mkStats wmi world
    putStrLn "--------"
-   ((resWorld, worldStats):_) <- fromMList $ takeM 10 $ fmapM printActions $ runWorld wmi world
+   ((resWorld, worldStats):_) <- fromMList $ takeM 2 $ fmapM printActions $ runWorld wmi world
    putStrLn $ showStats worldStats
    putStrLn (replicate 40 '-')
    return ()

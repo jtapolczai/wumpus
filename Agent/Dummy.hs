@@ -24,6 +24,8 @@ instance AgentMind DummyMind where
 
    readMessageSpace DummyMind{_dummyMindMessageSpace=ms} = ms
 
+   clearMessageSpace d = d{_dummyMindMessageSpace = []}
+
 -- |A dummy mind that does nothing and does not store messages.
 dummyMind :: DummyMind
 dummyMind = DummyMind NoOp False []

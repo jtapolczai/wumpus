@@ -97,13 +97,13 @@ simulateConsequences act mi as simulateAction = do
    let deadMessages = [AMHealthDecreased 100, AMYouDied, AMPosition myPos]
        messages = fromMaybe deadMessages $ do
           traceM "[simulateConsequences] messages"
-          traceM $ "[simulateConsequences.messages] agents: " ++ show (nextWorld ^. agents)
+          -- traceM $ "[simulateConsequences.messages] agents: " ++ show (nextWorld ^. agents)
           traceM $ "[simulateConsequences.messages] my name: " ++ (as ^. name)
           newPos <- nextWorld ^. agents . at (as ^. name)
           traceM $ "[simulateConsequences.messages] newPos: " ++ show newPos
           traceM $ "[simulateConsequences.messages] world cells: " ++ show (nextWorld ^. cellData)
-          traceM $ "[simulateConsequences.messages] cell at my pos: " ++ show (nextWorld ^? cellData . at newPos . _Just)
-          traceM $ "[simulateConsequences.messages] entity at my pos present: " ++ show (isJust $ nextWorld ^? cellData . at newPos . _Just . entity)
+          -- traceM $ "[simulateConsequences.messages] cell at my pos: " ++ show (nextWorld ^? cellData . at newPos . _Just)
+          -- traceM $ "[simulateConsequences.messages] entity at my pos present: " ++ show (isJust $ nextWorld ^? cellData . at newPos . _Just . entity)
           traceM $ "[simulateConsequences.messages] agent at my pos present: " ++ show (isJust $ nextWorld ^? cellData . at newPos . _Just . entity . _Just . _Ag)
           me <- nextWorld ^? cellData . at newPos . _Just . entity . _Just . _Ag
           traceM $ "[simulateConsequences.messages] me: Just"
@@ -133,7 +133,9 @@ generateBelief :: MonadIO m
                -> AgentComponent m
 generateBelief act mi as = liftIO $ do
    traceM "[generateBelief]"
-   (_, msg) <- simulateConsequences act mi as simulateStep
+   let getPerc w = w & cellData . imapped
+                   %@~ (\i -> entity . _Just . _Ag . state %~ pullMessages w i . clearMessageSpace)
+   (_, msg) <- simulateConsequences act mi as (simulateStep >=> return . getPerc)
    traceM "[generateBelief] simulateConsequences done."
    let msg' = map (True,,ttl 1) msg
        as' = addMessages msg' $ as

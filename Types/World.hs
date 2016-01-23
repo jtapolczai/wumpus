@@ -315,6 +315,13 @@ class AgentMind a where
    readMessageSpace :: a -> [Message]
    readMessageSpace = const []
 
+   -- |Deletes all messages from an agent's message space.
+   --  
+   --  The following has to hold:
+   -- @
+   --  readMessageSpace . clearMessageSpace = const []
+   -- @
+   clearMessageSpace :: a -> a
 
 -- |Existentially quantifier mind.
 data SomeMind = forall m.AgentMind m => SM m
@@ -325,4 +332,5 @@ instance AgentMind SomeMind where
    getAction (SM m) = do (a,m') <- getAction m
                          return (a, SM m')
    readMessageSpace (SM m) = readMessageSpace m
+   clearMessageSpace (SM m) = SM (clearMessageSpace m)
 

@@ -9,7 +9,7 @@ import Control.Monad
 import Types
 
 import Debug.Trace
-import System.IO.Unsafe
+-- import System.IO.Unsafe
 
 -- |Calls a list of components in succession. Each component receives the same
 --  messages. Components may modify the agent state and communicate with each other
@@ -43,13 +43,13 @@ callComponents doReinsertInit comps initAs = putMsg <$> foldM f (initAs, mempty)
       -- collect the newly added messages separately.
       f (curAs, ms) g = do
          traceM $ "[CC] #msg: " ++ (show $ length $ initMsg ++ ms)
-         traceM $ "[CC] msg (initMsg): " ++ (show initMsg)
-         traceM $ "[CC] msg (ms): " ++ (show ms)
+         --traceM $ "[CC] msg (initMsg): " ++ (show initMsg)
+         --traceM $ "[CC] msg (ms): " ++ (show ms)
          newAs <- g $ curAs & messageSpace .~ (initMsg ++ ms)
                             & newMessages .~ mempty
-         traceM $ "[CC] newMsg: " ++ (show $ newAs ^. newMessages)
-         traceM "> "
-         traceM (unsafePerformIO getLine)
+         --traceM $ "[CC] newMsg: " ++ (show $ newAs ^. newMessages)
+         --traceM "> "
+         --traceM (unsafePerformIO getLine)
          return (newAs & newMessages .~ mempty,
                  newAs ^. newMessages ++ ms)
 

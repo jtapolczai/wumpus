@@ -21,7 +21,7 @@ import Agent.Intelligent.Filter
 import Types
 import World.Utils
 
-import Debug.Trace
+-- import Debug.Trace
 
 psbcFragmentType :: String -> PSBCFragmentType
 psbcFragmentType "weak" = Weak

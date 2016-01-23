@@ -9,10 +9,10 @@ module Agent.Intelligent.Affect where
 import Control.Lens
 import Control.Monad (join)
 import Data.Default
-import Data.Graph
+-- import Data.Graph
 import Data.List
-import qualified Data.HashMap.Strict as HM
-import qualified Data.HashSet as HS
+-- import qualified Data.HashMap.Strict as HM
+-- import qualified Data.HashSet as HS
 import qualified Data.Map as M
 import Data.Maybe
 
@@ -114,10 +114,10 @@ psbcComponent as = trace "[psbcComponent]" $ trace (replicate 80 '+')
       emotionVal :: EmotionName -> AgentState -> Rational
       emotionVal en = view (psbc . at' en . _1)
 
-      outputNodesTrace = M.toList . fmap (getOutputNodes . snd) . view psbc $ as
+      -- outputNodesTrace = M.toList . fmap (getOutputNodes . snd) . view psbc $ as
 
-      getOutputNodes :: Filter -> [(Vertex, NodeName)]
-      getOutputNodes (FI gr out _) = map (\i -> (i, view name $ gr HM.! i)) $ sort $ HS.toList out
+      -- getOutputNodes :: Filter -> [(Vertex, NodeName)]
+      -- getOutputNodes (FI gr out _) = map (\i -> (i, view name $ gr HM.! i)) $ sort $ HS.toList out
 
 -- |Updates one emotion based on messages.
 psbcEmotion :: [AgentMessage]

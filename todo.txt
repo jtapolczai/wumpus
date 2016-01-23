@@ -1,0 +1,9 @@
+* ecr. enthusiasm/incr. contentment if received item
+
+* put the action-printing somewhere in world.hs (change writer-constraint to Reader?)
+
+* let NoOp lower contentment
+
+* AMTime doesn't advance during planning
+
+* Does the fruit raise the appropriate enthusiasm?

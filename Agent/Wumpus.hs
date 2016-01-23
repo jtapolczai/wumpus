@@ -90,6 +90,8 @@ instance AgentMind WumpusMind where
                                return (Move dir, s)
                          else return (NoOp, s)
 
+   clearMessageSpace = id
+
 
 -- |Uniformly randomly selects an element of a list.
 randomInd :: [a] -> IO a

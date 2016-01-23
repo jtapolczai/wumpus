@@ -18,3 +18,5 @@ instance AgentMind OmniMind where
 
    readMessageSpace OmniMind{_omniMindMessageSpace=ms} = ms
 
+   clearMessageSpace o = o{_omniMindMessageSpace = []}
+

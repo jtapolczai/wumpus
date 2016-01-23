@@ -42,6 +42,8 @@ instance AgentMind AgentState where
 
    getAction = getAction'
 
+   clearMessageSpace = id
+
 getAction' :: AgentState -> IO (Action, AgentState)
 getAction' initAs = do
    traceM $ "[getAction] " ++ (initAs ^. name)

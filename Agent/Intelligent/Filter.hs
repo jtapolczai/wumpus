@@ -191,10 +191,10 @@ exciteNeighbor s nk (NE srcEx) es f = f & graph . ix nk %~ exInc
       exInc n = {- trace ("[exciteNeighbor] " ++ show (n ^. name) ++ " excited from neighbor " ++ s ++ ". Excitement: " ++ show from ++ " -> " ++ show to ++ " out of " ++ show thresh)
                 $ -} n & excitement . _Wrapped +~ round (fromIntegral srcEx * es)
          where
-            n' = n & excitement . _Wrapped +~ round (fromIntegral srcEx * es)
-            from = n ^. excitement . fromNE
-            to = n' ^. excitement . fromNE
-            thresh = n ^. threshold . fromNT
+            --n' = n & excitement . _Wrapped +~ round (fromIntegral srcEx * es)
+            --from = n ^. excitement . fromNE
+            --to = n' ^. excitement . fromNE
+            --thresh = n ^. threshold . fromNT
 
 -- send excitement to every neighbor of a node.
 exciteNeighbors :: G.Vertex -- ^Source node.
@@ -326,5 +326,5 @@ candidateNodes msg (FI _ _ i) = {- trace "[candidateNodes]" -}
    maybe ({- trace "[candidateNodes] no nodes." -} [])
            (\m1 -> let noCI = fromMaybe [] $ HM.lookup Nothing m1
                        hasCI = fromMaybe [] $ maybe Nothing (`HM.lookup` m1) (Just $ msg ^. _agentMessageCellInd)
-                   in noCI ++ hasCI)
+                   in {- trace ("[candidateNodes] " ++ show msg ++ " has " ++ show (length $ noCI ++ hasCI) ++ " candidate nodes.") $ -} noCI ++ hasCI)
            (HM.lookup (cast msg) i)
