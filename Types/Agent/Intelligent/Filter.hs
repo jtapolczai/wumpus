@@ -25,7 +25,7 @@ import qualified Data.HashSet as HS
 --  @Right (3, True)@.
 data NodeCondition s =
    -- |\"Equal to x\".
-   forall a.Eq a => NodeEQ (Traversal' s a) a
+   forall a.(Show a, Eq a) => NodeEQ (Traversal' s a) a
    -- |\"Greater than, or equal to, x\" (i.e. @(NodeGT x) y <=> x <= y@).
    | forall a.Ord a => NodeGT (Traversal' s a) a
    -- |\"Lesser than, or equal to, x\"
@@ -68,6 +68,13 @@ data FilterNode s = FN {
    -- |Outgoing neighbors, with edge strengths.
    _filterNodeNeighbors :: [(Vertex, Rational)]
    }
+
+instance Show s => Show (FilterNode s) where
+   show (FN n _ e t i a s neigh) = mconcat [
+      "FN{name=", show n, ", excitement=", show (_nodeExcitementFromNE e),
+      ", threshold=", show (_nodeThresholdFromNT t), ", excitementInc=",
+      show (_nodeExcitementFromNE i), ", active=", show a, ", significance=",
+      show (_nodeSignificanceFromNS s), ", neighbors=", show neigh]
 
 data FilterMsg sn ri s = FI {
    _filterMsgGraph :: HM.HashMap Vertex (FilterNode s),

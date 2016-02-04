@@ -9,10 +9,16 @@ import World.Read
 import World.Statistics
 import World
 
+import Debug.Trace.Wumpus
 
 main' :: String -> IO ()
 main' w = do
-   (world, wmi) <- readWorld w
+   (worldInit, wmi) <- readWorld w
+   let world = worldInit & worldData . time .~ 25
+                         & worldData . temperature .~ Hot
+                         & cellData . ix (2,0) . entity . _Just . health .~ 0.1
+
+   traceM $ show $ world ^. cellData . at (2,0)
    --world `seq` putStrLn "WumpusWorld!"
    --print $ M.size $ world ^. cellData
    print wmi
@@ -24,7 +30,7 @@ main' w = do
    return ()
 
 printActions (w, ws) = do
-   putStrLn "Actions: "
+   putStrLn $ "Actions (" ++ (show $ length $ view actions ws) ++ "):"
    mapM_ (putStrLn . showAction) . F.toList . view actions $ ws
    return (w,ws)
 

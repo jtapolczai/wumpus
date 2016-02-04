@@ -1,6 +1,7 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ImpredicativeTypes #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TupleSections #-}
 
 -- |Contains pre-made affective fragments from which one can piece together an
@@ -21,7 +22,7 @@ import Agent.Intelligent.Filter
 import Types
 import World.Utils
 
--- import Debug.Trace
+import Debug.Trace.Disable
 
 psbcFragmentType :: String -> PSBCFragmentType
 psbcFragmentType "weak" = Weak
@@ -168,7 +169,7 @@ genericFear ss = runFilterM $ do
 
 
 genericEnthusiasm :: EnthusiasmSettings -> Filter
-genericEnthusiasm ss = runFilterM $ do
+genericEnthusiasm ss = (\x -> trace ("[genericEnthusiasm] filter index: " ++ show (view nodeIndex x)) x) $ runFilterM $ do
    quarterHealthLoss <- indG AMNHealthDecreased $ mkFNo' "e1/4HealthLoss" (NodeGT _AMHealthDecreased 0.25) (NS $ ss ^. quarterHealthLossVal) (NT 2)
    halfHealthLoss <- indG AMNHealthDecreased $ mkFNo' "e1/2HealthLoss" (NodeGT _AMHealthDecreased 0.5) (NS $ ss ^. halfHealthLossVal) (NT 2)
    highTemp <- indG AMNTemperature $ mkFNo' "eHighTemp" (NodeGT _AMTemperature Warm) (NS $ ss ^. highTempVal) (NT 2)
@@ -774,7 +775,10 @@ plantHere :: NodeName -- ^Prefix for the created nodes.
 plantHere name v circ = do
    (nodes, outNodes) <- entityHereFilt name circ [plant]
    (li, lowHealth) <- indG AMNHaveHealth $ mkFNs (name ++ "_HaveHealth") (NodeLT _AMHaveHealth v) $ map (,1) $ HS.toList outNodes
-   let nodes' = fmap (threshold . _Wrapped +~ 1) nodes
+   let nodes' = HS.foldl' (\acc i -> acc & ix i . threshold . _Wrapped +~ 1) nodes outNodes
+
+
+   --let nodes' = fmap (\x -> if threshold . _Wrapped +~ 1) nodes
    return $! (HM.insert li lowHealth nodes', outNodes)
 
    where
@@ -826,10 +830,11 @@ entityHereFilt
       -- |A list of new nodes, and a sublist of the vertices that belong to output
       --  nodes. See 'entityHere' for the number of output nodes.
    -> FilterM (HM.HashMap G.Vertex (FilterNode AgentMessage), HS.HashSet G.Vertex)
-entityHereFilt name circ checks = foldM mkCheck mempty circ
+entityHereFilt prefix circ checks = foldM mkCheck mempty circ
    where
-      mkCheck (fs,out) (int, pos) = do nodes <- entityHere name checks pos (NS int)
+      mkCheck (fs,out) (int, pos) = do nodes <- entityHere prefix checks pos (NS int)
                                        (SI outN) <- lift peek
+                                       traceM $ "[entityHereFilt] created nodes: \n" ++ show nodes
                                        return (fs `HM.union` nodes, HS.insert (outN - 1) out)  
 
 -- |Creates a graph whose output node is activated is a wumpus is at a given location.
@@ -843,9 +848,9 @@ entityHere
       --  nodes: 2 for every check without a 'NodeCondition' and 3 for every
       --  check with one.
    -> FilterM (HM.HashMap G.Vertex (FilterNode AgentMessage))
-entityHere name cons curPos@(RI (i, j)) sig = do
+entityHere prefix cons curPos@(RI (i, j)) sig = do
    src <- foldM mkCheck mempty cons
-   (ti,tn) <- indN $ mkFN (name ++ "_False_(" ++ show i ++ ", " ++ show j ++ ")") NodeFalse (NT $ length src) (NE 0) sig []
+   (ti,tn) <- indN $ mkFN (prefix ++ "_False_(" ++ show i ++ ", " ++ show j ++ ")") NodeFalse (NT $ length src) (NE 0) sig []
    let src' = (neighbors .~ [(ti, 1)]) <$> src
    return $! HM.insert ti tn src'
 
@@ -854,10 +859,12 @@ entityHere name cons curPos@(RI (i, j)) sig = do
               -> AreaFilterCheck
               -> FilterM (HM.HashMap G.Vertex (FilterNode AgentMessage))
       mkCheck fs (chkname, pos, n, cnd) = do
-         iChk <- ind n curPos $ mkFNs (name ++ "_EQx" ++ show i) (NodeEQ (pos . _RI . _1) i) []
-         jChk <- ind n curPos $ mkFNs (name ++ "_EQy" ++ show j) (NodeEQ (pos . _RI . _2) j) []
+         iChk <- ind n curPos $ mkFNs (prefix ++ "_EQx" ++ show i) (NodeEQ (pos . _RI . _1) i) []
+         traceM $ "[entityHere.mkCheck] created iChk with index " ++ show ((\(i,x) -> (i, view name x)) iChk)
+         jChk <- ind n curPos $ mkFNs (prefix ++ "_EQy" ++ show j) (NodeEQ (pos . _RI . _2) j) []
+         traceM $ "[entityHere.mkCheck] created jChk with index " ++ show ((\(i,x) -> (i, view name x)) jChk)
          mChk <- case cnd of Nothing   -> return Nothing
-                             Just cnd' -> Just <$> (ind n curPos $ mkFNs (name ++ "_" ++ chkname) cnd' [])
+                             Just cnd' -> Just <$> (ind n curPos $ mkFNs (prefix ++ "_" ++ chkname) cnd' [])
 
          return $! HM.union fs $! HM.fromList $! iChk : jChk : (maybe [] (:[]) mChk)
 

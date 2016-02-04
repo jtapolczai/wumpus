@@ -1,9 +1,9 @@
-* ecr. enthusiasm/incr. contentment if received item
 
 * put the action-printing somewhere in world.hs (change writer-constraint to Reader?)
 
 * let NoOp lower contentment
 
-* AMTime doesn't advance during planning
-
 * Does the fruit raise the appropriate enthusiasm?
+*   temporarily set the health limit for plantHere to 2 to see whether the agent goes for it.
+
+* Create setup-function for worlds to fine-tune scenarios

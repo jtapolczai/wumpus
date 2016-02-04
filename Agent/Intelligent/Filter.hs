@@ -44,7 +44,7 @@ import Data.Ord (comparing)
 
 import Types
 
-import Debug.Trace.Wumpus
+import Debug.Trace.Disable
 
 -- |Creates an empty filter.
 instance Default (FilterMsg sn ri s) where
@@ -156,7 +156,7 @@ mkGraphSchema edgeStrength fs tv = (\s -> s & neighbors %~ ((tv, edgeStrength s)
 
 
 -- |Evaluates a condition against a value.
-runCondition :: NodeCondition s -> s -> Bool
+runCondition :: Show s => NodeCondition s -> s -> Bool
 runCondition (NodeEQ f x) y = maybe False (x==) (y ^? f)
 runCondition (NodeGT f x) y = maybe False (x<=) (y ^? f)
 runCondition (NodeLT f x) y = maybe False (x>=) (y ^? f)
@@ -173,11 +173,11 @@ exciteNode isOutputNode x n =
          let
             fn' = fn & excitement . _Wrapped' +~ (fn ^. excitementInc . fromNE)
          in
+           trace ("[exciteNode] node " ++ show (n ^. name) ++ " got excited by message " ++ show x ++ " NE=" ++ show (fn' ^. excitement) ++ " NT=" ++ show (fn' ^. threshold)) 
+           $
            (if (fn' ^. excitement . fromNE >= fn' ^. threshold . fromNT) && isOutputNode
-            then trace ("[exciteNode] " ++ show (n ^. name) ++ " activated by " ++ show x)
+            then trace ("[exciteNode] output node " ++ show (n ^. name) ++ " activated by " ++ show x)
             else id) fn'
-
-      
 
 -- |Sends excitation along one edge to a neighbor.
 exciteNeighbor :: String-- ^Source node (just for debugging; isn't used).
@@ -188,13 +188,13 @@ exciteNeighbor :: String-- ^Source node (just for debugging; isn't used).
                -> Filter
 exciteNeighbor s nk (NE srcEx) es f = f & graph . ix nk %~ exInc
    where
-      exInc n = {- trace ("[exciteNeighbor] " ++ show (n ^. name) ++ " excited from neighbor " ++ s ++ ". Excitement: " ++ show from ++ " -> " ++ show to ++ " out of " ++ show thresh)
-                $ -} n & excitement . _Wrapped +~ round (fromIntegral srcEx * es)
+      exInc n = trace ("[exciteNeighbor] " ++ show (n ^. name) ++ " excited from neighbor " ++ s ++ ". Excitement: " ++ show from ++ " -> " ++ show to ++ " out of " ++ show thresh)
+                $ n & excitement . _Wrapped +~ round (fromIntegral srcEx * es)
          where
-            --n' = n & excitement . _Wrapped +~ round (fromIntegral srcEx * es)
-            --from = n ^. excitement . fromNE
-            --to = n' ^. excitement . fromNE
-            --thresh = n ^. threshold . fromNT
+            n' = n & excitement . _Wrapped +~ round (fromIntegral srcEx * es)
+            from = n ^. excitement . fromNE
+            to = n' ^. excitement . fromNE
+            thresh = n ^. threshold . fromNT
 
 -- send excitement to every neighbor of a node.
 exciteNeighbors :: G.Vertex -- ^Source node.
@@ -230,6 +230,7 @@ runFilter ms limit filt =
    $ trace ("num output nodes: " ++ (show $ length $ HS.toList $ res ^. outputNodes))
    $ trace "Activated output nodes (id, name, sign, excitement, threshold, isActive): "
    $ traceList outNodes
+   $ trace "vvvvvvvvvvvvvvvvvvvvv"
    $ activatedSum res
    where
       res = runFilter' ms limit filt
@@ -323,8 +324,8 @@ mkFilterIndex xs = nodeIndex .~ foldl' f HM.empty xs
 --  as the given message, or which need no specific RelInd.
 candidateNodes :: AgentMessage -> Filter -> [G.Vertex]
 candidateNodes msg (FI _ _ i) = {- trace "[candidateNodes]" -}
-   maybe ({- trace "[candidateNodes] no nodes." -} [])
+   maybe (trace "[candidateNodes] no nodes." [])
            (\m1 -> let noCI = fromMaybe [] $ HM.lookup Nothing m1
-                       hasCI = fromMaybe [] $ maybe Nothing (`HM.lookup` m1) (Just $ msg ^. _agentMessageCellInd)
-                   in {- trace ("[candidateNodes] " ++ show msg ++ " has " ++ show (length $ noCI ++ hasCI) ++ " candidate nodes.") $ -} noCI ++ hasCI)
+                       hasCI = fromMaybe [] $ maybe Nothing (`HM.lookup` m1) (trace ("[candidateNodes] cell ind: " ++ show (msg ^. _agentMessageCellInd)) $ Just $ msg ^. _agentMessageCellInd)
+                   in trace ("[candidateNodes] " ++ show msg ++ " has " ++ show (length $ noCI ++ hasCI) ++ " candidate nodes.\n" ++ show (noCI ++ hasCI)) $ noCI ++ hasCI)
            (HM.lookup (cast msg) i)

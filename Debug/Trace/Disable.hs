@@ -8,3 +8,9 @@ traceShow _ = id
 
 traceM :: Monad m => String -> m ()
 traceM _ = return ()
+
+traceList :: Show a => [a] -> b -> b
+traceList _ y = y
+
+trace' :: Show a => a -> a
+trace' = id

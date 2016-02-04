@@ -46,13 +46,15 @@ instance AgentMind AgentState where
 
 getAction' :: AgentState -> IO (Action, AgentState)
 getAction' initAs = do
-   traceM $ "[getAction] " ++ (initAs ^. name)
-   traceM $ "[getAction] " ++ (show $ initAs ^. messageSpace)
+   traceM $ "[getAction] my name: " ++ (initAs ^. name)
+   traceM $ "[getAction] my message space: " ++ (show $ initAs ^. messageSpace)
    -- create an initial memory and 
    as' <- callComponents False [initialMemoryComponent,
                                initialDecisionMakerComponent,
                                temporalizePerceptionsComponent] initAs
    action <- loop action (cc' components) as'
+   traceM $ "[getAction] action: " ++ show action
+   undefined
    return (action, as' & messageSpace .~ [])
 
    where
