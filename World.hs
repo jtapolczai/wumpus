@@ -158,51 +158,36 @@ doAction :: (MonadReader WorldMetaInfo m, MonadWriter (WorldStats -> WorldStats)
          -> Action
          -> World
          -> m World
-doAction i action world = go action
+doAction i action world =
+   if isActionPossible i action world
+      then go action
+      else return world
    where
       me = agentAt i world
       myName = me ^. name
       targetName = agentAt j world ^. name
-      j = inDirection i $ getDir action
+      j = inDirection i $ actionDirection action
       iDid = did myName i
       iDidT a = didT myName i a targetName
-
-      getDir (Rotate dir) = dir
-      getDir (Move dir) = dir
-      getDir (Attack dir) = dir
-      getDir (Give dir _) = dir
-      getDir (Gesture dir _) = dir
-      getDir x = error $ "error: getDir called with " ++ show x
 
       -- Do nothing
       go NoOp = tell (iDid NoOp) >> return world
       -- Rotate into a direction.
       go (Rotate dir) = return $ onCell i (onAgent (direction .~ dir)) world
       -- Move into a direction.
-      go (Move dir) =
-            doIfM ((&&) <$> cellFree j <*> hasStamina (i,dir))
-                  (\w -> do tell $ iDid (Move dir)
-                            moveEntity i j w) world
+      go (Move dir) = do tell $ iDid (Move dir)
+                         moveEntity i j world
       -- Attack another entity.
-      go (Attack dir) =
-         doIfM (not . cellFree j)
-               (\w -> do tell $ iDidT (Attack dir)
-                         attack i j w)
-               world
+      go (Attack dir) = do tell $ iDidT (Attack dir)
+                           attack i j world
       -- Give one item to another agent.
-      go (Give dir item) =
-         doIfM (cellAgent j)
-               (\w -> do tell $ itemGiven item
-                         tell $ iDidT (Give dir item)
-                         return $ give w)
-               world
+      go (Give dir item) = do tell $ itemGiven item
+                              tell $ iDidT (Give dir item)
+                              return $ give world
          where
-            qty :: Int
-            qty = me ^. inventory . at item . to (maybe 0 (min 1))
-
             give :: World -> World
-            give = onCell j (onAgent (got . change qty))
-                   . onCell i (onAgent (lost . change (-qty)))
+            give = onCell j (onAgent (got . change 1))
+                   . onCell i (onAgent (lost . change (-1)))
 
             -- Changes the item's quantity in the agent's inventory
             change i = inventory . ix item +~ i
@@ -212,15 +197,10 @@ doAction i action world = go action
             -- Sends a "you lost an item" message to
             lost = sendMsg $ MsgLostItem item
       -- Gather fruit from plant on the cell.
-      go Gather =
-         doIfM (cellHas ripePlant i)
-               (\w -> do tell plantHarvested
-                         tell $ iDid Gather
-                         return $ harvest w)
-               world
+      go Gather = do tell plantHarvested
+                     tell $ iDid Gather
+                     return $ harvest world
          where
-            ripePlant = (cPLANT_HARVEST >=) . fromMaybe 0 . view plant
-
             harvest = onCell i $
                (plant . _Just -~ cPLANT_HARVEST)
                . onAgent (sendMsg MsgPlantHarvested
@@ -228,39 +208,20 @@ doAction i action world = go action
                           . (inventory . ix Fruit +~ 1))
 
       -- Collect something on the cell.
-      go (Collect item) =
-         doIfM (cellHas thisItem i)
-               (\w -> do tell $ iDid (Collect item)
-                         return $ onCell i (collect item $ itemLens item) w)
-               world
-         where
-            thisItem = (>0) . view (itemLens item)
+      go (Collect item) = do tell $ iDid (Collect item)
+                             return $ onCell i (collect item $ itemLens item) world
       -- Drop one piece of an item from the agent's inventory on the floor.
-      go (Drop item) =
-            doIfM (const $ qty > 0)
-                  (\w -> do tell $ iDid (Drop item)
-                            return $ onCell i drop w)
-                  world
+      go (Drop item) = do tell $ iDid (Drop item)
+                          return $ onCell i drop world
          where
-            qty = me ^. inventory . at item . to (min 1 . fromMaybe 0)
-            decr x = max 0 (x-1)
-            drop = (itemLens item +~ qty)
+            drop = (itemLens item +~ 1)
                    . onAgent (sendMsg (MsgLostItem item)
-                              . (inventory . ix item %~ decr))
+                              . (inventory . ix item -~ 1))
       -- Eat fruit or meat. Remove the item from the agent's inventory and regain
       -- 0.5 health (+0.01 to compensate for this round's hunger).
-      go (Eat item) = 
-         doIfM hasItem
-               (\w -> do tell $ iDid (Eat item)
-                         return $ onCell i eatItem w)
-               world
+      go (Eat item) = do tell $ iDid (Eat item)
+                         return $ onCell i eatItem world
          where
-            hasItem = cellHas (^. ju entity
-                                . _Ag
-                                . inventory
-                                . at item
-                                . to (maybe False (0<))) i
-
             eatItem c = onAgent (sendMsg (MsgHealthChanged dH)
                                  . sendMsg (MsgLostItem item)
                                  . (inventory . ix item -~ 1)
@@ -272,12 +233,9 @@ doAction i action world = go action
                   -- |Change in health in percent.
                   dH = (curH / newH) - 1
 
-      go (Gesture dir s) =
-         doIfM (cellAgent j)
-         (\w -> do tell gestureSent
-                   tell $ iDidT (Gesture dir s)
-                   return $ send w)
-         world
+      go (Gesture dir s) = do tell gestureSent
+                              tell $ iDidT (Gesture dir s)
+                              return $ send world
          where 
             send = onCell j $ onAgent (state %~ receiveMessage (MsgGesture (me^.name) s))
 
@@ -292,6 +250,33 @@ itemLens :: Item -> Lens' CellData Int
 itemLens Meat = meat
 itemLens Gold = gold
 itemLens Fruit = fruit
+
+-- |Returns Truee if the given cell has an agent on it and that agent
+--  can perform the given action, taking all preconditions into account. 
+--
+--  If there is no agent on the given cell or if the cell does not exist,
+--  the result is __always__ False.
+isActionPossible :: CellInd -> Action -> World -> Bool
+isActionPossible i action world = if isJust meMaybe then go action else False
+   where
+      meMaybe = world ^? cellData . at i . _Just . entity . _Just . _Ag
+      me = fromMaybe (error "isActionPossible.meMaybe: Nothing") meMaybe
+      j = inDirection i $ actionDirection action
+
+      go NoOp = True
+      go (Rotate _) = True
+      go (Move dir) = cellFree j world && hasStamina (i,dir) world
+      go (Attack _) = cellAgent j world || cellWumpus j world
+      go (Give _ name) = cellAgent j world && numItems me name > 0
+      go Gather = cellHas ripePlant i world
+         where
+            ripePlant = (cPLANT_HARVEST >=) . fromMaybe 0 . view plant
+      go (Collect item) = cellHas thisItemPresent i world
+         where
+            thisItemPresent = (>0) . view (itemLens item)
+      go (Drop item) = numItems me item > 0
+      go (Eat item) = numItems me item > 0 && isEdible item
+      go (Gesture _ _) = cellAgent j world
 
 -- |Returns True iff an edge @(i,dir)@ exists and if the agent on cell @i@
 --  has at least as much stamina as the edge requires. If the edge of the

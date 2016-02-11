@@ -19,6 +19,15 @@ import Math.Geometry.Grid.SquareInternal (SquareDirection(..))
 import Types
 import Debug.Trace
 
+-- |Unsafely gets the 'Direction'-field of an action, if there is one.
+actionDirection :: Action -> SquareDirection
+actionDirection (Rotate dir) = dir
+actionDirection (Move dir) = dir
+actionDirection (Attack dir) = dir
+actionDirection (Give dir _) = dir
+actionDirection (Gesture dir _) = dir
+actionirection x = error $ "error: actionDirection called with " ++ show x
+
 -- |Returns True iff the given cell exists and has neither a Wumpus nor an
 --  agent on it.
 cellFree :: CellInd -> World -> Bool
@@ -27,6 +36,10 @@ cellFree = cellHas (^. entity . to isNothing)
 -- |Returns True iff the given cell has an agent.
 cellAgent :: CellInd -> World -> Bool
 cellAgent = cellHas (^. entity . to (maybe False isAgent))
+
+-- |Returns Truee iff the given cell has a Wumpus.
+cellWumpus :: CellInd -> World -> Bool
+cellWumpus = cellHas (^. entity . to (maybe False isWumpus))
 
 -- |Returns True iff a given cell exists and has an entity (an agent or a Wumpus)
 --  on it.
@@ -50,6 +63,16 @@ light t | 20 <= t'             = 0
 -- |Converts a time into a temperature.
 light' :: Int -> Temperature
 light' = toEnum . light
+
+-- |Returns the number of items of a given type in the agent's inventory.
+numItems :: Agent s -> Item -> Int
+numItems a item = view (inventory . at item . to (fromMaybe 0)) a
+
+-- |Returns whether an item can be eaten by an agent.
+isEdible :: Item -> Bool
+isEdible Meat = True
+isEdible Fruit = True
+isEdible _ = False
 
 -- Helpers
 -------------------------------------------------------------------------------
