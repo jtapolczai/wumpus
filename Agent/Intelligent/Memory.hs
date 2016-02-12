@@ -123,11 +123,11 @@ reconstructWorld'
    --  and messages pertaining to time and temperature.
    -> World -- ^The resultant world induced by the agent's knowledge.
 reconstructWorld' myAct world mi as = trace "[reconstructWorld']" $
-   World (WD time temperature)
-         UnboundedSquareGrid
-         (as ^. memory . memInd mi . _2)
-         (M.mapWithKey mkCell $ as ^. memory . memInd mi . _1)
-         (trace ("[reconstructWorld] entityIndex: " ++ show entityIndex) $ entityIndex)
+   BaseWorld (WD time temperature)
+             UnboundedSquareGrid
+             (as ^. memory . memInd mi . _2)
+             (M.mapWithKey mkCell $ as ^. memory . memInd mi . _1)
+             (trace ("[reconstructWorld] entityIndex: " ++ show entityIndex) $ entityIndex)
    where
 
       entityIndex = (makeEntityIndex $ as ^. memory . memInd mi . _1)
@@ -229,6 +229,11 @@ makeWorldUpdates xs = (cellUpdates, edgeUpdates)
       -- cell/edge update functions.
       cellUpdates = constructCell <$> absolutize mkAbs cellMsg
       edgeUpdates = constructEdge <$> absolutize (first mkAbs) edgeMsg
+
+applyCellUpdates :: (M.Map CellInd (VisualCellData -> VisualCellData))
+                 -> World
+                 -> World
+applyCellUpdates
 
 -- |Constructs a cell update function from agent messages.
 constructCell :: [AgentMessage']

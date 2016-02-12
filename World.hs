@@ -48,11 +48,11 @@ makeWorld :: [(CellInd, CellData)]
           -> World
 makeWorld cells edges = initBreeze newWorld
    where
-      newWorld = World (WD 25 Temperate)
-                       UnboundedSquareGrid
-                       (M.fromList edges)
-                       (M.fromList cells)
-                       (makeEntityIndex $ M.fromList cells)
+      newWorld = BaseWorld (WD 25 Temperate)
+                           UnboundedSquareGrid
+                           (M.fromList edges)
+                           (M.fromList cells)
+                           (makeEntityIndex $ M.fromList cells)
 
 -- |Simulates a world over several iterations.
 runWorld :: WorldMetaInfo -> World -> MList IO (World, WorldStats)

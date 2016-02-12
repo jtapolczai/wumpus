@@ -71,7 +71,7 @@ makeFields ''CellData
 makeFields ''VisualCellData
 makeFields ''EdgeData
 makeFields ''WorldData
-makeFields ''World
+makeFields ''BaseWorld
 makePrisms ''Entity
 makeFields ''AgentState
 makePrisms ''AgentMessage

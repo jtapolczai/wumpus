@@ -208,13 +208,18 @@ data WorldData = WD {
    _worldDataTemperature :: Temperature
 } deriving (Eq, Ord, Show)
 
-data World = World {
-   _worldWorldData :: WorldData,
-   _worldGraph :: UnboundedSquareGrid,
-   _worldEdgeData :: M.Map EdgeInd EdgeData,
-   _worldCellData :: M.Map CellInd CellData,
-   _worldAgents :: M.Map EntityName CellInd
+data BaseWorld cd ed = BaseWorld {
+   _baseWorldWorldData :: WorldData,
+   _baseWorldGraph :: UnboundedSquareGrid,
+   _baseWorldEdgeData :: M.Map EdgeInd ed,
+   _baseWorldCellData :: M.Map CellInd cd,
+   _baseWorldAgents :: M.Map EntityName CellInd
 } deriving (Show)
+
+-- |An external world, objectively seen.
+type World = BaseWorld CellData EdgeData
+-- |A visual world, as perceived by an agent.
+type VisualWorld = BaseWorld VisualCellData EdgeData
 
 -- Agent minds
 -------------------------------------------------------------------------------
