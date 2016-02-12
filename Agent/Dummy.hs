@@ -1,4 +1,7 @@
-{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE 
+   FlexibleInstances,
+   MultiParamTypeClasses,
+   TypeFamilies #-}
 
 module Agent.Dummy where
 
@@ -29,3 +32,9 @@ instance AgentMind DummyMind where
 -- |A dummy mind that does nothing and does not store messages.
 dummyMind :: DummyMind
 dummyMind = DummyMind NoOp False []
+
+instance Castable VisualWumpus (Wumpus SomeMind) where
+   cast a = Wumpus (SM $ DummyMind NoOp False [])
+                   (a ^. name)
+                   (a ^. health)
+                   (a ^. stamina)

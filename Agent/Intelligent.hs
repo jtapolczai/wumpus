@@ -83,3 +83,24 @@ getAction' initAs = do
                     decisionMakerComponent,
                     beliefGeneratorComponent,
                     memoryComponent]
+
+instance Castable VisualAgent (Agent SomeMind) where
+   cast a = Agent (a ^. name)
+                  (a ^. direction)
+                  (a ^. health)
+                  (a ^. stamina)
+                  (fromMaybe emptyInventory $ a ^. inventory)
+                  (SM $ AS (a ^. name)
+                           M.empty
+                           (M.empty, M.empty)
+                           (T.Node emptyWorld [])
+                           []
+                           []
+                           M.empty)
+      where
+         emptyWorld = BaseWorld
+            (WD 0 Freezing)
+            UnboundedSquareGrid
+            M.empty
+            M.empty
+            M.empty

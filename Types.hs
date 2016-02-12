@@ -236,6 +236,7 @@ instance (HasState a SomeMind, HasState b SomeMind) => HasState (Entity a b) Som
    state f (Ag x) = fmap (\h -> Ag $ x & state .~ h) (f $ x ^. state)
    state f (Wu x) = fmap (\h -> Wu $ x & state .~ h) (f $ x ^. state)
 
+
 instance (Castable s t, Castable u v)
          => Castable (Entity s u) (Entity t v) where
    cast (Ag s) = Ag (cast s)
@@ -254,7 +255,6 @@ instance Castable (Wumpus s) VisualWumpus where
    cast a = VisualWumpus (a ^. name)
                          (a ^. health)
                          (a ^. stamina)
-
 
 instance Castable CellData VisualCellData where
    cast a = VCD (cast <$> a ^. entity)

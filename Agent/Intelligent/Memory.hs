@@ -367,3 +367,13 @@ deleteMemory (MI mi) = go mi
     go (x:xs) (T.Node n ns)
        | length ns >= x = Just $ T.Node n $ take x ns ++ maybe [] (:[]) (go xs (fromMaybe (error $ "deleteMemory: index (" ++ show x ++ ") too large!") $ lIndex ns x)) ++ drop (x+1) ns
        | otherwise = error $ "deleteMemory: tried to delete non-existent index " ++ show x
+
+instance Castable VisualCellData CellData where
+   cast a = CD (cast <$> a ^. entity)
+               (fromMaybe 0 $ a ^. stench)
+               (fromMaybe 0 $ a ^. breeze)
+               (a ^. pit)
+               (a ^. gold)
+               (a ^. meat)
+               (a ^. fruit)
+               (a ^. plant)

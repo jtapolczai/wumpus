@@ -319,3 +319,7 @@ makeAbs :: CellInd -- |Vector 1
         -> RelInd -- |Vector 2
         -> CellInd -- |Sum of vectors 1 and 2
 makeAbs (i1,j1) (RI (i2,j2)) = (i1+i2, j1+j2)
+
+-- |Returns an empty inventory with all items present, with quantities of 0.
+emptyInventory :: M.Map Item Int
+emptyInventory = M.fromList [(Gold, 0), (Meat, 0), (Fruit, 0)]
