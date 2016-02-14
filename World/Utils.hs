@@ -327,6 +327,18 @@ makeAbs (i1,j1) (RI (i2,j2)) = (i1+i2, j1+j2)
 emptyInventory :: M.Map Item Int
 emptyInventory = M.fromList [(Gold, 0), (Meat, 0), (Fruit, 0)]
 
+-- |Always takes the right argument and throws away the left.
+instance SG.Semigroup VisualCellData where
+   _ <> r = r
+
+-- |Always takes the right argument and throws away the left.
+instance SG.Semigroup CellData where
+   _ <> r = r
+
+-- |Always takes the right argument and throws away the left.
+instance SG.Semigroup EdgeData where
+   _ <> r = r
+
 -- |Union-instance. The operator computes the union of two worlds.
 --  If a cell or edge exists in both worlds, the two are combined using
 --  their semigroup-instances.
@@ -335,13 +347,12 @@ emptyInventory = M.fromList [(Gold, 0), (Meat, 0), (Fruit, 0)]
 instance (SG.Semigroup c,
           SG.Semigroup e,
           HasEntity c (Maybe (Entity s t)),
-          HasName (Entity s t) EntityName) => Monoid (BaseWorld c e) where
-   mempty = BaseWorld (WD 0 Freezing) UnboundedSquareGrid M.empty M.empty M.empty
-   mappend l r = BaseWorld (r ^. worldData)
-                           (r ^. graph)
-                           (M.unionWith (SG.<>) (l ^. edgeData) (r ^. edgeData))
-                           cells'
-                           (makeEntityIndex cells')
-
+          HasName (Entity s t) EntityName) => SG.Semigroup (BaseWorld c e) where
+   l <> r = BaseWorld
+      (r ^. worldData)
+      (r ^. graph)
+      (M.unionWith (SG.<>) (l ^. edgeData) (r ^. edgeData))
+      cells'
+      (makeEntityIndex cells')
       where
          cells' = M.unionWith (SG.<>) (l ^. cellData) (r ^. cellData)
