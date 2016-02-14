@@ -622,7 +622,7 @@ decisionMakerComponent asInit = trace "[decisionMakerComponent]" $ trace (replic
                                  (as ^. gestures)
                                  myPos
                                  (makeAbs myPos sec)
-                                 (as ^. memory . memInd (leftMemIndex as) . _5)
+                                 (cast $ as ^. memory . memInd (leftMemIndex as))
 
       myPos = fromMaybe (error "[decisionMakerComponent.myPos] Nothing!") $ myPosition $ as ^. messageSpace
 
