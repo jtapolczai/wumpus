@@ -6,6 +6,7 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies #-}
 
 -- |General stuff on which other modules depend.
@@ -265,6 +266,9 @@ instance Castable CellData VisualCellData where
                 (a ^. plant)
                 (Just $ a ^. breeze)
                 (Just $ a ^. stench)
+
+instance (Castable s s') => Castable (BaseWorld s t) (BaseWorld s' t) where
+   cast (BaseWorld w g e c i) = BaseWorld w g e (fmap cast c) i
 
 instance Castable AgentMessage AgentMessageName where
 -- DON'T ADD AN OTHERWISE-CASE HERE! NON-EXHAUSTIVE PATTERNS
