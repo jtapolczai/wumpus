@@ -203,3 +203,25 @@ hamming xs = sum . zipWith (\x y -> if x == y then 0 else 1) xs
 -- Prints a Rational as a float with 3 digits of precision.
 showF3 :: Rational -> String
 showF3 = flip (showFFloat (Just 3)) "" . (fromRational :: Rational -> Double)
+
+-- Memory utils
+-------------------------------------------------------------------------------
+
+-- |Takes an AgentState and gets the index of the leftmost node in its memory
+--  tree. Use this in conjunction with 'addMemory' if you only want to create
+--  a linear sequence of memories with no branching.
+leftMemIndex :: AgentState -> MemoryIndex
+leftMemIndex = MI . go mempty . (^. memory)
+   where
+      go ys (T.Node _ []) = ys
+      go ys (T.Node _ (x:_)) = go (0:ys) x
+
+-- |Deletes a sub-tree given by a memory index. If the entire tree is deleted
+--  (if the index is []), Nothing is returned.
+deleteMemory :: MemoryIndex -> T.Tree a -> Maybe (T.Tree a)
+deleteMemory (MI mi) = go mi
+  where
+    go [] _ = Nothing
+    go (x:xs) (T.Node n ns)
+       | length ns >= x = Just $ T.Node n $ take x ns ++ maybe [] (:[]) (go xs (fromMaybe (error $ "deleteMemory: index (" ++ show x ++ ") too large!") $ lIndex ns x)) ++ drop (x+1) ns
+       | otherwise = error $ "deleteMemory: tried to delete non-existent index " ++ show x

@@ -187,6 +187,9 @@ data VisualCellData = VCD {
    }
    deriving (Show, Eq, Ord)
 
+instance Default VisualCellData where
+   def = VCD Nothing False 0 0 0 Nothing Nothing Nothing
+
 type Cell = Maybe CellData
 
 type CellInd = (Int,Int)
