@@ -15,6 +15,8 @@ import qualified Data.Map as M
 import Math.Geometry.Grid.Square
 import Math.Geometry.Grid.SquareInternal (SquareDirection(..))
 
+import World.Constants
+
 import Debug.Trace
 
 instance Ord SquareDirection where
@@ -196,7 +198,7 @@ data EdgeData = ED {
 } deriving (Show)
 
 instance Default EdgeData where
-   def = ED 0 1
+   def = ED 0 cEDGE_FATIGUE
 
 type Edge = Maybe EdgeData
 
