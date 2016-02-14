@@ -1,8 +1,10 @@
-{-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE ExistentialQuantification #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE
+   ExistentialQuantification,
+   FlexibleContexts,
+   RankNTypes,
+   ScopedTypeVariables,
+   UndecidableInstances
+   #-}
 
 module World.Utils where
 
@@ -12,6 +14,7 @@ import Data.Functor.Monadic ((>=$>))
 import qualified Data.Map as M
 import Data.Maybe
 import Data.Ratio
+import qualified Data.Semigroup as SG
 import Math.Geometry.Grid hiding (null)
 import Math.Geometry.Grid.Square
 import Math.Geometry.Grid.SquareInternal (SquareDirection(..))
@@ -323,3 +326,22 @@ makeAbs (i1,j1) (RI (i2,j2)) = (i1+i2, j1+j2)
 -- |Returns an empty inventory with all items present, with quantities of 0.
 emptyInventory :: M.Map Item Int
 emptyInventory = M.fromList [(Gold, 0), (Meat, 0), (Fruit, 0)]
+
+-- |Union-instance. The operator computes the union of two worlds.
+--  If a cell or edge exists in both worlds, the two are combined using
+--  their semigroup-instances.
+-- 
+--  The entity index is regenerated.
+instance (SG.Semigroup c,
+          SG.Semigroup e,
+          HasEntity c (Maybe (Entity s t)),
+          HasName (Entity s t) EntityName) => Monoid (BaseWorld c e) where
+   mempty = BaseWorld (WD 0 Freezing) UnboundedSquareGrid M.empty M.empty M.empty
+   mappend l r = BaseWorld (r ^. worldData)
+                           (r ^. graph)
+                           (M.unionWith (SG.<>) (l ^. edgeData) (r ^. edgeData))
+                           cells'
+                           (makeEntityIndex cells')
+
+      where
+         cells' = M.unionWith (SG.<>) (l ^. cellData) (r ^. cellData)
