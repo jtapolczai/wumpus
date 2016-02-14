@@ -352,7 +352,7 @@ mkEdge = ($ def) . LS.foldl' (\f c -> go c . f) id . map (view _2)
 mkWorldData :: [AgentMessage'] -> WorldData
 mkWorldData = ($ def) . LS.foldl' (\f c -> go c . f) id . map (view _2)
    where
-      go (AMTemperature t) = time .~ t
+      go (AMTemperature t) = temperature .~ t
       go (AMTime t) = time .~ t
       go _ = id
 
@@ -380,7 +380,7 @@ addMemory xs mi as = trace "[addMemory]" $ as & memory %~ addMemNode mi newMem
     newMem = constructMemory xs $ Just (as ^. memory . memInd mi)
 
 constructMemory :: [AgentMessage'] -> Maybe Memory -> Memory
-constructMemory ms baseWorld = baseWorld SG.<> curWorld
+constructMemory ms baseWorld = maybe curWorld (SG.<> curWorld) baseWorld
    where curWorld = constructWorld M.empty (const id) mkVisualCell mkEdge mkWorldData ms
 
 -- |A dummy mind for an agent that always performs the same action and stores
@@ -874,7 +874,7 @@ angerActions :: ActionSelector [Action]
 angerActions gestures i j w = filter (\x -> isActionPossible i x w) actions
    where
       actions = fromMaybe [Gesture targetDir hostileGesture, Attack targetDir]
-                (approachDistantActions gestures i j)
+                (approachDistantActions gestures i j w)
 
       targetDir = angleToDirection (angle i j)
       hostileGesture = gestures ^. at' (Sympathy, Negative)
@@ -894,7 +894,7 @@ enthusiasmActions :: ActionSelector [Action]
 enthusiasmActions gestures i j w = filter (\x -> isActionPossible i x w) actions
    where
       actions = (if i == j then (localActions ++) else id)
-                $ fromMaybe adjacentActions (approachDistantActions gestures i j)
+                $ fromMaybe adjacentActions (approachDistantActions gestures i j w)
 
       targetDir = angleToDirection (angle i j)
       friendlyGesture = gestures ^. at' (Sympathy, Positive)
@@ -911,7 +911,7 @@ enthusiasmActions gestures i j w = filter (\x -> isActionPossible i x w) actions
 -- |Generic approach-related actions for distant targets.
 --  If the target is still distant a 'Just' will be returned, otherwise Nothing.
 approachDistantActions :: ActionSelector (Maybe [Action])
-approachDistantActions _ i j
+approachDistantActions _ i j _
       | not withinView && distant = Just [Rotate targetDir]
       | distant                   = Just [Move targetDir]
       | otherwise                 = Nothing
@@ -925,10 +925,12 @@ approachDistantActions _ i j
 --  Fear always induces flight, so the agent will always try to maximise the distance
 --  from the given cell.
 fearActions :: ActionSelector [Action]
-fearActions _ i j = [Move awayDir]
+fearActions _ i j w = filter (\x -> isActionPossible i x w) actions
    where
+      actions = [Move awayDir]
+
       awayDir = changeMod (+2) $ angleToDirection (angle i j)
 
 -- |Actions associated with contentment.
 contentmentActions :: ActionSelector [Action]
-contentmentActions _ _ _ = [NoOp]
+contentmentActions _ _ _ _ = [NoOp]

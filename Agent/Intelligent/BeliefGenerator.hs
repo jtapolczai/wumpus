@@ -6,7 +6,7 @@
 
 module Agent.Intelligent.BeliefGenerator where
 
-import Control.Lens
+{- import Control.Lens
 import Control.Monad
 import Control.Monad.IO.Class
 import qualified Data.List.Safe as S
@@ -19,5 +19,5 @@ import Agent.Intelligent.Utils
 import Types
 import World
 
-import Debug.Trace
+import Debug.Trace -}
 

@@ -213,6 +213,9 @@ data WorldData = WD {
    _worldDataTemperature :: Temperature
 } deriving (Eq, Ord, Show)
 
+instance Default WorldData where
+   def = WD 0 Freezing
+
 data BaseWorld cd ed = BaseWorld {
    _baseWorldWorldData :: WorldData,
    _baseWorldGraph :: UnboundedSquareGrid,

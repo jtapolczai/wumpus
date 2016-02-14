@@ -4,7 +4,7 @@
 
 module Agent.Intelligent.DecisionMaker where
 
-import Control.Lens
+{- import Control.Lens
 
 import Data.Functor.Monadic
 import Data.List
@@ -23,5 +23,5 @@ import World.Constants
 import World.Utils
 import World
 
-import Debug.Trace
+import Debug.Trace -}
 
