@@ -18,7 +18,7 @@ The problem: when the agent is extremely hungry, its attention goes towards itse
 * [x] let the memory create a world and store it as-is
   * [x] but make sure that it has an agent index!!!
 * [x] the BG should work basically as-is (with minor adjustments)
-* [ ] the DM can directly recall a memory-world and check for action possibility via World.isActionPossible.
+* [x] the DM can directly recall a memory-world and check for action possibility via World.isActionPossible.
 * [ ] Make a module World.rules to house things like isEdible.
 * [ ] Create an export function for bitmaps?
 * [x] create VisualWorld (for memories; the cells are VCDs, not CDs)
