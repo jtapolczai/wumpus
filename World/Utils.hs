@@ -31,11 +31,6 @@ actionDirection (Give dir _) = dir
 actionDirection (Gesture dir _) = dir
 actionirection x = error $ "error: actionDirection called with " ++ show x
 
--- |Returns True iff the given cell exists and has neither a Wumpus nor an
---  agent on it.
-cellFree :: CellInd -> World -> Bool
-cellFree = cellHas (^. entity . to isNothing)
-
 -- |Returns True iff the given cell has an agent.
 cellAgent :: CellInd -> World -> Bool
 cellAgent = cellHas (^. entity . to (maybe False isAgent))
@@ -70,12 +65,6 @@ light' = toEnum . light
 -- |Returns the number of items of a given type in the agent's inventory.
 numItems :: Agent s -> Item -> Int
 numItems a item = view (inventory . at item . to (fromMaybe 0)) a
-
--- |Returns whether an item can be eaten by an agent.
-isEdible :: Item -> Bool
-isEdible Meat = True
-isEdible Fruit = True
-isEdible _ = False
 
 -- Helpers
 -------------------------------------------------------------------------------
@@ -226,14 +215,6 @@ avg = res . foldr (\x (s,a) -> (s+x,a+1)) (0,0)
    where
       res (s,a) = s * (1 % a)
 
--- |Performs an action if a predicate is fulfiled. Otherwise does nothing.
-doIf :: (a -> Bool) -> (a -> a) -> a -> a
-doIf pred act x = if pred x then act x else x
-
--- |Performs a monadic action if a predicate is fulfiled. Otherwise does nothing.
-doIfM :: Monad m => (a -> Bool) -> (a -> m a) -> a -> m a
-doIfM pred act x = if pred x then act x else return x
-
 -- |Applies a function on an agent. Non-agent entities are left unchanged.
 onAgent :: (Agent SomeMind -> Agent SomeMind) -> CellData -> CellData
 onAgent f cell = cell & entity . _Just %~ f'
@@ -326,6 +307,12 @@ makeAbs (i1,j1) (RI (i2,j2)) = (i1+i2, j1+j2)
 -- |Returns an empty inventory with all items present, with quantities of 0.
 emptyInventory :: M.Map Item Int
 emptyInventory = M.fromList [(Gold, 0), (Meat, 0), (Fruit, 0)]
+
+-- |Gets the lens associated with an item.
+itemLens :: Item -> Lens' CellData Int
+itemLens Meat = meat
+itemLens Gold = gold
+itemLens Fruit = fruit
 
 -- |Returns Truee iff an agent with the given name is present in the world's
 --  entity index.

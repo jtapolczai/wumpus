@@ -22,6 +22,7 @@ import Math.Geometry.Grid.Square
 import Types
 import World.Constants
 import World.Statistics
+import World.Rules
 import World.Utils
 
 import Data.MList
@@ -137,7 +138,7 @@ worldAgents world = map fst
 --  another).
 doEntityAction :: (MonadReader WorldMetaInfo m, MonadWriter (WorldStats -> WorldStats) m, MonadIO m)
                => World -> (CellInd, Entity') -> m World
-doEntityAction world (i, ag) = if cellFree i world
+doEntityAction world (i, ag) = if not $ cellEntity i world
    then return world
    else case ag of
       Ag agent -> do traceM "[doEntityAction]"
@@ -245,12 +246,6 @@ collect item lens c =
    . onAgent (sendMsg (MsgReceivedItem Nothing item)
               . (inventory . ix item +~ (c ^. lens))) $ c
 
--- |Gets the lens associated with an item.
-itemLens :: Item -> Lens' CellData Int
-itemLens Meat = meat
-itemLens Gold = gold
-itemLens Fruit = fruit
-
 -- |Returns Truee if the given cell has an agent on it and that agent
 --  can perform the given action, taking all preconditions into account. 
 --
@@ -265,15 +260,11 @@ isActionPossible i action world = if isJust meMaybe then go action else False
 
       go NoOp = True
       go (Rotate _) = True
-      go (Move dir) = cellFree j world && hasStamina (i,dir) world
+      go (Move dir) = cellHas canBeEntered j world && hasStamina (i,dir) world
       go (Attack _) = cellAgent j world || cellWumpus j world
       go (Give _ name) = cellAgent j world && numItems me name > 0
-      go Gather = cellHas ripePlant i world
-         where
-            ripePlant = (cPLANT_HARVEST >=) . fromMaybe 0 . view plant
-      go (Collect item) = cellHas thisItemPresent i world
-         where
-            thisItemPresent = (>0) . view (itemLens item)
+      go Gather = cellHas canBeGathered i world
+      go (Collect item) = cellHas (canBeCollected item) i world
       go (Drop item) = numItems me item > 0
       go (Eat item) = numItems me item > 0 && isEdible item
       go (Gesture _ _) = cellAgent j world
