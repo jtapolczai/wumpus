@@ -29,7 +29,7 @@ import System.Random (randomRIO)
 import Agent.Dummy
 import Agent.Intelligent.Affect
 --import Agent.Intelligent.BeliefGenerator
-import Agent.Intelligent.DecisionMaker
+-- import Agent.Intelligent.DecisionMaker
 --import Agent.Intelligent.Memory
 import Agent.Intelligent.MessageHandling
 import Agent.Intelligent.Perception
@@ -266,10 +266,23 @@ constructWorldWithAI
       -- ^Messages from which to create the world.
    -> World
 constructWorldWithAI agentPost mkCell mkEdge mkWorldData xs =
-   constructWorld agentPost (\i -> state .~ wumpusRealMind dummyWorld i) mkCell mkEdge mkWorldData xs
+   constructWorld agentPost (\i -> state .~ wumpusMind i) mkCell mkEdge mkWorldData xs
    where
       wumpusMind = wumpusRealMind dummyWorld
       dummyWorld = constructWorld M.empty (const id) mkCell mkEdge mkWorldData xs
+
+-- |Adds 'wumpusRealMind's to all Wumpuses in a world. This overwrites their previous minds.
+setWumpusMinds :: World -> World
+setWumpusMinds w = w & cellData . imapped %@~ upd
+   where
+      upd i c = c & entity . _Just . _Wu . state .~ wumpusRealMind w i
+
+-- |Applies functions to the minds of agents with the given names.
+setAgentMinds :: M.Map EntityName (CellInd -> SomeMind -> SomeMind) -> World -> World
+setAgentMinds minds w = w & cellData . imapped %@~ upd
+   where
+   upd i c = c & entity . _Just . _Ag %~ (\a -> a & state %~ mindF i a)
+   mindF i a = maybe id ($ i) $ M.lookup (a ^. name) minds
 
 -- |Creates a visual cell out of messages. Note: any agent/wumpus on the cell will have a dummyMind.
 mkVisualCell :: [AgentMessage'] -> VisualCellData
@@ -306,7 +319,7 @@ mkVisualCell ms = updateFunc def
       go (AMHaveMeat n) = trace "[constructCell] AMHaveMeat message." $ onInv (at Meat ?~ n)
       go (AMHaveFruit n) = trace "[constructCell] AMHaveFruit message." $ onInv (at Fruit ?~ n)
 
-      addCellInfo _ = id
+      go _ = id
 
 -- |Constructs an partial entity from agent messages.
 --  If there's a Wumpus/Agent-message in the given list, the cell's entity
@@ -368,9 +381,11 @@ getMyPerceptions en w = cd ^. ju entity . state . to readMessageSpace
 resetMemory :: AgentState -- ^The agent state. Has to have at least one memory.
             -> [AgentMessage']
             -> AgentState
-resetMemory as xs = as & memory .~ T.Node mem []
+resetMemory as xs = as & memory %~ (\(T.Node mem _) -> T.Node (upd mem) [])
    where
-      mem = constructMemory xs $ Just $ as ^. memory . memInd mempty
+      upd m = if m ^. cellData == M.empty
+              then constructMemory xs Nothing
+              else m
 
 -- |Adds a memory as a last child to an existent one. The memory given by the
 --  MemoryIndex has to exist.
@@ -462,16 +477,25 @@ simulateConsequences
    -> AgentState
    -> (World -> IO World)
    -> IO (World, [AgentMessage])
-simulateConsequences act mi as simulateAction = do
+simulateConsequences action mi as simulateAction = do
    --when (mi == mempty) (error "EMPTY MI GIVEN TO simulateConsequences!")
    traceM $ "[simulateConsequences]"
    traceM $ "[simulateConsequences] mi: " ++ show mi
-   let -- mi' = MI . init . runMI $ mi
-       mi' = mi
-       currentWorld = todo "currentWorld" --reconstructWorld act mi' as
-       myPos = trace "[simulateConsequences.myPos]" $ as ^. memory . memInd mi' . _3
-       myName = trace "[simulateConsequences.myName]" $ as ^. name
-       isAlive = trace "[simulateConsequences.isAlive]" $ as ^. memory . memInd mi' . _4
+   let myName = as ^. name
+       myMind = M.fromList [(myName, \_ _ -> SM $ DummyMind action True [])]
+       currentWorld :: World
+       currentWorld = setAgentMinds myMind . setWumpusMinds . cast $ as ^. memory . memInd mi
+       parentWorld :: Memory
+       parentWorld = as ^. memory . memInd (parentMemIndex mi)
+
+
+       myPos = trace "[simulateConsequences.myPos]" $ fromMaybe
+          (trace ("[simulateConsequences].myPos: +++Agent not found in current world "
+                  ++ show mi ++ ". Looking in parent world.") $ fromMaybe
+             (error "[simulateConsequences].myPos: Nothing for pos. in parent world!")
+             (entityPosition myName parentWorld))
+          (entityPosition myName currentWorld)
+       isAlive = trace "[simulateConsequences.isAlive]" $ isPresent myName currentWorld
    traceM $ "[simulateConsequences] reconstructed world: " ++ show currentWorld
    nextWorld <- simulateAction currentWorld --simulateStep currentWorld
    traceM $ "[simulateConsequences] next world: " ++ show nextWorld
