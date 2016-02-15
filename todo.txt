@@ -3,7 +3,23 @@
 
 * let NoOp lower contentment
 
-* Does the fruit raise the appropriate enthusiasm?
-*   temporarily set the health limit for plantHere to 2 to see whether the agent goes for it.
+* [x] Create setup-function for worlds to fine-tune scenarios
 
-* Create setup-function for worlds to fine-tune scenarios
+The problem: when the agent is extremely hungry, its attention goes towards itself (the (0,0)-field), not to the field with the plant on it, despite its inability to do something on (0,0). It should only select fields where it can actually do an action.
+   * only try to do admissible actions (i.e. don't try to give items to empty fields)
+   * go to next field if there's no admissible action for the currently selected one (e.g. (0,0) evokes the strongest emotion, but the agent has no food => select nearby field with a plant on it).
+
+   * [x] In effect, checking whether the proposed actions can be performed is the poor man's goal selection.
+     * Action selectors have to have access to the world data :(((((
+       * Well, we can just reconstruct a single cell, so that should be OK.
+       * 
+* [x] write isActionPossible with takes a world (can be gotten from memory, no reconstruction needed), and agent name, and an action and returns a Bool which will be True iff the action is possible for the agent in that world. If the agent isn't present in the world, the function returns False.
+
+* [x] let the memory create a world and store it as-is
+  * [x] but make sure that it has an agent index!!!
+* [x] the BG should work basically as-is (with minor adjustments)
+* [ ] the DM can directly recall a memory-world and check for action possibility via World.isActionPossible.
+* [ ] Make a module World.rules to house things like isEdible.
+* [ ] Create an export function for bitmaps?
+* [x] create VisualWorld (for memories; the cells are VCDs, not CDs)
+   * [ ] write liftWorld :: VisualWorld -> World
