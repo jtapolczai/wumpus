@@ -552,8 +552,6 @@ generateBelief act mi as = liftIO $ do
    traceM ("___generated msg: " ++ show msg)
    return as'
 
-
-
 -- Decision maker
 -- =============================================================================
 
@@ -631,20 +629,23 @@ decisionMakerComponent asInit = trace "[decisionMakerComponent]" $ trace (replic
    where
       -- chooses another action related to the given emotion
       getNextAction :: IsImaginary -> EmotionName -> IO Action
-      getNextAction imag emotion = let sec = strongestEmotionCell imag emotion as in
-         trace "[getNextAction]" $
-         traceShow emotion $
-         --traceShow (as ^. gestures) $
-         --traceShow (as ^. messageSpace) $
-         --traceShow myPos $
-         trace ("[getNextAction.SEC] " ++ show sec) $
-         traceShow (makeAbs myPos sec) $
-         traceShow "___getNextAction traces done" $
-         choose $ emotionActions emotion
-                                 (as ^. gestures)
-                                 myPos
-                                 (makeAbs myPos sec)
-                                 (cast $ as ^. memory . memInd (leftMemIndex as))
+      getNextAction imag emotion = do
+         let prospectiveCells = strongestEmotionCells imag emotion as
+         traceM $ "[getNextAction] with emotion " ++ show emotion
+         traceM $ "[getNextAction.SEC] " ++ (LS.intercalate "\n" $ map show prospectiveCells)
+         let actionableCells = dropWhile (null . getEmotionActions emotion) prospectiveCells
+         if null actionableCells then error "[decicionMakerComponent.getNextAction] No possible actions!"
+         else choose . head . map (getEmotionActions emotion) $ actionableCells
+
+      -- Shorthand; gets the actions possible for a given emotion on a given cell.
+      getEmotionActions e i = emotionActions e
+                                             (as ^. gestures)
+                                             myPos
+                                             (makeAbs myPos i)
+                                             curWorld
+
+      -- The current memory world.
+      curWorld = cast $ as ^. memory . memInd (leftMemIndex as)
 
       myPos = fromMaybe (error "[decisionMakerComponent.myPos] Nothing!") $ myPosition $ as ^. messageSpace
 
@@ -825,9 +826,10 @@ sumEmotionChanges goalMI =
                        then M.adjust (v+) n m
                        else m
 
--- |Gets the cell that evokes the highest value for a given emotion.
-strongestEmotionCell :: IsImaginary -> EmotionName -> AgentState-> RelInd
-strongestEmotionCell imag en as = trace "[strongestEmotionCell]"
+-- |Gets the cells that evoke a given emotion, sorted descendingly by the
+--  strength of the emotion invokeed.
+strongestEmotionCells :: IsImaginary -> EmotionName -> AgentState-> [RelInd]
+strongestEmotionCells imag en as = trace "[strongestEmotionCell]"
    $ trace ("[strongestEmotionCell.evCells] " ++ (show evCells))
    $ trace ("[strongestEmotionCell.sortedCells] " ++ (show sortedCells))
    $ trace ("___[strongestEmotionCell.returnValue] " ++ show ret)
@@ -835,7 +837,7 @@ strongestEmotionCell imag en as = trace "[strongestEmotionCell]"
    where
       evCells = evaluateCells imag as
       sortedCells = LS.sortBy (flip $ comparing f) $ M.toList evCells
-      ret = fst $ head sortedCells
+      ret = map fst sortedCells
 
       --ret = fst . head . sortBy (flip $ comparing f) . M.toList . evaluateCells
 
