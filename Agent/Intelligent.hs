@@ -383,9 +383,7 @@ resetMemory :: AgentState -- ^The agent state. Has to have at least one memory.
             -> AgentState
 resetMemory as xs = as & memory %~ (\(T.Node mem _) -> T.Node (upd mem) [])
    where
-      upd m = if m ^. cellData == M.empty
-              then constructMemory xs Nothing
-              else m
+      upd m = constructMemory xs (Just m)
 
 -- |Adds a memory as a last child to an existent one. The memory given by the
 --  MemoryIndex has to exist.
