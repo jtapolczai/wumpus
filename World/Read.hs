@@ -100,11 +100,12 @@ readWorld dir = do
 
        entityIndex = makeEntityIndex cd'
 
-       world = World (WD cSTART_TIME $ light' cSTART_TIME)
-                     UnboundedSquareGrid
-                     edges
-                     cd'
-                     entityIndex
+       world = BaseWorld
+          (WD cSTART_TIME $ light' cSTART_TIME)
+          UnboundedSquareGrid
+          edges
+          cd'
+          entityIndex
        
        -- the index of agent personalities, for the WorldMetaInfo object
        index = M.intersectionWith (const id) entityIndex
@@ -159,7 +160,12 @@ readAgents dir = readFile (dir ++ "/agents.txt")
                      (M.empty, M.fromList [(Sympathy, sympathyFragment Sympathy s gest),
                                            (Trust, def),
                                            (Respect, def)])
-                     (T.Node (M.empty, M.empty, (0,0), False) [])
+                     (T.Node (BaseWorld
+                                (WD cSTART_TIME $ light' cSTART_TIME)
+                                UnboundedSquareGrid
+                                M.empty
+                                M.empty
+                                M.empty) [])
                      []
                      []
                      gest

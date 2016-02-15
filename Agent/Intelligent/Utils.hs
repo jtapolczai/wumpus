@@ -216,6 +216,10 @@ leftMemIndex = MI . go mempty . (^. memory)
       go ys (T.Node _ []) = ys
       go ys (T.Node _ (x:_)) = go (0:ys) x
 
+-- |Isomorphic to 'init'. Partial.
+parentMemIndex :: MemoryIndex -> MemoryIndex
+parentMemIndex (MI x) = MI (init x)
+
 -- |Deletes a sub-tree given by a memory index. If the entire tree is deleted
 --  (if the index is []), Nothing is returned.
 deleteMemory :: MemoryIndex -> T.Tree a -> Maybe (T.Tree a)

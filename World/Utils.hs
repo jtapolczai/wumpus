@@ -327,6 +327,15 @@ makeAbs (i1,j1) (RI (i2,j2)) = (i1+i2, j1+j2)
 emptyInventory :: M.Map Item Int
 emptyInventory = M.fromList [(Gold, 0), (Meat, 0), (Fruit, 0)]
 
+-- |Returns Truee iff an agent with the given name is present in the world's
+--  entity index.
+isPresent :: EntityName -> BaseWorld s t -> Bool
+isPresent n = M.member n . view agents
+
+-- |Returns an agent's position in the world, if present.
+entityPosition :: EntityName -> BaseWorld s t -> Maybe CellInd
+entityPosition e = M.lookup e . view agents
+
 -- |Always takes the right argument and throws away the left.
 instance SG.Semigroup VisualCellData where
    _ <> r = r
