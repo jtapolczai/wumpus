@@ -15,7 +15,7 @@ isEdible _ = False
 
 -- |Returns True iff the given cell has a plant that can be harvested.
 canBeGathered :: CellData -> Bool
-canBeGathered = (cPLANT_HARVEST >=) . fromMaybe 0 . view plant
+canBeGathered = (cPLANT_HARVEST <=) . fromMaybe 0 . view plant
 
 -- |Returns True iff the given cell has a specific item on it that can be picked up.
 canBeCollected :: Item -> CellData -> Bool
