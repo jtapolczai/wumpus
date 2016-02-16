@@ -6,7 +6,54 @@
    UndecidableInstances
    #-}
 
-module World.Utils where
+module World.Utils (
+   actionDirection,
+   cellAgent,
+   cellWumpus,
+   cellEntity,
+   cellHas,
+   light,
+   light',
+   numItems,
+   shortestPaths,
+   searchPaths,
+   dist,
+   coordDist,
+   lineDistance,
+   angle,
+   angleDiff,
+   linearFunc,
+   angleToDirection,
+   getCircle,
+   rotateCW,
+   rotateCCW,
+   changeMod,
+   succMod,
+   prevMod,
+   pos,
+   angleOf,
+   avg,
+   onAgent,
+   getEntityType,
+   onEntity,
+   onAgentMind,
+   sendMsg,
+   entityAt,
+   agentAt,
+   cellAt,
+   onCell,
+   onCellM,
+   inDirection,
+   getDirection,
+   makeEntityIndex,
+   getEntity,
+   makeRel,
+   makeAbs,
+   emptyInventory,
+   itemLens,
+   isPresent,
+   entityPosition,
+   ) where
 
 import Control.Lens
 import Control.Monad (guard)
@@ -20,7 +67,11 @@ import Math.Geometry.Grid.Square
 import Math.Geometry.Grid.SquareInternal (SquareDirection(..))
 
 import Types
-import Debug.Trace
+import Debug.Trace.Wumpus
+
+-- Module-specific logging function.
+logF :: (String -> a) -> a
+logF f = f "World.Utils"
 
 -- |Unsafely gets the 'Direction'-field of an action, if there is one.
 actionDirection :: Action -> SquareDirection
@@ -124,7 +175,7 @@ lineDistance :: CellInd -- V
              -> CellInd -- W
              -> CellInd -- D
              -> Rational
-lineDistance v@(x1,y1) w@(x2,y2) (dx,dy) = if dist v w == 0 then trace "[lineDistance] zero distance!" 0
+lineDistance v@(x1,y1) w@(x2,y2) (dx,dy) = if dist v w == 0 then logF warning "[lineDistance] zero distance!" 0
                                                             else fromIntegral (abs nom) / dist v w
    where
       nom = (y2 - y1)*dx - (x2-x1)*dy + x2*y1 - y2*x1
@@ -281,10 +332,10 @@ makeEntityIndex :: (HasEntity c (Maybe (Entity s t)),
                     HasName (Entity s t) EntityName)
                 => M.Map CellInd c
                 -> M.Map EntityName CellInd
-makeEntityIndex = trace "[makeEntityIndex]" $ M.foldrWithKey
+makeEntityIndex = logF trace "[makeEntityIndex]" $ M.foldrWithKey
    (\k cd -> if maybe False isAgent (cd ^. entity)
-             then trace ("[makeEntityIndex] -> inserting entity at " ++ show k) $ M.insert (cd ^. entity . to (maybe (error $ show k ++ "MEI nothing!!!") id) . name) k
-             else trace ("[makeEntityIndex] no entity at " ++ show k) id) M.empty
+             then logF trace ("[makeEntityIndex] -> inserting entity at " ++ show k) $ M.insert (cd ^. entity . to (maybe (error $ show k ++ "MEI nothing!!!") id) . name) k
+             else logF trace ("[makeEntityIndex] no entity at " ++ show k) id) M.empty
 
 -- |Gets a given entity's name and location, if it exists. Partial.
 getEntity :: EntityName -> World -> (CellInd, CellData)

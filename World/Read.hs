@@ -2,7 +2,15 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE GADTs #-}
 
-module World.Read where
+module World.Read (
+   readWorld,
+   readAgents,
+   defaultAgent,
+   readBitmap,
+   generateAgentLine,
+   generateAgents,
+   generateAgentsFile,
+   ) where
 
 import Codec.BMP
 import Control.Arrow (second, (***))
@@ -28,18 +36,16 @@ import Types
 import World.Constants
 import World.Utils
 
-import Debug.Trace
+import Debug.Trace.Wumpus
+
+-- Module-specific logging function.
+logF :: (String -> a) -> a
+logF f = f "World.Read"
 
 -- |An RGB pixel.
 type Pixel = (Word8,Word8,Word8)
 
 white = (255,255,255)
-black = (0,0,0)
-red = (255,0,0)
-green = (0,255,0)
-
-getRed :: Pixel -> Word8
-getRed (r,_,_) = r
 
 -- |Takes a world bitmap with bitmaps and reads a world.
 --
@@ -66,16 +72,16 @@ readWorld dir = do
    entities <- M.fromList <$> readBitmap (dir ++ "/entities.bmp")
    agents <- readAgents dir
 
-   traceM "topography"
-   readBitmap (dir ++ "/topography.bmp") >>= (return. show) >>= traceM
+   logF traceM "topography"
+   readBitmap (dir ++ "/topography.bmp") >>= (return. show) >>= logF traceM
 
-   traceM "items"
-   readBitmap (dir ++ "/items.bmp") >>= (return. show) >>= traceM
+   logF traceM "items"
+   readBitmap (dir ++ "/items.bmp") >>= (return. show) >>= logF traceM
 
-   traceM "entities"
-   readBitmap (dir ++ "/entities.bmp") >>= (return. show) >>= traceM
+   logF traceM "entities"
+   readBitmap (dir ++ "/entities.bmp") >>= (return. show) >>= logF traceM
 
-   traceM "--------------------------------------------------"
+   logF traceM "--------------------------------------------------"
 
    let -- create topography
        cd = M.foldrWithKey (\k v t -> t & ix k %~ addItem v) topography items
@@ -113,8 +119,8 @@ readWorld dir = do
        -- the finished world in which we give minds to the Wumpuses
        world' = world & cellData .~ cd''
 
-   traceM "intersected agent list:"
-   traceM (show index)
+   logF traceM "intersected agent list:"
+   logF traceM (show index)
 
    return (world', WMI index)
 

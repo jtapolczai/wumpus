@@ -1,4 +1,7 @@
-module World.Perception where
+module World.Perception (
+   getLocalPerceptions,
+   getGlobalPerceptions,
+   ) where
 
 import Control.Lens
 import Math.Geometry.Grid.SquareInternal(SquareDirection(..))
@@ -8,7 +11,11 @@ import Data.Ratio
 import Types
 import World.Utils
 
-import Debug.Trace
+import Debug.Trace.Wumpus
+
+-- Module-specific logging function.
+logF :: (String -> a) -> a
+logF f = f "World.Perception"
 
 -- Perceptions
 ------------------------------------------------------------------------------
@@ -22,7 +29,7 @@ getLocalPerceptions :: World
                     -> CellInd -- ^The agent's position.
                     -> SquareDirection -- ^The agent's direction.
                     -> [Message]
-getLocalPerceptions world i d = trace "[getLocalPerception]" $ location : local : global : body ++ dir ++ visual
+getLocalPerceptions world i d = logF trace "[getLocalPerception]" $ location : local : global : body ++ dir ++ visual
    where
       local = MsgLocalPerception $ cellAt i world
       global = MsgGlobalPerception $ world ^. worldData
@@ -38,7 +45,7 @@ getLocalPerceptions world i d = trace "[getLocalPerception]" $ location : local 
 getGlobalPerceptions :: World
                      -> CellInd -- |The agent's current position.
                      -> [Message]
-getGlobalPerceptions world i = trace "[getGlobalPerception]" $ global : location : body ++ dir ++ cells
+getGlobalPerceptions world i = logF trace "[getGlobalPerception]" $ global : location : body ++ dir ++ cells
    where
       cells = map cellPerception $ world ^. cellData . to M.keys
       cellPerception j = MsgVisualPerception j $ cast' $ cellAt j world

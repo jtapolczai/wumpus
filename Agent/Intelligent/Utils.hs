@@ -8,7 +8,31 @@
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module Agent.Intelligent.Utils where
+module Agent.Intelligent.Utils (
+   msgWhere,
+   anyOfP,
+   isP,
+   msgWhereAny,
+   firstWhere,
+   lastWhere,
+   globalMessage,
+   socialMessage,
+   sortByInd,
+   sortByEntityName,
+   insertMaybe,
+   insert',
+   myPosition,
+   addMemNode,
+   hasMemNode,
+   choose,
+   mkMap,
+   subIndex,
+   hamming,
+   showF3,
+   leftMemIndex,
+   parentMemIndex,
+   deleteMemory,
+   ) where
 
 import Control.Lens
 import Data.Functor.Monadic
@@ -23,7 +47,11 @@ import System.Random (randomRIO)
 
 import Types
 
-import Debug.Trace
+import Debug.Trace.Wumpus
+
+-- Module-specific logging function.
+logF :: (String -> a) -> a
+logF f = f "Agent.Intelligent.Utils"
 
 -- |Returns the messages that have the given constructor.
 msgWhere :: forall a.Getting (First a) AgentMessage a
@@ -163,8 +191,8 @@ myPosition = lastWhere _AMPosition
 --  
 --  __NOTE__: Unsafe in case of non-existent paths.
 addMemNode :: MemoryIndex -> a -> T.Tree a -> T.Tree a
-addMemNode (MI []) m (T.Node t ts) = trace "[addMemNode] leaf" $ T.Node t $ ts ++ [T.Node m []]
-addMemNode mi@(MI (x:xs)) m (T.Node t ts) = trace ("[addMemNode] mi: " ++ show mi) $
+addMemNode (MI []) m (T.Node t ts) = logF trace "[addMemNode] leaf" $ T.Node t $ ts ++ [T.Node m []]
+addMemNode mi@(MI (x:xs)) m (T.Node t ts) = logF trace ("[addMemNode] mi: " ++ show mi) $
    T.Node t $ ts & ix x %~ addMemNode (MI xs) m
 
 hasMemNode :: MemoryIndex -> T.Tree a -> Bool

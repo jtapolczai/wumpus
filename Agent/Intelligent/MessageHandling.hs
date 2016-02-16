@@ -2,14 +2,23 @@
 
 -- |Functionality pertaining to the inter-component communication inside an
 --  agent's mind.
-module Agent.Intelligent.MessageHandling where
+module Agent.Intelligent.MessageHandling (
+   callComponents,
+   addMessage,
+   addMessages,
+   swallow,
+   reproduce,
+   ) where
 
 import Control.Lens
 import Control.Monad
 import Types
 
-import Debug.Trace
--- import System.IO.Unsafe
+import Debug.Trace.Wumpus
+
+-- Module-specific logging function.
+logF :: (String -> a) -> a
+logF f = f "Agent.Intelligent.MessageHandling"
 
 -- |Calls a list of components in succession. Each component receives the same
 --  messages. Components may modify the agent state and communicate with each other
@@ -32,17 +41,17 @@ callComponents doReinsertInit comps initAs = putMsg <$> foldM f (initAs, mempty)
       addFinalMsg = if doReinsertInit then initMsg else []
 
       putMsg (curAs,ms) =
-         trace ("[CC.putMsg] initAs #msg: " ++ (show $ length $ view messageSpace initAs))
-         $ trace ("[CC.putMsg] out #msg: " ++ (show $ length $ ms))
-         $ trace ("[CC.putMsg] out msg (initMsg): " ++ show initMsg)
-         $ trace ("[CC.putMsg] out msg (ms): " ++ show ms)
+         logF trace ("[CC.putMsg] initAs #msg: " ++ (show $ length $ view messageSpace initAs))
+         $ logF trace ("[CC.putMsg] out #msg: " ++ (show $ length $ ms))
+         $ logF trace ("[CC.putMsg] out msg (initMsg): " ++ show initMsg)
+         $ logF trace ("[CC.putMsg] out msg (ms): " ++ show ms)
          $ curAs & messageSpace .~ (addFinalMsg ++ ms)
                  & newMessages .~ mempty
 
       -- run the component with the initial messages.
       -- collect the newly added messages separately.
       f (curAs, ms) g = do
-         traceM $ "[CC] #msg: " ++ (show $ length $ initMsg ++ ms)
+         logF traceM $ "[CC] #msg: " ++ (show $ length $ initMsg ++ ms)
          --traceM $ "[CC] msg (initMsg): " ++ (show initMsg)
          --traceM $ "[CC] msg (ms): " ++ (show ms)
          newAs <- g $ curAs & messageSpace .~ (initMsg ++ ms)

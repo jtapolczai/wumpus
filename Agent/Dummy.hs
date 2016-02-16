@@ -3,7 +3,9 @@
    MultiParamTypeClasses,
    TypeFamilies #-}
 
-module Agent.Dummy where
+module Agent.Dummy (
+   dummyMind,
+   ) where
 
 import Control.Lens
 
@@ -11,14 +13,17 @@ import Types.Agent.Dummy
 import Types
 import World.Perception
 
-import Debug.Trace
+import Debug.Trace.Wumpus
+
+-- Module-specific logging function.
+logF :: (String -> a) -> a
+logF f = f "Agent.Dummy"
 
 instance AgentMind DummyMind where
    pullMessages _ _ d@DummyMind{_dummyMindStoreMessages=False} = d
    pullMessages w i d = d & messageSpace %~ (perc++)
       where
-         perc = trace "[DummyMind.pullMessages]" $ getGlobalPerceptions w i
-         -- me = w ^. cellData . ju (at i) . ju entity
+         perc = logF trace "[DummyMind.pullMessages]" $ getGlobalPerceptions w i
 
    receiveMessage _ d@DummyMind{_dummyMindStoreMessages=False} = d
    receiveMessage m d = d & messageSpace %~ (m:)

@@ -44,7 +44,11 @@ import Data.Ord (comparing)
 
 import Types
 
-import Debug.Trace.Disable
+import Debug.Trace.Wumpus
+
+-- Module-specific logging function.
+logF :: (String -> a) -> a
+logF f = f "Agent.Intelligent.Filter"
 
 -- |Creates an empty filter.
 instance Default (FilterMsg sn ri s) where
@@ -173,10 +177,10 @@ exciteNode isOutputNode x n =
          let
             fn' = fn & excitement . _Wrapped' +~ (fn ^. excitementInc . fromNE)
          in
-           trace ("[exciteNode] node " ++ show (n ^. name) ++ " got excited by message " ++ show x ++ " NE=" ++ show (fn' ^. excitement) ++ " NT=" ++ show (fn' ^. threshold)) 
+           logF trace ("[exciteNode] node " ++ show (n ^. name) ++ " got excited by message " ++ show x ++ " NE=" ++ show (fn' ^. excitement) ++ " NT=" ++ show (fn' ^. threshold)) 
            $
            (if (fn' ^. excitement . fromNE >= fn' ^. threshold . fromNT) && isOutputNode
-            then trace ("[exciteNode] output node " ++ show (n ^. name) ++ " activated by " ++ show x)
+            then logF trace ("[exciteNode] output node " ++ show (n ^. name) ++ " activated by " ++ show x)
             else id) fn'
 
 -- |Sends excitation along one edge to a neighbor.
@@ -188,7 +192,7 @@ exciteNeighbor :: String-- ^Source node (just for debugging; isn't used).
                -> Filter
 exciteNeighbor s nk (NE srcEx) es f = f & graph . ix nk %~ exInc
    where
-      exInc n = trace ("[exciteNeighbor] " ++ show (n ^. name) ++ " excited from neighbor " ++ s ++ ". Excitement: " ++ show from ++ " -> " ++ show to ++ " out of " ++ show thresh)
+      exInc n = logF trace ("[exciteNeighbor] " ++ show (n ^. name) ++ " excited from neighbor " ++ s ++ ". Excitement: " ++ show from ++ " -> " ++ show to ++ " out of " ++ show thresh)
                 $ n & excitement . _Wrapped +~ round (fromIntegral srcEx * es)
          where
             n' = n & excitement . _Wrapped +~ round (fromIntegral srcEx * es)
@@ -225,12 +229,12 @@ runFilter :: [AgentMessage]
           -> Filter
           -> Rational
 runFilter ms limit filt =
-   trace "[runFilter]"
-   $ trace "---------------------"
-   $ trace ("num output nodes: " ++ (show $ length $ HS.toList $ res ^. outputNodes))
-   $ trace "Activated output nodes (id, name, sign, excitement, threshold, isActive): "
-   $ traceList outNodes
-   $ trace "vvvvvvvvvvvvvvvvvvvvv"
+   logF trace "[runFilter]"
+   $ logF trace "---------------------"
+   $ logF trace ("num output nodes: " ++ (show $ length $ HS.toList $ res ^. outputNodes))
+   $ logF trace "Activated output nodes (id, name, sign, excitement, threshold, isActive): "
+   $ logF traceList outNodes
+   $ logF trace "vvvvvvvvvvvvvvvvvvvvv"
    $ activatedSum res
    where
       res = runFilter' ms limit filt
@@ -324,8 +328,8 @@ mkFilterIndex xs = nodeIndex .~ foldl' f HM.empty xs
 --  as the given message, or which need no specific RelInd.
 candidateNodes :: AgentMessage -> Filter -> [G.Vertex]
 candidateNodes msg (FI _ _ i) = {- trace "[candidateNodes]" -}
-   maybe (trace "[candidateNodes] no nodes." [])
+   maybe (logF trace "[candidateNodes] no nodes." [])
            (\m1 -> let noCI = fromMaybe [] $ HM.lookup Nothing m1
-                       hasCI = fromMaybe [] $ maybe Nothing (`HM.lookup` m1) (trace ("[candidateNodes] cell ind: " ++ show (msg ^. _agentMessageCellInd)) $ Just $ msg ^. _agentMessageCellInd)
-                   in trace ("[candidateNodes] " ++ show msg ++ " has " ++ show (length $ noCI ++ hasCI) ++ " candidate nodes.\n" ++ show (noCI ++ hasCI)) $ noCI ++ hasCI)
+                       hasCI = fromMaybe [] $ maybe Nothing (`HM.lookup` m1) (logF trace ("[candidateNodes] cell ind: " ++ show (msg ^. _agentMessageCellInd)) $ Just $ msg ^. _agentMessageCellInd)
+                   in logF trace ("[candidateNodes] " ++ show msg ++ " has " ++ show (length $ noCI ++ hasCI) ++ " candidate nodes.\n" ++ show (noCI ++ hasCI)) $ noCI ++ hasCI)
            (HM.lookup (cast msg) i)

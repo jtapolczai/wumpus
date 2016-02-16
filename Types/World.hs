@@ -17,7 +17,7 @@ import Math.Geometry.Grid.SquareInternal (SquareDirection(..))
 
 import World.Constants
 
-import Debug.Trace
+import Debug.Trace.Wumpus
 
 instance Ord SquareDirection where
    x <= y = fromEnum x <= fromEnum y
@@ -340,7 +340,7 @@ class AgentMind a where
 data SomeMind = forall m.AgentMind m => SM m
 
 instance AgentMind SomeMind where
-   pullMessages w i (SM m) = trace "SM.pullMessages" $ SM (pullMessages w i m)
+   pullMessages w i (SM m) = trace "Types.World" "SM.pullMessages" $ SM (pullMessages w i m)
    receiveMessage x (SM m) = SM (receiveMessage x m)
    getAction (SM m) = do (a,m') <- getAction m
                          return (a, SM m')

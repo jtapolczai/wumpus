@@ -6,7 +6,43 @@
 
 -- |Contains pre-made affective fragments from which one can piece together an
 --  agent's personality.
-module Agent.Intelligent.Affect.Fragments where
+module Agent.Intelligent.Affect.Fragments (
+   psbcFragmentType,
+   sjsFragmentType,
+   personalityFragment,
+   sympathyFragment,
+   genericAnger,
+   genericFear,
+   genericEnthusiasm,
+   genericContentment,
+   weakAnger,
+   strongAnger,
+   weakFear,
+   strongFear,
+   weakEnthusiasm,
+   strongEnthusiasm,
+   weakContentment,
+   strongContentment,
+   genericSocial,
+   friendlySocial,
+   hostileSocial,
+   weakWumpusHere,
+   weakEnemyHere,
+   pitHere,
+   strongWumpusHere,
+   strongEnemyHere,
+   weakFriendHere,
+   friendHere,
+   plantHere,
+   freeHere,
+   itemHere,
+   entityHereFilt,
+   entityHere,
+   circleAroundMeFilt,
+   indG,
+   ind,
+   indN,
+   ) where
 
 import Control.Arrow
 import Control.Lens
@@ -22,7 +58,11 @@ import Agent.Intelligent.Filter
 import Types
 import World.Utils
 
-import Debug.Trace.Disable
+import Debug.Trace.Wumpus
+
+-- Module-specific logging function.
+logF :: (String -> a) -> a
+logF f = f "Agent.Intelligent.Affect.Fragments"
 
 psbcFragmentType :: String -> PSBCFragmentType
 psbcFragmentType "weak" = Weak
@@ -169,7 +209,7 @@ genericFear ss = runFilterM $ do
 
 
 genericEnthusiasm :: EnthusiasmSettings -> Filter
-genericEnthusiasm ss = (\x -> trace ("[genericEnthusiasm] filter index: " ++ show (view nodeIndex x)) x) $ runFilterM $ do
+genericEnthusiasm ss = runFilterM $ do
    quarterHealthLoss <- indG AMNHealthDecreased $ mkFNo' "e1/4HealthLoss" (NodeGT _AMHealthDecreased 0.25) (NS $ ss ^. quarterHealthLossVal) (NT 2)
    halfHealthLoss <- indG AMNHealthDecreased $ mkFNo' "e1/2HealthLoss" (NodeGT _AMHealthDecreased 0.5) (NS $ ss ^. halfHealthLossVal) (NT 2)
    highTemp <- indG AMNTemperature $ mkFNo' "eHighTemp" (NodeGT _AMTemperature Warm) (NS $ ss ^. highTempVal) (NT 2)
@@ -834,7 +874,7 @@ entityHereFilt prefix circ checks = foldM mkCheck mempty circ
    where
       mkCheck (fs,out) (int, pos) = do nodes <- entityHere prefix checks pos (NS int)
                                        (SI outN) <- lift peek
-                                       traceM $ "[entityHereFilt] created nodes: \n" ++ show nodes
+                                       logF traceM $ "[entityHereFilt] created nodes: \n" ++ show nodes
                                        return (fs `HM.union` nodes, HS.insert (outN - 1) out)  
 
 -- |Creates a graph whose output node is activated is a wumpus is at a given location.
@@ -860,9 +900,9 @@ entityHere prefix cons curPos@(RI (i, j)) sig = do
               -> FilterM (HM.HashMap G.Vertex (FilterNode AgentMessage))
       mkCheck fs (chkname, pos, n, cnd) = do
          iChk <- ind n curPos $ mkFNs (prefix ++ "_EQx" ++ show i) (NodeEQ (pos . _RI . _1) i) []
-         traceM $ "[entityHere.mkCheck] created iChk with index " ++ show ((\(i,x) -> (i, view name x)) iChk)
+         logF traceM $ "[entityHere.mkCheck] created iChk with index " ++ show ((\(i,x) -> (i, view name x)) iChk)
          jChk <- ind n curPos $ mkFNs (prefix ++ "_EQy" ++ show j) (NodeEQ (pos . _RI . _2) j) []
-         traceM $ "[entityHere.mkCheck] created jChk with index " ++ show ((\(i,x) -> (i, view name x)) jChk)
+         logF traceM $ "[entityHere.mkCheck] created jChk with index " ++ show ((\(i,x) -> (i, view name x)) jChk)
          mChk <- case cnd of Nothing   -> return Nothing
                              Just cnd' -> Just <$> (ind n curPos $ mkFNs (prefix ++ "_" ++ chkname) cnd' [])
 

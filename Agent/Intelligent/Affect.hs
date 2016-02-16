@@ -4,7 +4,22 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE LambdaCase #-}
 
-module Agent.Intelligent.Affect where
+module Agent.Intelligent.Affect (
+   psbcEmotionMap,
+   sjsComponent,
+   sjsEntityEmotion,
+   psbcComponent,
+   psbcEmotion,
+   emotionValue,
+   isEmotionOverruled,
+   isApproachRelated,
+   isAvoidanceRelated,
+   isPositive,
+   isNegative,
+   emotionMessage,
+   socialEmotionMessage,
+   conflictingEmotions,
+   ) where
 
 import Control.Lens
 import Control.Monad (join)
@@ -25,6 +40,10 @@ import World.Utils
 
 import Debug.Trace.Wumpus
 
+-- Module-specific logging function.
+logF :: (String -> a) -> a
+logF f = f "Agent.Intelligent.Affect"
+
 -- |A map of all the emotions..
 --  Useful as an initial dictionary and for folding over lists of values.
 psbcEmotionMap :: a -> M.Map EmotionName a
@@ -34,7 +53,7 @@ psbcEmotionMap x = M.fromList [(Anger, x), (Fear, x), (Enthusiasm, x), (Contentm
 --  Messages about the three emotions regarding detected agents will
 --  be put into the message space.
 sjsComponent :: Monad m => AgentComponent m
-sjsComponent as = trace "[sjsComponent]" $ trace (replicate 80 '+') $ return $ foldr sjsFold as entityMsg
+sjsComponent as = logF trace "[sjsComponent]" $ logF trace (replicate 80 '+') $ return $ foldr sjsFold as entityMsg
    where
       entityMsg = sortByEntityName $ as ^. messageSpace
 
@@ -90,18 +109,18 @@ sjsEntityEmotion ms other emo as = as & sjs . _1 . at other %~ changeLvl
 -- |Modulates an agent's emotional state based on stimuli.
 --  Messages about the four new emotional states are inserted.
 psbcComponent :: Monad m => AgentState -> m AgentState
-psbcComponent as = trace "[psbcComponent]" $ trace (replicate 80 '+')
-   $ trace ("[psbcComponent] output nodes:")
+psbcComponent as = logF trace "[psbcComponent]" $ logF trace (replicate 80 '+')
+   $ logF trace ("[psbcComponent] output nodes:")
    {-
-   $ trace ("___Anger:")
-   $ (traceList $ snd $ outputNodesTrace !! 0)
-   $ trace ("___Fear:")
-   $ (traceList $ snd $ outputNodesTrace !! 1)
-   $ trace ("___Enthusiasm:")
-   $ (traceList $ snd $ outputNodesTrace !! 2)
-   $ trace ("___Contentment:")
-   $ (traceList $ snd $ outputNodesTrace !! 3) -}
-   $ trace ("[psbcComponent] new emotion map: " ++ show (ret_as ^. psbc . to (fmap fst)))
+   $ logF trace ("___Anger:")
+   $ (logF traceList $ snd $ outputNodesTrace !! 0)
+   $ logF trace ("___Fear:")
+   $ (logF traceList $ snd $ outputNodesTrace !! 1)
+   $ logF trace ("___Enthusiasm:")
+   $ (logF traceList $ snd $ outputNodesTrace !! 2)
+   $ logF trace ("___Contentment:")
+   $ (logF traceList $ snd $ outputNodesTrace !! 3) -}
+   $ logF trace ("[psbcComponent] new emotion map: " ++ show (ret_as ^. psbc . to (fmap fst)))
    $ return ret_as
    where
       ret_as = foldr (\en as' -> addEmotionMessage en $ psbcEmotion msg en as') as [minBound..maxBound]
@@ -124,7 +143,7 @@ psbcEmotion :: [AgentMessage]
             -> EmotionName
             -> AgentState
             -> AgentState
-psbcEmotion ms emo as = trace ("[psbcEmotion: " ++ show emo ++ "] new_lvl: " ++ show new_lvl) $ as & psbc . ix emo .~ (new_lvl , filt)
+psbcEmotion ms emo as = logF trace ("[psbcEmotion: " ++ show emo ++ "] new_lvl: " ++ show new_lvl) $ as & psbc . ix emo .~ (new_lvl , filt)
    where
       (lvl, filt) = as ^. psbc . at emo . to (fromMaybe $ error "[psbcEmotion.lvl/fil]: Nothing")
       val = {- trace ("calling with EV " ++ show emo) $ -} emotionValue ms filt

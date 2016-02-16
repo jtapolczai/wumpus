@@ -11,6 +11,10 @@ import World
 
 import Debug.Trace.Wumpus
 
+-- Module-specific logging function.
+logF :: (String -> a) -> a
+logF f = f "Wumpus"
+
 main' :: String -> IO ()
 main' w = do
    (worldInit, wmi) <- readWorld w
@@ -18,7 +22,7 @@ main' w = do
                          & worldData . temperature .~ Hot
                          & cellData . ix (2,0) . entity . _Just . health .~ 0.1
 
-   traceM $ show $ world ^. cellData . at (2,0)
+   logF traceM $ show $ world ^. cellData . at (2,0)
    --world `seq` putStrLn "WumpusWorld!"
    --print $ M.size $ world ^. cellData
    print wmi

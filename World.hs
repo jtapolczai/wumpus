@@ -5,7 +5,37 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GADTs #-}
 
-module World where
+module World (
+   makeWorld,
+   runWorld,
+   simulateStep,
+   simulateStepReader,
+   giveEntityPerceptions,
+   prnNames,
+   worldAgents,
+   doEntityAction,
+   doAction,
+   collect,
+   isActionPossible,
+   hasStamina,
+   moveEntity,
+   attack,
+   removeDeadFromIndex,
+   fight,
+   die,
+   advanceGlobalData,
+   initBreeze,
+   wumpusStench,
+   regrowPlants,
+   increaseHunger,
+   increaseStamina,
+   filterCells,
+   applyIntensityMap,
+   intensityMap,
+   getIntensity,
+   reduceIntensity,
+   entityDied,
+   ) where
 
 import Control.Lens
 import Control.Monad.Reader
@@ -27,20 +57,17 @@ import World.Utils
 
 import Data.MList
 
-import Debug.Trace
+import Debug.Trace.Wumpus
+
+-- Module-specific logging function.
+logF :: (String -> a) -> a
+logF f = f "World"
 
 type IntensityMap = M.Map CellInd Rational
-
--- add new constructors for:
-   -- agent health/stamina changes (me)
-   -- agent body
 
 instance Monoid Bool where
    mempty = False
    mappend = (&&)
-
--- |A value from 0 to 100.
-type Percentage = Rational
 
 -- |Creates a new world and initializes it (setting the time to the middle of
 --  the day and initializing the outwardly radiating breeze for the pits).
@@ -76,11 +103,11 @@ simulateStep = rwsBracket . simulateStepReader
 --  In addition, statistical data is written out.
 simulateStepReader :: (MonadReader WorldMetaInfo m, MonadWriter (WorldStats -> WorldStats) m, MonadIO m)
                    => World -> m World
-simulateStepReader world = trace "simulateStepReader" $ trace (replicate 80 '=')
-                           $ trace ("[simulateStepReader] old world: " ++ show world)
+simulateStepReader world = logF trace "simulateStepReader" $ logF trace (replicate 80 '=')
+                           $ logF trace ("[simulateStepReader] old world: " ++ show world)
                            $ do nw <- newWorld
-                                traceM ("[simulateStepReader] new world: " ++ show nw)
-                                traceM ("[simulateStepReader] new world: " ++ show (newWorld' nw))
+                                logF traceM ("[simulateStepReader] new world: " ++ show nw)
+                                logF traceM ("[simulateStepReader] new world: " ++ show (newWorld' nw))
                                 return (newWorld' nw)
    where
       newWorld = foldM updateAgent world (worldAgents world)
@@ -92,7 +119,7 @@ simulateStepReader world = trace "simulateStepReader" $ trace (replicate 80 '=')
       -- "updating an agent" means giving it its perceptions and performing
       -- its action. We also update the wumpus stench to have accurate stench
       -- information.
-      updateAgent world i = trace "[updateAgent]" $ wumpusStench <$> doEntityAction world' (i, ent)
+      updateAgent world i = logF trace "[updateAgent]" $ wumpusStench <$> doEntityAction world' (i, ent)
          where world' = giveEntityPerceptions world i
                ent = entityAt i world'
 
@@ -112,7 +139,7 @@ giveEntityPerceptions :: World
                       -> CellInd
                       -> World
 giveEntityPerceptions world i =
-   trace "[World.giveEntityPerceptions]" $
+   logF trace "[World.giveEntityPerceptions]" $
       -- trace ("   agent name: " ++ (world ^. cellData . at' i . ju entity . name)) $
       -- trace ("cellData names: " ++ show (str world)) $
       -- trace ("ixed named: " ++ show str') $
@@ -141,9 +168,9 @@ doEntityAction :: (MonadReader WorldMetaInfo m, MonadWriter (WorldStats -> World
 doEntityAction world (i, ag) = if not $ cellEntity i world
    then return world
    else case ag of
-      Ag agent -> do traceM "[doEntityAction]"
-                     traceM (show $ agent ^. name)
-                     traceM (show $ prnNames world)
+      Ag agent -> do logF traceM "[doEntityAction]"
+                     logF traceM (show $ agent ^. name)
+                     logF traceM (show $ prnNames world)
                      (action, ag') <- liftIO $ getAction (agent ^. state)
                      let agent' = Ag (agent & state .~ ag')
                          world' = world & cellData . ix i . entity ?~ agent'
