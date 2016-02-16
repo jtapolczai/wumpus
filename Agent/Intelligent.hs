@@ -640,6 +640,8 @@ decisionMakerComponent asInit = logF trace "[decisionMakerComponent]" $ logF tra
          logF traceM $ "[getNextAction] with emotion " ++ show emotion
          logF traceM $ "[getNextAction.SEC] " ++ (LS.intercalate "\n" $ map show prospectiveCells)
          let actionableCells = dropWhile (null . getEmotionActions emotion) prospectiveCells
+         logF traceM $ "[getNextAction.actionableCells] " ++ (LS.intercalate "\n" $ map (show . (\x -> (x, getEmotionActions emotion x))) actionableCells)
+         undefined
          if null actionableCells then error "[decicionMakerComponent.getNextAction] No possible actions!"
          else choose . head . map (getEmotionActions emotion) $ actionableCells
 
@@ -935,7 +937,7 @@ enthusiasmActions gestures i j w = filter (\x -> isActionPossible i x w) actions
       pickUp = [Collect Fruit, Collect Meat, Collect Gold]
       eat = [Eat Fruit, Eat Meat]
 
-      adjacentActions = gesture : give
+      adjacentActions = gesture : Move targetDir : give
       localActions = Gather : pickUp ++ eat
 
 -- |Generic approach-related actions for distant targets.

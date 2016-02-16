@@ -290,7 +290,7 @@ isActionPossible i action world = if isJust meMaybe then go action else False
       go (Move dir) = cellHas canBeEntered j world && hasStamina (i,dir) world
       go (Attack _) = cellAgent j world || cellWumpus j world
       go (Give _ name) = cellAgent j world && numItems me name > 0
-      go Gather = cellHas canBeGathered i world
+      go Gather = logF trace ("[isActionPossible] i=" ++ show i ++ ", cell=" ++ show (world ^. cellData . at i)) $ cellHas canBeGathered i world
       go (Collect item) = cellHas (canBeCollected item) i world
       go (Drop item) = numItems me item > 0
       go (Eat item) = numItems me item > 0 && isEdible item
