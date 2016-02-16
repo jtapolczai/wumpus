@@ -45,7 +45,7 @@ getLogLevel = fromMaybe defaultLogLevel . flip M.lookup logLevels
 
 genericLog :: LogLevel -> ModuleName -> String -> a -> a
 genericLog l mn s x =
-   if l >= logLevels M.! mn
+   if l >= getLogLevel mn
    then unsafePerformIO (hPutStrLn (logHandles M.! l) s >> return x)
    else x
 
