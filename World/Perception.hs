@@ -29,14 +29,18 @@ getLocalPerceptions :: World
                     -> CellInd -- ^The agent's position.
                     -> SquareDirection -- ^The agent's direction.
                     -> [Message]
-getLocalPerceptions world i d = logF trace "[getLocalPerception]" $ location : local : global : body ++ dir ++ visual
+getLocalPerceptions world i d = logF trace "[getLocalPerception]" $ location : local : global : body ++ dir ++ visual ++ edges
    where
       local = MsgLocalPerception $ cellAt i world
       global = MsgGlobalPerception $ world ^. worldData
       location = MsgPositionPerception i
       body = maybe (error "no body in getLocalPerception! Bug?") (\a -> [MsgBody (a ^. health) (a ^. stamina) (a ^. inventory)]) $ cellAt i world ^? entity . _Just . _Ag
       dir = maybe [] ((:[]) . MsgDirectionPerception) $ cellAt i world ^? entity . _Just . _Ag . direction
-      visual = map visualData $ verticesInSightCone world i d
+
+      visibleCells = verticesInSightCone world i d
+
+      visual = map visualData visibleCells
+      edges = concat . map (map (edgePerception world) . getNeighborhood world) $ visibleCells
       visualData j = MsgVisualPerception j $ cast $ cellAt j world
 
 -- |Gets the perceptions to which an all-seeing agent is entitled (i.e. if an agent
@@ -45,9 +49,10 @@ getLocalPerceptions world i d = logF trace "[getLocalPerception]" $ location : l
 getGlobalPerceptions :: World
                      -> CellInd -- |The agent's current position.
                      -> [Message]
-getGlobalPerceptions world i = logF trace "[getGlobalPerception]" $ global : location : body ++ dir ++ cells
+getGlobalPerceptions world i = logF trace "[getGlobalPerception]" $ global : location : body ++ dir ++ cells ++ edges
    where
       cells = map cellPerception $ world ^. cellData . to M.keys
+      edges = map (edgePerception world) $ world ^. edgeData . to M.keys
       cellPerception j = MsgVisualPerception j $ cast' $ cellAt j world
       global = MsgGlobalPerception $ world ^. worldData
       location = MsgPositionPerception i
@@ -59,6 +64,9 @@ getGlobalPerceptions world i = logF trace "[getGlobalPerception]" $ global : loc
       cast' c = (cast c) & breeze ?~ (c ^. breeze)
                          & stench ?~ (c ^. stench)
 
+-- |Creates an 'MsgEdgePerception' for an edge. Fails is the edge doesn't exist in the world.
+edgePerception :: World -> EdgeInd -> Message
+edgePerception world i = MsgEdgePerception i (world ^. edgeData . at' i)
 
 -- |Returns all the cells in an agent's sight cone.
 --  To be in an agent's sight cone, a cell has to fulfil three criteria:
@@ -74,12 +82,17 @@ verticesInSightCone :: World
 verticesInSightCone world i d =
    {- trace "[verticesInSightCone]" $ 
    trace ("___proximity 8: " ++ show proximity) $ -}
-   filter (\x -> all ($ x) [direct world i, smallAngle i d, distance world i]) proximity
+   filter (\x -> all ($ x) [exists world, direct world i, smallAngle i d, distance world i]) proximity
    where
+      exists :: World -> CellInd -> Bool
+      exists w i = M.member i (w ^. cellData)
       -- a small segment of cells that can possibly be in the sight cone.
       -- we generate this list to avoid looking at every cell in the world.
       proximity = getCircle i 8
 
+-- |Adds all outgoing edges of a cell in a world.
+getNeighborhood :: World -> CellInd -> [EdgeInd]
+getNeighborhood w = filter (`M.member` (w ^. edgeData)) . (`zip` [North, South, East, West]) . repeat 
 
 -- there has to exist at least one path from i to j on which every
 -- point is close to the straight line from i to j
