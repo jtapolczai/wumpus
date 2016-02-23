@@ -77,7 +77,6 @@ getAction' initAs = do
    as' <- callComponents False [initialMemoryComponent,
                                initialDecisionMakerComponent,
                                temporalizePerceptionsComponent] initAs
-   undefined
    action <- loop action (cc' components) as'
    logF traceM $ "[getAction] action: " ++ show action
    undefined

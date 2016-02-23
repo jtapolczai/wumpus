@@ -40,7 +40,7 @@ getLocalPerceptions world i d = logF trace "[getLocalPerception]" $ location : l
       visibleCells = verticesInSightCone world i d
 
       visual = map visualData visibleCells
-      edges = concat . map (map (edgePerception world) . getNeighborhood world) $ visibleCells
+      edges = concat . map (map (edgePerception world) . getNeighborhood world) $ (i : visibleCells)
       visualData j = MsgVisualPerception j $ cast $ cellAt j world
 
 -- |Gets the perceptions to which an all-seeing agent is entitled (i.e. if an agent

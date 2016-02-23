@@ -42,7 +42,7 @@ perception _ pos (MsgVisualPerception iAbs d) = logF trace "[perception] Msgvisu
       -- |The position relative to the agent.
       i = makeRel pos iAbs
 
-perception _ pos (MsgEdgePerception (iAbs, dir) d) = logF trace "[perception] MsgEdgePerception" $
+perception _ pos (MsgEdgePerception (iAbs, dir) d) = {- logF trace "[perception] MsgEdgePerception" $ -}
    [AMVisualEdgeFatigue (i, dir) (d ^. fatigue),
     AMVisualEdgeDanger (i, dir) (d ^. danger)]
     where
