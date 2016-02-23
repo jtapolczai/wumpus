@@ -77,7 +77,7 @@ instance AgentMind WumpusMind where
          proximity = [(x,y) | x <- [x-4 .. x+4],
                               y <- [y-4 .. y+4]]
 
-         move = Move $ getDirection i $ head $ tail $ head withinRange
+         move = Move $ head $ getDirections i $ head $ tail $ head withinRange
 
          -- if there's no agent, we move about randomly
          okDirs = filter (flip M.member (world ^. cellData) . inDirection i)

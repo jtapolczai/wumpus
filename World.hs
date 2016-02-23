@@ -333,7 +333,7 @@ moveEntity i j world = do
    maybe (return ()) entityDied . join $ world' ^? cellData . at j . _Just . entity
    return world'
    where
-      edgeFat = world ^. edgeData . at (i,getDirection i j) . to (maybe 0 $ view fatigue)
+      edgeFat = world ^. edgeData . at (i,head $ getDirections i j) . to (maybe 0 $ view fatigue)
 
       ent = world ^. cellData . at' i . ju entity
       ent' = ent & stamina -~ cEDGE_FATIGUE * edgeFat
@@ -375,7 +375,7 @@ attack i j world = tell attackPerformed
    where
       me = entityAt i world
       other = entityAt j world
-      attackSource = getDirection j i
+      attackSource = head $ getDirections j i
 
       healthLoss = min (me ^. health) (other ^. health)
 

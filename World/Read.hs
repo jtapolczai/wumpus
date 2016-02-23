@@ -92,8 +92,8 @@ readWorld dir = do
 
        -- |Adds a bidirectional edge to m if its target @to@ is an existing cell.
        addEdge from to m = if M.member to topography then
-            M.insert (to, getDirection to from) def
-            $ M.insert (from, getDirection from to) def m
+            M.insert (to,head $  getDirections to from) def
+            $ M.insert (from, head $ getDirections from to) def m
          else m
 
        -- |Adds edges to a cell's horizontal and vertical predecessor.

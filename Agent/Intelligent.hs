@@ -972,12 +972,13 @@ enthusiasmActions gestures i dir j w =
 --  If the target is still distant a 'Just' will be returned, otherwise Nothing.
 approachDistantActions :: ActionSelector (Maybe [Action])
 approachDistantActions _ i dir j _
-      | not withinView && dist i j > 0 = {- logF trace ("[rotate-case for " ++ show i ++ " " ++ show j) $ -} Just [Rotate targetDir]
-      | distant                        = {- logF trace ("[move-case for " ++ show i ++ " " ++ show j) $ -} Just [Move targetDir]
+      | not withinView && dist i j > 0 = {- logF trace ("[rotate-case for " ++ show i ++ " " ++ show j) $ -} Just [Rotate closestDir]
+      | distant                        = {- logF trace ("[move-case for " ++ show i ++ " " ++ show j) $ -} Just $ map Move targetDirs
       | otherwise                      = {- logF trace ("[otherwise-case for " ++ show i ++ " " ++ show j) $ -} Nothing
       where
       withinView = {- logF trace (mconcat ["[approachDistantActions] i=",show i, ", j=",show j,", angle=",show $ angle i j,", coneOf ",show dir,"=",show $ coneOf dir,", inCone=",show (inCone (coneOf dir) (abs $ angle i j))]) $ -} inCone (coneOf dir) (abs $ angle i j) 
-      targetDir = angleToDirection (angle i j)
+      closestDir = angleToDirection (angle i j)
+      targetDirs = getDirections i j
       distant = dist i j > 1
 
 -- |Selects fear-actions for a given cell.

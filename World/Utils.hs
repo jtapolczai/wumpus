@@ -46,7 +46,7 @@ module World.Utils (
    onCell,
    onCellM,
    inDirection,
-   getDirection,
+   getDirections,
    makeEntityIndex,
    getEntity,
    makeRel,
@@ -334,9 +334,11 @@ onCellM i f world = maybe (return world)
 inDirection :: CellInd -> SquareDirection -> CellInd
 inDirection i d = fromMaybe (error "[inDirection]: Nothing") $ neighbour UnboundedSquareGrid i d
 
--- |Gets the direction in which j lies from i.
-getDirection :: CellInd -> CellInd -> SquareDirection
-getDirection i j = head $ directionTo UnboundedSquareGrid i j
+-- |Gets all directions in which movement decreases the distance from i j.
+-- 
+--  This function will always return at least one item.
+getDirections :: CellInd -> CellInd -> [SquareDirection]
+getDirections i j = directionTo UnboundedSquareGrid i j
 
 instance Monoid Int where
    mempty = 0
