@@ -77,6 +77,7 @@ getAction' initAs = do
    as' <- callComponents False [initialMemoryComponent,
                                initialDecisionMakerComponent,
                                temporalizePerceptionsComponent] initAs
+   undefined
    action <- loop action (cc' components) as'
    logF traceM $ "[getAction] action: " ++ show action
    undefined
@@ -148,7 +149,10 @@ instance Castable VisualAgent (Agent SomeMind) where
 --  After that, memoryComponent should be called for planning.
 initialMemoryComponent :: Monad m => AgentComponent m
 initialMemoryComponent as = logF trace "[initialMemoryComponent]" $ logF trace (replicate 80 '+')
-   $ return $ resetMemory as (as ^. messageSpace) 
+   -- logF trace "[initialMemoryComponent] messages: " $
+   -- logF trace (show $ as ^. messageSpace) $
+   -- logF trace (replicate 80 '~') $
+   return $ resetMemory as (as ^. messageSpace) 
 
 memoryComponent :: Monad m => AgentComponent m
 memoryComponent as = logF trace "[memoryComponent]" $ logF trace (replicate 80 '+') $ do
@@ -218,7 +222,13 @@ constructWorld
    -> [AgentMessage']
       -- ^Messages from which to create the world.
    -> BaseWorld cell edge
-constructWorld agentPost wumpusPost mkCell mkEdge mkWorldData xs = logF trace "[constructWorld]" $
+constructWorld agentPost wumpusPost mkCell mkEdge mkWorldData xs =
+   logF trace "[constructWorld]" $
+   logF trace "[constructWorld] edge data:" $
+   logF trace (show edgeMsg) $
+   logF trace "[constructWorld] all messages: " $
+   logF trace (show xs) $
+   logF trace (replicate 80 '_') $
    BaseWorld (mkWorldData worldDataMsg)
              UnboundedSquareGrid
              edges
@@ -385,8 +395,9 @@ getMyPerceptions en w = cd ^. ju entity . state . to readMessageSpace
 resetMemory :: AgentState -- ^The agent state. Has to have at least one memory.
             -> [AgentMessage']
             -> AgentState
-resetMemory as xs = as & memory %~ (\(T.Node mem _) -> T.Node (upd mem) [])
+resetMemory as xs = logF trace ("[resetMemory] output world: ") $ logF trace (show $ ret ^. memory) $ ret
    where
+      ret = as & memory %~ (\(T.Node mem _) -> T.Node (upd mem) [])
       upd m = constructMemory xs (Just m)
 
 -- |Adds a memory as a last child to an existent one. The memory given by the
@@ -638,7 +649,7 @@ decisionMakerComponent asInit = logF trace "[decisionMakerComponent]" $ logF tra
       getNextAction imag emotion = do
          let prospectiveCells = strongestEmotionCells imag emotion as
          logF traceM $ "[getNextAction] with emotion " ++ show emotion
-         logF traceM $ "[getNextAction.SEC] " ++ (LS.intercalate "\n" $ map show prospectiveCells)
+         logF traceM $ "[getNextAction.SEC] " ++ (LS.intercalate "\n" $ map (show . (\x -> (x, getEmotionActions emotion x))) prospectiveCells)
          let actionableCells = dropWhile (null . getEmotionActions emotion) prospectiveCells
          logF traceM $ "[getNextAction.actionableCells] " ++ (LS.intercalate "\n" $ map (show . (\x -> (x, getEmotionActions emotion x))) actionableCells)
          undefined
@@ -918,15 +929,23 @@ angerActions gestures i j w = filter (\x -> isActionPossible i x w) actions
 --    rotates towards it.
 --  * If the other agent is just distant (i.e. Euclidean distance > 1), the agent moves towards it.
 --  * If the other agent is adjacent (Euclidean distance = 1), the agent either sends
---    its hostile gesture at (Sympathy, Positive), or it gives an item (fruit/meat/gold).
+--    its riendly gesture at (Sympathy, Positive), gives an item (fruit/meat/gold),
+--    or moves onto the cell if it has a plant.
 --  * If there's a plant on the target cell, harvest the fruit.
 --  * If there's an item on the target cell, pick it up.
 --  * Eat an food item.
 enthusiasmActions :: ActionSelector [Action]
-enthusiasmActions gestures i j w = filter (\x -> isActionPossible i x w) actions
+enthusiasmActions gestures i j w = 
+   logF trace ("[enthusiasmActions] i=" ++ show i ++ ", j=" ++ show j ++ ", actions=" ++ show actions)
+   $ logF trace ("possible actions=" ++ show possibleActions)
+   $ possibleActions
    where
-      actions = (if i == j then (localActions ++) else id)
-                $ fromMaybe adjacentActions (approachDistantActions gestures i j w)
+      possibleActions = filter (\x -> isActionPossible i x w) actions
+
+      actions =
+         if i == j
+         then localActions
+         else moveToCollect ++ fromMaybe adjacentActions (approachDistantActions gestures i j w)
 
       targetDir = angleToDirection (angle i j)
       friendlyGesture = gestures ^. at' (Sympathy, Positive)
@@ -937,7 +956,8 @@ enthusiasmActions gestures i j w = filter (\x -> isActionPossible i x w) actions
       pickUp = [Collect Fruit, Collect Meat, Collect Gold]
       eat = [Eat Fruit, Eat Meat]
 
-      adjacentActions = gesture : Move targetDir : give
+      moveToCollect = if cellHas (^. plant . to isJust) j w then [Move targetDir] else []
+      adjacentActions = gesture : give
       localActions = Gather : pickUp ++ eat
 
 -- |Generic approach-related actions for distant targets.

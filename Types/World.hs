@@ -236,6 +236,8 @@ type VisualWorld = BaseWorld VisualCellData EdgeData
 data Message =
    -- |Visual data about a dell.
    MsgVisualPerception CellInd VisualCellData
+   -- |Visual data about an edge.
+   | MsgEdgePerception EdgeInd EdgeData
    -- |Data about the current cell.
    | MsgLocalPerception CellData
    -- |Global world-data.
@@ -270,6 +272,7 @@ data Message =
 
 instance Show Message
    where show = \case MsgVisualPerception e d -> "MsgVisualPerception " ++ intercalate " " [show e,show d]
+                      MsgEdgePerception e d -> "MsgEdgePerception " ++ intercalate " " [show e, show d]
                       MsgLocalPerception _ -> "MsgLocalPerception"
                       MsgGlobalPerception d -> "MsgGlobalPerception " ++ show d
                       MsgPositionPerception p -> "MsgPositionPerception "  ++ intercalate " " [show p]

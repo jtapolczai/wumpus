@@ -285,12 +285,22 @@ isActionPossible i action world = if isJust meMaybe then go action else False
       me = fromMaybe (error "isActionPossible.meMaybe: Nothing") meMaybe
       j = inDirection i $ actionDirection action
 
+      debugShowCell cmd = logF trace ("[isActionPossible] cmd=" ++ show cmd ++ ", i=" ++ show i ++ ", cell=" ++ show (world ^. cellData . at i))
+      worldCells = world ^. cellData . to M.toList 
+
       go NoOp = True
       go (Rotate _) = True
-      go (Move dir) = cellHas canBeEntered j world && hasStamina (i,dir) world
+      go x@(Move dir) = debugShowCell x
+                        $ logF trace "World cells: "
+                        $ logF trace (replicate 80 '_')
+                        $ logF traceList worldCells
+                        $ logF trace "World edge data"
+                        $ logF trace (replicate 80 '_')
+                        $ logF traceList (world ^. edgeData . to M.toList)
+                        $ cellHas canBeEntered j world && hasStamina (i,dir) world
       go (Attack _) = cellAgent j world || cellWumpus j world
       go (Give _ name) = cellAgent j world && numItems me name > 0
-      go Gather = logF trace ("[isActionPossible] i=" ++ show i ++ ", cell=" ++ show (world ^. cellData . at i)) $ cellHas canBeGathered i world
+      go Gather = cellHas canBeGathered i world
       go (Collect item) = cellHas (canBeCollected item) i world
       go (Drop item) = numItems me item > 0
       go (Eat item) = numItems me item > 0 && isEdible item
@@ -301,8 +311,8 @@ isActionPossible i action world = if isJust meMaybe then go action else False
 --  cell do not exist, False is returned.
 hasStamina :: EdgeInd -> World -> Bool
 hasStamina (i,dir) world = case (me, ef) of
-   (Just me', Just ef') -> me' >= cEDGE_FATIGUE * ef'
-   _                    -> False
+   (Just me', Just ef') -> logF trace ("[hasStamina] myStamina=" ++ show me' ++ ", required stamina=" ++ show (cEDGE_FATIGUE * ef')) $ me' >= cEDGE_FATIGUE * ef'
+   _                    -> logF trace ("[hasStamina] otherwise-case with edge " ++ show i ++ " " ++ show dir) False
    where
       me :: Maybe Rational
       me = world ^. cellData . at i . to (fmap $ view $ ju entity . stamina)

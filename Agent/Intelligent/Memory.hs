@@ -58,7 +58,7 @@ import World
 import World.Constants
 import World.Utils
 
-import Debug.Trace -}
+import Debug.Trace.Wumpus -}
 
 {-
 -- |Takes the agent's memory (and current messages about global data) and

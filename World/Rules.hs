@@ -23,4 +23,4 @@ canBeCollected item = (>0) . view (itemLens item)
 
 -- |Returns True iff the given cell can be entered by an entity.
 canBeEntered :: CellData -> Bool
-canBeEntered = view (entity . to isNothing)
+canBeEntered = view (entity . to (maybe True (error "Why is there an entity here???")))
