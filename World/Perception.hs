@@ -29,7 +29,14 @@ getLocalPerceptions :: World
                     -> CellInd -- ^The agent's position.
                     -> SquareDirection -- ^The agent's direction.
                     -> [Message]
-getLocalPerceptions world i d = logF trace "[getLocalPerception]" $ location : local : global : body ++ dir ++ visual ++ edges
+getLocalPerceptions world i d = logF trace "[getLocalPerception]"
+                                {- $ logF trace "[getLocalPerception] vertices in sight cone:"
+                                $ logF traceList visibleCells
+                                $ logF trace "[getLocalPerception] edges:"
+                                $ logF traceList (concatMap (getNeighborhood world) (i : visibleCells))
+                                $ logF trace "[getLocalPerception] all edges in the world: "
+                                $ logF traceList (map fst $ M.toList $ world ^. edgeData) -}
+                                $ location : local : global : body ++ dir ++ visual ++ edges
    where
       local = MsgLocalPerception $ cellAt i world
       global = MsgGlobalPerception $ world ^. worldData

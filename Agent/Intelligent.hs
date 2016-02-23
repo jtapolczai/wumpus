@@ -24,6 +24,7 @@ import Data.Ord
 import qualified Data.Semigroup as SG
 import qualified Data.Tree as T
 import Math.Geometry.Grid.Square
+import Math.Geometry.Grid.SquareInternal (SquareDirection)
 import System.Random (randomRIO)
 
 import Agent.Dummy
@@ -575,6 +576,7 @@ generateBelief act mi as = liftIO $ do
 type ActionSelector a =
    GestureStorage -- ^The agent's gesture storage.
    -> CellInd -- ^The agent's current position.
+   -> SquareDirection -- ^The agent's current direction.
    -> CellInd -- ^The target cell's position
    -> World -- ^The current world (as perceived by the agent)
    -> a
@@ -659,6 +661,7 @@ decisionMakerComponent asInit = logF trace "[decisionMakerComponent]" $ logF tra
       getEmotionActions e i = emotionActions e
                                              (as ^. gestures)
                                              myPos
+                                             myDir
                                              (makeAbs myPos i)
                                              curWorld
 
@@ -666,6 +669,7 @@ decisionMakerComponent asInit = logF trace "[decisionMakerComponent]" $ logF tra
       curWorld = cast $ as ^. memory . memInd (leftMemIndex as)
 
       myPos = fromMaybe (error "[decisionMakerComponent.myPos] Nothing!") $ myPosition $ as ^. messageSpace
+      myDir = fromMaybe (error "[decisionMakerComponent.myDir] Nothing!") $ myDirection $ as ^. messageSpace
 
       -- first, we reinsert all the planning-related messages
       as :: AgentState
@@ -913,10 +917,10 @@ emotionActions Contentment = contentmentActions
 --  * If the other agent is adjacent (Euclidean distance = 1), the agent either sends
 --    its hostile gesture at (Sympathy, Negative), or it attacks.
 angerActions :: ActionSelector [Action]
-angerActions gestures i j w = filter (\x -> isActionPossible i x w) actions
+angerActions gestures i dir j w = filter (\x -> isActionPossible i x w) actions
    where
       actions = fromMaybe [Gesture targetDir hostileGesture, Attack targetDir]
-                (approachDistantActions gestures i j w)
+                (approachDistantActions gestures i dir j w)
 
       targetDir = angleToDirection (angle i j)
       hostileGesture = gestures ^. at' (Sympathy, Negative)
@@ -934,17 +938,17 @@ angerActions gestures i j w = filter (\x -> isActionPossible i x w) actions
 --  * If there's an item on the target cell, pick it up.
 --  * Eat an food item.
 enthusiasmActions :: ActionSelector [Action]
-enthusiasmActions gestures i j w = 
-   logF trace ("[enthusiasmActions] i=" ++ show i ++ ", j=" ++ show j ++ ", actions=" ++ show actions)
+enthusiasmActions gestures i dir j w = 
+   {- logF trace ("[enthusiasmActions] i=" ++ show i ++ ", j=" ++ show j ++ ", actions=" ++ show actions)
    $ logF trace ("possible actions=" ++ show possibleActions)
-   $ possibleActions
+   $ -} possibleActions
    where
-      possibleActions = filter (\x -> isActionPossible i x w) actions
+      possibleActions = {-filter (\x -> isActionPossible i x w) -} actions
 
       actions =
          if i == j
          then localActions
-         else moveToCollect ++ fromMaybe adjacentActions (approachDistantActions gestures i j w)
+         else moveToCollect ++ fromMaybe adjacentActions (approachDistantActions gestures i dir j w)
 
       targetDir = angleToDirection (angle i j)
       friendlyGesture = gestures ^. at' (Sympathy, Positive)
@@ -962,12 +966,12 @@ enthusiasmActions gestures i j w =
 -- |Generic approach-related actions for distant targets.
 --  If the target is still distant a 'Just' will be returned, otherwise Nothing.
 approachDistantActions :: ActionSelector (Maybe [Action])
-approachDistantActions _ i j _
+approachDistantActions _ i dir j _
       | not withinView && distant = Just [Rotate targetDir]
       | distant                   = Just [Move targetDir]
       | otherwise                 = Nothing
    where
-      withinView = abs (angle i j) > (pi * 0.5)
+      withinView = inCone (coneOf dir) (abs $ angle i j) 
       targetDir = angleToDirection (angle i j)
       distant = dist i j > 1
 
@@ -976,7 +980,7 @@ approachDistantActions _ i j _
 --  Fear always induces flight, so the agent will always try to maximise the distance
 --  from the given cell.
 fearActions :: ActionSelector [Action]
-fearActions _ i j w = filter (\x -> isActionPossible i x w) actions
+fearActions _ i _ j w = filter (\x -> isActionPossible i x w) actions
    where
       actions = [Move awayDir]
 
@@ -984,4 +988,4 @@ fearActions _ i j w = filter (\x -> isActionPossible i x w) actions
 
 -- |Actions associated with contentment.
 contentmentActions :: ActionSelector [Action]
-contentmentActions _ _ _ _ = [NoOp]
+contentmentActions _ _ _ _ _ = [NoOp]

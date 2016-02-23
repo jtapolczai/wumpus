@@ -22,6 +22,7 @@ module Agent.Intelligent.Utils (
    insertMaybe,
    insert',
    myPosition,
+   myDirection,
    addMemNode,
    hasMemNode,
    choose,
@@ -42,6 +43,7 @@ import qualified Data.Map as M
 import Data.Maybe
 import Data.Monoid (First)
 import qualified Data.Tree as T
+import Math.Geometry.Grid.SquareInternal (SquareDirection)
 import Numeric (showFFloat)
 import System.Random (randomRIO)
 
@@ -185,7 +187,11 @@ insert' k x = M.alter (Just . maybe [x] (x:)) k
 
 -- |Gets the agent's latest position.
 myPosition :: [AgentMessage'] -> Maybe CellInd
-myPosition = lastWhere _AMPosition
+myPosition = firstWhere _AMPosition
+
+-- |Gets the agent's latest direction.
+myDirection :: [AgentMessage'] -> Maybe SquareDirection
+myDirection = firstWhere _AMDirection
 
 -- |Adds a new node as the last child of node specified by the path.
 --  

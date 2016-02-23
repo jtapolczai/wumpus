@@ -32,6 +32,8 @@ module World.Utils (
    prevMod,
    pos,
    angleOf,
+   coneOf,
+   inCone,
    avg,
    onAgent,
    getEntityType,
@@ -259,6 +261,20 @@ angleOf North = pi*0.5
 angleOf West = pi
 angleOf South = pi*1.5
 angleOf East = 0
+
+-- |Gets a 45°-wide cone centered around a square direction, given by 'angleOf'.
+coneOf :: SquareDirection -> (Float, Float)
+coneOf North = (pi/4, 3*pi/4)
+coneOf West = (3*pi/4, 5*pi/4)
+coneOf South = (5*pi/4, 7*pi/4)
+coneOf East = (7*pi/4, pi/4)
+
+-- |Indicates whether an angle lies within a cone. For a cone @(l,r)@, the angle @a@
+--  has to satisfy @l <= a <= r@.
+inCone :: (Float, Float) -> Float -> Bool
+inCone (l,r) a =
+   if l <= r then l <= a && a <= r
+             else l <= a || a <= r
 
 -- |Computes the average of a list of values (sum xs / length xs).
 avg :: [Rational] -> Rational
