@@ -41,6 +41,7 @@ import Types
 import World
 import World.Constants
 import World.Perception
+import World.Rules
 import World.Utils
 
 import Debug.Trace.Wumpus
@@ -959,7 +960,11 @@ enthusiasmActions gestures i dir j w =
       pickUp = [Collect Fruit, Collect Meat, Collect Gold]
       eat = [Eat Fruit, Eat Meat]
 
-      moveToCollect = if cellHas (^. plant . to isJust) j w then [Move targetDir] else []
+      moveToCollect =
+         if (cellHas (^. plant . to isJust) j w || cellHas canBeCollectedAny j w) && dist i j == 1
+         then [Move targetDir]
+         else []
+
       adjacentActions = gesture : give
       localActions = Gather : pickUp ++ eat
 
@@ -967,11 +972,11 @@ enthusiasmActions gestures i dir j w =
 --  If the target is still distant a 'Just' will be returned, otherwise Nothing.
 approachDistantActions :: ActionSelector (Maybe [Action])
 approachDistantActions _ i dir j _
-      | not withinView && distant = Just [Rotate targetDir]
-      | distant                   = Just [Move targetDir]
-      | otherwise                 = Nothing
-   where
-      withinView = inCone (coneOf dir) (abs $ angle i j) 
+      | not withinView && dist i j > 0 = {- logF trace ("[rotate-case for " ++ show i ++ " " ++ show j) $ -} Just [Rotate targetDir]
+      | distant                        = {- logF trace ("[move-case for " ++ show i ++ " " ++ show j) $ -} Just [Move targetDir]
+      | otherwise                      = {- logF trace ("[otherwise-case for " ++ show i ++ " " ++ show j) $ -} Nothing
+      where
+      withinView = {- logF trace (mconcat ["[approachDistantActions] i=",show i, ", j=",show j,", angle=",show $ angle i j,", coneOf ",show dir,"=",show $ coneOf dir,", inCone=",show (inCone (coneOf dir) (abs $ angle i j))]) $ -} inCone (coneOf dir) (abs $ angle i j) 
       targetDir = angleToDirection (angle i j)
       distant = dist i j > 1
 

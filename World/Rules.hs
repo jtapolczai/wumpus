@@ -1,3 +1,7 @@
+{-# LANGUAGE 
+   FlexibleContexts
+   #-}
+
 module World.Rules where
 
 import Control.Lens
@@ -20,6 +24,11 @@ canBeGathered = (cPLANT_HARVEST <=) . fromMaybe 0 . view plant
 -- |Returns True iff the given cell has a specific item on it that can be picked up.
 canBeCollected :: Item -> CellData -> Bool
 canBeCollected item = (>0) . view (itemLens item)
+
+-- |Returns True iff the given cell has anyitem on it that can be picked up.
+canBeCollectedAny :: CellData -> Bool
+canBeCollectedAny c = (>0) $ sum $ map ($ c) [get Meat, get Fruit, get Gold]
+   where get i = view (itemLens i)
 
 -- |Returns True iff the given cell can be entered by an entity.
 canBeEntered :: CellData -> Bool
