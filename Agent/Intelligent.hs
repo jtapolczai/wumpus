@@ -640,7 +640,7 @@ decisionMakerComponent asInit = logF trace "[decisionMakerComponent]" $ logF tra
          logF traceM "finalize plan"
          return $ finalizeAction (MI [0]) as
       else do
-         logF traceM "contine plan"
+         logF traceM "continue plan"
          act <- getNextAction True planEmotion
          let newMsg = [(True, AMPlannedAction act (leftMemIndex as `mappend` MI [0]) False, ephemeral)]
          return $ budgetAddStep $ addMessages newMsg as

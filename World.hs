@@ -42,7 +42,7 @@ import Control.Monad.Reader
 import qualified Control.Monad.RWS as RWS
 import Control.Monad.Writer
 import Data.Functor.Monadic
-import Data.List (foldl', partition)
+import Data.List (foldl', partition, intercalate)
 import qualified Data.Map as M
 import Data.Maybe
 import Data.Ratio
@@ -331,8 +331,9 @@ moveEntity :: (MonadReader WorldMetaInfo m, MonadWriter (WorldStats -> WorldStat
            -> m World
 moveEntity i j world = do
    maybe (return ()) entityDied . join $ world' ^? cellData . at j . _Just . entity
-   {- logF traceM $ "[moveEntity] old index: \n" ++ show (world ^. agents) 
-   logF traceM $ "[moveEntity] new index: \n" ++ show (world'' ^. agents) -}
+   logF traceM $ "[moveEntity] old index: \n" ++ show (world ^. agents) 
+   logF traceM $ "[moveEntity] new index: \n" ++ show (world'' ^. agents)
+   logF traceM $ "[moveEntity] new index: \n" ++ (intercalate "\n" . map show . M.toList $ world'' ^. cellData)
    return world''
    where
       edgeFat = world ^. edgeData . at (i,head $ getDirections i j) . to (maybe 0 $ view fatigue)
@@ -344,10 +345,9 @@ moveEntity i j world = do
       dS = ((ent ^. stamina) / (ent ^. stamina)) - 1
 
       -- |Puts the entity onto its new cell and sends it a "stamina changed" message.
-      --  If the cell has a put, the entity is deleted instead.
       putEnt :: CellData -> CellData
-      putEnt c = if c ^. pit then onAgent (sendMsg $ MsgStaminaChanged dS) c
-                 else c & entity ?~ ent'
+      putEnt c = if not (c ^. pit) then onAgent (sendMsg $ MsgStaminaChanged dS) (c & entity ?~ ent')
+                 else c
 
       move m = m & ix i %~ (entity .~ Nothing)
                  & ix j %~ putEnt
@@ -359,7 +359,7 @@ moveEntity i j world = do
 
       -- the updated worlds
       world' = world & cellData %~ move
-      world'' = world & agents %~ updateIndex
+      world'' = world' & agents %~ updateIndex
 
 
 -- |Performs an attack of one entity on another.
