@@ -625,7 +625,6 @@ decisionMakerComponent asInit = logF trace "[decisionMakerComponent]" $ logF tra
 
       logF traceM "mkStep"
       logF traceM $ "newMsg: " ++ show newMsg
-      undefined
       return $ budgetAddStep $ addMessages newMsg as
    -- if there is one, continue/abandon/OK the plan
    else do
@@ -872,7 +871,6 @@ evaluateCells imag as = logF trace "[evaluateCells]"
    $ logF trace ("   cells: " ++ (show $ map fst $ M.toList cells))
    $ logF trace ("   cell vals: " ++ show (fmap evaluateCell cells))
    $ logF trace ("   cell messages:\n" ++ (concat . fmap (\(k,v) -> show k ++ "\n   " ++ show v ++ "\n\n") . M.toList $ cells))
-   -- $ undefined
    $ fmap evaluateCell cells
    where
       ms = filter ((imag==) . view _1) $ as ^. messageSpace
