@@ -791,7 +791,7 @@ reinsertablePlanMsg = map incttl . filter (f . view _2) . view messageSpace
       incttl = over _3 (+1)
 
       f = (\x y z u v -> x || y || z || u || v)
-          <$> isP _AMPlannedAction
+          <$> (\case{(AMPlannedAction _ _ True) -> True; _ -> False})
           <*> isP _AMPlanEmotion
           <*> isP _AMPlanEmotionChanged
           <*> isP _AMPlanLocalBudget
