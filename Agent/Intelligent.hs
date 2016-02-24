@@ -81,7 +81,6 @@ getAction' initAs = do
                                temporalizePerceptionsComponent] initAs
    action <- loop action (cc' components) as'
    logF traceM $ "[getAction] action: " ++ show action
-   undefined
    return (action, as' & messageSpace .~ [])
 
    where
@@ -626,6 +625,7 @@ decisionMakerComponent asInit = logF trace "[decisionMakerComponent]" $ logF tra
 
       logF traceM "mkStep"
       logF traceM $ "newMsg: " ++ show newMsg
+      undefined
       return $ budgetAddStep $ addMessages newMsg as
    -- if there is one, continue/abandon/OK the plan
    else do
@@ -654,7 +654,6 @@ decisionMakerComponent asInit = logF trace "[decisionMakerComponent]" $ logF tra
          logF traceM $ "[getNextAction.SEC] " ++ (LS.intercalate "\n" $ map (show . (\x -> (x, getEmotionActions emotion x))) prospectiveCells)
          let actionableCells = dropWhile (null . getEmotionActions emotion) prospectiveCells
          logF traceM $ "[getNextAction.actionableCells] " ++ (LS.intercalate "\n" $ map (show . (\x -> (x, getEmotionActions emotion x))) actionableCells)
-         undefined
          if null actionableCells then error "[decicionMakerComponent.getNextAction] No possible actions!"
          else choose . head . map (getEmotionActions emotion) $ actionableCells
 
@@ -944,7 +943,7 @@ enthusiasmActions gestures i dir j w =
    $ logF trace ("possible actions=" ++ show possibleActions)
    $ -} possibleActions
    where
-      possibleActions = {-filter (\x -> isActionPossible i x w) -} actions
+      possibleActions = filter (\x -> isActionPossible i x w) actions
 
       actions =
          if i == j
