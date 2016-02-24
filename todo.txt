@@ -24,4 +24,4 @@ The problem: when the agent is extremely hungry, its attention goes towards itse
 * [x] create VisualWorld (for memories; the cells are VCDs, not CDs)
    * [x] write liftWorld :: VisualWorld -> World
 
-* [ ] see why Move isn't an action to RI (0,1)
+* [x] see why Move isn't an action to RI (0,1)

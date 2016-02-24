@@ -331,7 +331,9 @@ moveEntity :: (MonadReader WorldMetaInfo m, MonadWriter (WorldStats -> WorldStat
            -> m World
 moveEntity i j world = do
    maybe (return ()) entityDied . join $ world' ^? cellData . at j . _Just . entity
-   return world'
+   {- logF traceM $ "[moveEntity] old index: \n" ++ show (world ^. agents) 
+   logF traceM $ "[moveEntity] new index: \n" ++ show (world'' ^. agents) -}
+   return world''
    where
       edgeFat = world ^. edgeData . at (i,head $ getDirections i j) . to (maybe 0 $ view fatigue)
 
@@ -351,13 +353,13 @@ moveEntity i j world = do
                  & ix j %~ putEnt
 
       updateIndex :: M.Map EntityName CellInd -> M.Map EntityName CellInd
-      updateIndex = if isJust $ join (world ^? cellData . at j . _Just . entity)
+      updateIndex = if isJust $ join (world' ^? cellData . at j . _Just . entity)
                     then ix (world ^. cellData . at' i . ju entity . name) .~ j
                     else id
 
-      -- the updated world
+      -- the updated worlds
       world' = world & cellData %~ move
-                     & agents %~ updateIndex
+      world'' = world & agents %~ updateIndex
 
 
 -- |Performs an attack of one entity on another.
