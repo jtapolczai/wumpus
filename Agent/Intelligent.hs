@@ -532,7 +532,7 @@ simulateConsequences action mi as simulateAction = do
           logF traceM $ "[simulateConsequences.messages] agent at my pos present: " ++ show (isJust $ nextWorld ^? cellData . at newPos . _Just . entity . _Just . _Ag)
           me <- nextWorld ^? cellData . at newPos . _Just . entity . _Just . _Ag
           logF traceM $ "[simulateConsequences.messages] me: Just"
-          return $ concatMap (perception myName myPos) $ readMessageSpace $ me ^. state
+          return $ concatMap (perception myName newPos) $ readMessageSpace $ me ^. state
 
    return (nextWorld, if isAlive
                       then logF trace ("[simulateConsequences] messages: " ++ show messages) messages

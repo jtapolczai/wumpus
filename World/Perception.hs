@@ -56,7 +56,10 @@ getLocalPerceptions world i d = logF trace "[getLocalPerception]"
 getGlobalPerceptions :: World
                      -> CellInd -- |The agent's current position.
                      -> [Message]
-getGlobalPerceptions world i = logF trace "[getGlobalPerception]" $ global : location : body ++ dir ++ cells ++ edges
+getGlobalPerceptions world i =
+   logF trace "[getGlobalPerception]"
+   $ logF trace ("[getGlobalPerception] location=" ++ show location)
+   $ global : location : body ++ dir ++ cells ++ edges
    where
       cells = map cellPerception $ world ^. cellData . to M.keys
       edges = map (edgePerception world) $ world ^. edgeData . to M.keys
