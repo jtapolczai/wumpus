@@ -24,7 +24,7 @@ persistentMessagesComponent as = logF trace "[persistentMessagesComponent]"
                                  $ logF trace (replicate 40 '_')
                                  $ logF trace ("[persistentMessagesComponent] newMsg: " ++ show (map decr newMsg))
                                  $ logF trace (replicate 40 '_')
-                                 $ logF trace ("[persistentMessagesComponent] msgDiff: " ++ show msgDiff)
+                                 {- $ logF trace ("[persistentMessagesComponent] msgDiff: " ++ show msgDiff) -}
                                  $ logF trace (replicate 40 '_')
                                  $ logF trace ("[persistentMessagesComponent] #newMsg: " ++ show (length newMsg))
                                  $ return $
@@ -33,7 +33,7 @@ persistentMessagesComponent as = logF trace "[persistentMessagesComponent]"
       oldMsg = view messageSpace as
       newMsg = (filter living $ view messageSpace as)
 
-      msgDiff = (oldMsg \\ newMsg)
+      {- msgDiff = (oldMsg \\ newMsg) -}
 
       living (_,_,n) = n > 0
       decr = _3 -~ 1

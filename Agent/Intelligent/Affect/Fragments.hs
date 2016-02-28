@@ -524,7 +524,7 @@ strongEnthusiasm = genericEnthusiasm ss
            (-0.3)
            (-0.3)
            (-0.2) -- plant harvested
-           (-0.25)
+           (-0.35)
            (-0.05) -- stamina lost
            (-0.15)
            (-0.2)
@@ -570,7 +570,7 @@ weakEnthusiasm = genericEnthusiasm ss
            (-0.4)
            (-0.4)
            (-0.3) -- plant harvested
-           (-0.4)
+           (-0.6)
            (-0.1) -- stamina lost
            (-0.2)
            (-0.25)

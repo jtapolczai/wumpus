@@ -25,3 +25,5 @@ The problem: when the agent is extremely hungry, its attention goes towards itse
    * [x] write liftWorld :: VisualWorld -> World
 
 * [x] see why Move isn't an action to RI (0,1)
+
+* [ ] removeUnplannedMemories doesn't work

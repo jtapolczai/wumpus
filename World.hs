@@ -6,7 +6,6 @@
 {-# LANGUAGE GADTs #-}
 
 module World (
-   makeWorld,
    runWorld,
    simulateStep,
    simulateStepReader,
@@ -69,19 +68,6 @@ instance Monoid Bool where
    mempty = False
    mappend = (&&)
 
--- |Creates a new world and initializes it (setting the time to the middle of
---  the day and initializing the outwardly radiating breeze for the pits).
-makeWorld :: [(CellInd, CellData)]
-          -> [(EdgeInd, EdgeData)]
-          -> World
-makeWorld cells edges = initBreeze newWorld
-   where
-      newWorld = BaseWorld (WD 25 Temperate)
-                           UnboundedSquareGrid
-                           (M.fromList edges)
-                           (M.fromList cells)
-                           (makeEntityIndex $ M.fromList cells)
-
 -- |Simulates a world over several iterations.
 runWorld :: WorldMetaInfo -> World -> MList IO (World, WorldStats)
 runWorld wmi w = MList $ return $ Just ((w, mkStats wmi w), rest w)
@@ -106,7 +92,6 @@ simulateStepReader :: (MonadReader WorldMetaInfo m, MonadWriter (WorldStats -> W
 simulateStepReader world = logF trace "simulateStepReader" $ logF trace (replicate 80 '=')
                            $ logF trace ("[simulateStepReader] old world: " ++ show world)
                            $ do nw <- newWorld
-                                logF traceM ("[simulateStepReader] new world: " ++ show nw)
                                 logF traceM ("[simulateStepReader] new world: " ++ show (newWorld' nw))
                                 return (newWorld' nw)
    where
@@ -430,7 +415,8 @@ die x = let
 
 -- |Advances the time and temperature.
 advanceGlobalData :: WorldData -> WorldData
-advanceGlobalData world = world & time .~ time'
+advanceGlobalData world = {- logF trace ("[advanceGlobalData] t " ++ show (world ^. time) ++ " -> " ++ show time') -}
+                          world & time .~ time'
                                 & temperature .~ light' time'
    where
       time' = (world ^. time + 1) `mod` cDAY_LENGTH

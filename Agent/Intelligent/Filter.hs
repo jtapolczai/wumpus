@@ -169,7 +169,7 @@ runCondition NodeTrue _ = True
 runCondition NodeFalse _ = False
 
 -- |Excites a node based on an input.
-exciteNode :: (Show a, Ord a) => Bool -> a -> FilterNode a -> FilterNode a
+exciteNode :: (Show a) => Bool -> a -> FilterNode a -> FilterNode a
 exciteNode isOutputNode x n =
    cond' (\fn -> runCondition (fn ^. condition) x) excite n
    where
