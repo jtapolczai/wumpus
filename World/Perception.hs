@@ -59,11 +59,12 @@ getGlobalPerceptions :: World
 getGlobalPerceptions world i =
    logF trace "[getGlobalPerception]"
    $ logF trace ("[getGlobalPerception] location=" ++ show location)
-   $ global : location : body ++ dir ++ cells ++ edges
+   $ global : location : local : body ++ dir ++ cells ++ edges
    where
-      cells = map cellPerception $ world ^. cellData . to M.keys
+      cells = map cellPerception $ world ^. cellData . to (M.keys . M.delete i)
       edges = map (edgePerception world) $ world ^. edgeData . to M.keys
       cellPerception j = MsgVisualPerception j $ cast' $ cellAt j world
+      local = MsgLocalPerception $ cellAt i world
       global = MsgGlobalPerception $ world ^. worldData
       location = MsgPositionPerception i
       body = maybe (error "no body in getGlobalPerception! Bug?") (\a -> [MsgBody (a ^. health) (a ^. stamina) (a ^. inventory)]) $ cellAt i world ^? entity . _Just . _Ag
