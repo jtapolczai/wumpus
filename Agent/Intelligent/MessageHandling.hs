@@ -52,8 +52,8 @@ callComponents doReinsertInit comps initAs = putMsg <$> foldM f (initAs, mempty)
       -- collect the newly added messages separately.
       f (curAs, ms) g = do
          logF traceM $ "[CC] #msg: " ++ (show $ length $ initMsg ++ ms)
-         --traceM $ "[CC] msg (initMsg): " ++ (show initMsg)
-         --traceM $ "[CC] msg (ms): " ++ (show ms)
+         logF traceM $ "[CC] msg (initMsg): " ++ (show initMsg)
+         logF traceM $ "[CC] msg (ms): " ++ (show ms)
          newAs <- g $ curAs & messageSpace .~ (initMsg ++ ms)
                             & newMessages .~ mempty
          --traceM $ "[CC] newMsg: " ++ (show $ newAs ^. newMessages)

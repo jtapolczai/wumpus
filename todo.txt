@@ -26,4 +26,10 @@ The problem: when the agent is extremely hungry, its attention goes towards itse
 
 * [x] see why Move isn't an action to RI (0,1)
 
-* [ ] removeUnplannedMemories doesn't work
+* [x] removeUnplannedMemories doesn't work
+
+* [ ] redundant messages for (0,0):
+  RI {runRelInd = (0,0)}
+[(True,AMYouAreHere,0),(True,AMTemperature Hot,0),(True,AMTime 26,0),(True,AMPosition (2,1),0),(True,AMHaveHealth (9 % 100),0),(True,AMHaveStamina (1 % 1),0),(True,AMHaveMeat 0,0),(True,AMHaveFruit 0,0),(True,AMHaveGold 0,0),(True,AMDirection North,0),(True,AMVisualAgent (RI {runRelInd = (0,0)}) "1",0),(True,AMVisualEntityStamina (RI {runRelInd = (0,0)}) (1 % 1),0),(True,AMVisualEntityHealth (RI {runRelInd = (0,0)}) (9 % 100),0),(True,AMVisualEntityDirection (RI {runRelInd = (0,0)}) North,0),(True,AMVisualAgent (RI {runRelInd = (0,0)}) "1",0),(True,AMVisualPlant (RI {runRelInd = (0,0)}) (1 % 1),0),(True,AMVisualFruit (RI {runRelInd = (0,0)}) 0,0),(True,AMVisualMeat (RI {runRelInd = (0,0)}) 0,0),(True,AMVisualGold (RI {runRelInd = (0,0)}) 0,0),(True,AMDirection North,0),(True,AMHaveGold 0,0),(True,AMHaveFruit 0,0),(True,AMHaveMeat 0,0),(True,AMHaveStamina (1 % 1),0),(True,AMHaveHealth (9 % 100),0),(True,AMPosition (2,1),0)]
+
+* [ ] don't add myself as a visual entity (???). See above.

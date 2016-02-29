@@ -156,8 +156,12 @@ initialMemoryComponent as = logF trace "[initialMemoryComponent]" $ logF trace (
 
 memoryComponent :: Monad m => AgentComponent m
 memoryComponent as = logF trace "[memoryComponent]" $ logF trace (replicate 80 '+') $ do
-   let plannedActions = map (view _2) $ msgWhere _AMPlannedAction . view messageSpace $ as
-       pendingActions = filter (not . view _3) plannedActions
+   let -- all planned actions, regardless of discharge state or TTL
+       allPlannedActions = msgWhere _AMPlannedAction . view messageSpace $ as
+       -- discharged planned actions with a ttl of 1. These are the MIs for which we want to keep the memories.
+       keepActions = map (view $ _2 . _2) . filter ((&&) <$> ((>0) . view _3) <*> view (_2 . _3)) $ allPlannedActions
+       -- non-discharged actions for which we should generate a memory
+       pendingActions = filter (not . view _3) . map (view _2) $ allPlannedActions
 
        -- gets all imaginary messages with a ttl of >0.
        currentMsg :: [AgentMessage']
@@ -166,11 +170,15 @@ memoryComponent as = logF trace "[memoryComponent]" $ logF trace (replicate 80 '
        mi :: MemoryIndex
        mi = MI . init . runMI . head . map (view _2) $ pendingActions
 
+   logF traceM ("[memoryComponent] allPlannedActions: " ++ show allPlannedActions)
+   logF traceM ("[memoryComponent] keepActions: " ++ show keepActions)
+   logF traceM ("[memoryComponent] pendingActions: " ++ show pendingActions)
+
    when (length pendingActions > 1 ) $ error "memoryComponent: more than 1 non-discharged planned action!"
    let as' = if length pendingActions == 1 then logF trace ("[memoryComponent] executing pending action with mi " ++ show mi)
                                                 $ addMemory currentMsg mi as
                                            else logF trace "[memoryComponent] no pending action." as
-       as'' = removeUnplannedMemories (mempty : map (view _2) plannedActions) as'
+       as'' = removeUnplannedMemories (mempty : keepActions) as'
 
    -- these are not needed in general
    --when (leftMemIndex as' == mempty) $ error "memory not present in as'!!!"
@@ -183,8 +191,14 @@ removeUnplannedMemories
    :: [MemoryIndex] -- The indices which should be kept.
    -> AgentState
    -> AgentState
-removeUnplannedMemories mi as = logF trace "[removeUnplannedMemories]" $ as & memory %~ fromMaybe (error "[removeUnplannedMemories] root memory was removed!") . go mempty
+removeUnplannedMemories mi as =
+   logF trace ("[removeUnplannedMemories] keeping MIs " ++ show mi)
+   $ logF trace ("[removeUnplannedMemories] initial leftMemIndex = " ++ show (leftMemIndex as) ++ "\n" ++ printMemoryTree as)
+   $ logF trace ("[removeUnplannedMemories] final leftMemIndex = " ++ show (leftMemIndex ret) ++ "\n" ++ printMemoryTree ret)
+   $ ret
    where
+      ret = as & memory %~ fromMaybe (error "[removeUnplannedMemories] root memory was removed!") . go mempty
+
       appMI :: MemoryIndex -> Int -> MemoryIndex
       appMI x i = x `mappend` MI [i]
 
@@ -443,13 +457,15 @@ instance Castable VisualCellData CellData where
 --  be generated as its last child.
 --  The newly discharged planned actions will be reinserted with a ttl of 1.
 beliefGeneratorComponent :: MonadIO m => AgentComponent m
-beliefGeneratorComponent as = liftIO
-   $ logF trace ("[beliefGeneratorComponent]")
-   $ logF trace (replicate 80 '+')
-   $ logF trace ("___num acts: " ++ show (length acts))
-   $ logF trace ("___acts: " ++ show acts)
-   $ flip (foldM genRecalls) recalls 
-   =<< foldM genActs as acts
+beliefGeneratorComponent as = liftIO $ do
+   logF traceM ("[beliefGeneratorComponent]")
+   logF traceM (replicate 80 '+')
+   logF traceM ("___num acts: " ++ show (length acts))
+   logF traceM ("___acts: " ++ show acts)
+   logF traceM ("___memory tree before: " ++ printMemoryTree as)
+   ret <- flip (foldM genRecalls) recalls  =<< foldM genActs as acts
+   logF traceM ("___memory tree after: " ++ printMemoryTree ret)
+   return ret
    where
       -- For planned actions, we generate a future world and reinsert the planned action with its
       -- Discharged-field set to True.
@@ -510,7 +526,7 @@ simulateConsequences action mi as simulateAction = do
           (entityPosition myName currentWorld)
        isAlive = logF trace "[simulateConsequences.isAlive]" $ isPresent myName currentWorld
    logF traceM $ "[simulateConsequences] reconstructed world: " ++ show currentWorld
-   nextWorld <- simulateAction currentWorld --simulateStep currentWorld
+   nextWorld <- simulateAction currentWorld
    logF traceM $ "[simulateConsequences] next world: " ++ show nextWorld
    logF traceM $ "[simulateConsequences] nextWorld computed."
    -- get the messages from the agent at its new position.
@@ -562,10 +578,11 @@ generateBelief act mi as = liftIO $ do
    logF traceM "[generateBelief]"
    let getPerc w = w & cellData . imapped
                    %@~ (\i -> entity . _Just . _Ag . state %~ pullMessages w i . clearMessageSpace)
-   (_, msg) <- simulateConsequences act mi as (simulateStep >=> return . getPerc)
+
+   (nextWorld, msg) <- simulateConsequences act mi as (simulateStep >=> return . getPerc)
    logF traceM "[generateBelief] simulateConsequences done."
    let msg' = map (True,,ttl 1) msg
-       as' = addMessages msg' $ as
+       as' = addMessages msg' $ {- $ addMessage (True, AMFutureBelief (cast nextWorld), ephemeral) $ -} as
    logF traceM ("   generated msg: " ++ show msg)
    return as'
 
@@ -608,7 +625,8 @@ recordPlanEmotionChangesComponent as =
 --  imaginary 'AMPlannedAction' into the message space.
 decisionMakerComponent :: AgentComponent IO
 decisionMakerComponent asInit = logF trace "[decisionMakerComponent]" $ logF trace (replicate 80 '+')
-   $ logF trace ("[decisionMakerComponent] leftMemIndex: " ++ show (leftMemIndex as)) $
+   $ logF trace ("[decisionMakerComponent] leftMemIndex: " ++ show (leftMemIndex as))
+   $ logF trace ("[decisionMakerComponent] memory tree: " ++ printMemoryTree as) $
    -- if there's no plan, start one.
    if null plannedActions || not hasBudget then do
       logF traceM "no plan"
@@ -629,16 +647,16 @@ decisionMakerComponent asInit = logF trace "[decisionMakerComponent]" $ logF tra
    -- if there is one, continue/abandon/OK the plan
    else do
       logF traceM "has plan"
-      if strongestOverruling planEmotion allChanges > 0 then
+      if targetEmotionSatisfied' allChanges >= 1 then do
+         logF traceM "finalize plan"
+         return $ finalizeAction (MI [0]) as
+      else if strongestOverruling planEmotion allChanges > 0 then
          do logF traceM "retract step"
             logF traceM $ "leftMemIndex: " ++ (show (leftMemIndex as))
             numSteps <- randomRIO (1,length . runMI . leftMemIndex $ as)
             logF traceM ("num of retracted steps: " ++ show numSteps)
             return $ budgetRetractSteps numSteps
                    $ retractSteps (leftMemIndex as) numSteps as
-      else if targetEmotionSatisfied' allChanges >= 1 then do
-         logF traceM "finalize plan"
-         return $ finalizeAction (MI [0]) as
       else do
          logF traceM "continue plan"
          act <- getNextAction True planEmotion
@@ -744,7 +762,7 @@ retractSteps :: MemoryIndex -- ^The index from which to start deleting upward.
 retractSteps mi n as = logF trace "[retractSteps]"
    $ logF trace ("[retractSteps] mi: " ++ show mi)
    $ logF trace ("[retractSteps] n: " ++ show n)
-   $ addMessage (True, AMRecallMemory miRemaining, ephemeral) . over memory delMem . over newMessages delMsg $ as
+   $ addMessage (True, AMRecallMemory miRemaining, ephemeral) . over messageSpace delMsg . over memory delMem . over newMessages delMsg $ as
    where
       delMsg = filter (pa . view _2)
 

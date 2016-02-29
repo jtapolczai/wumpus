@@ -33,6 +33,7 @@ module Agent.Intelligent.Utils (
    leftMemIndex,
    parentMemIndex,
    deleteMemory,
+   printMemoryTree,
    ) where
 
 import Control.Lens
@@ -263,3 +264,6 @@ deleteMemory (MI mi) = go mi
     go (x:xs) (T.Node n ns)
        | length ns >= x = Just $ T.Node n $ take x ns ++ maybe [] (:[]) (go xs (fromMaybe (error $ "deleteMemory: index (" ++ show x ++ ") too large!") $ lIndex ns x)) ++ drop (x+1) ns
        | otherwise = error $ "deleteMemory: tried to delete non-existent index " ++ show x
+
+printMemoryTree :: AgentState -> String
+printMemoryTree = T.drawTree . fmap (const "_") . view memory
