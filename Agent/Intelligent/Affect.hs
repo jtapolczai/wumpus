@@ -21,6 +21,8 @@ module Agent.Intelligent.Affect (
    conflictingEmotions,
    ) where
 
+import Prelude hiding (log)
+
 import Control.Lens
 import Control.Monad (join)
 import Data.Default
@@ -120,10 +122,13 @@ psbcComponent as = logF trace "[psbcComponent]" $ logF trace (replicate 80 '+')
    $ (logF traceList $ snd $ outputNodesTrace !! 2)
    $ logF trace ("___Contentment:")
    $ (logF traceList $ snd $ outputNodesTrace !! 3) -}
-   $ logF trace ("[psbcComponent] new emotion map: " ++ show (ret_as ^. psbc . to (fmap fst)))
+   $ logF trace ("[psbcComponent] new emotion map: " ++ show retMap)
+   $ logF log ("Emotions for " ++ view name as ++ ": \n" ++ retInfo)
    $ return ret_as
    where
       ret_as = foldr (\en as' -> addEmotionMessage en $ psbcEmotion msg en as') as [minBound..maxBound]
+      retMap = ret_as ^. psbc . to (fmap fst)
+      retInfo = concatMap (\(k,v) -> "   " ++ show k ++ ": " ++ showF3 v ++ "\n") . M.toList $ retMap
 
       msg = (AMYouAreHere:) $ map (view _2) $ as ^. messageSpace
       addEmotionMessage en as' =

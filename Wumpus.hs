@@ -1,5 +1,7 @@
 module Wumpus where
 
+import Prelude hiding (log)
+
 import Control.Lens
 import qualified Data.Foldable as F
 import Data.MList
@@ -28,14 +30,15 @@ main' w = do
    print wmi
    putStrLn $ showStats $ mkStats wmi world
    putStrLn "--------"
-   ((resWorld, worldStats):_) <- fromMList $ takeM 2 $ fmapM printActions $ runWorld wmi world
+   ((resWorld, worldStats):_) <- fromMList $ takeM 3 $ fmapM printActions $ runWorld wmi world
    putStrLn $ showStats worldStats
    putStrLn (replicate 40 '-')
    return ()
 
 printActions (w, ws) = do
-   putStrLn $ "Actions (" ++ (show $ length $ view actions ws) ++ "):"
-   mapM_ (putStrLn . showAction) . F.toList . view actions $ ws
+   logF logM $ (show $ length $ view actions ws) ++ " actions in this round:"
+   mapM_ (logF logM . showAction) . F.toList . view actions $ ws
+   logF logM (replicate 80 '_')
    return (w,ws)
 
 main :: IO ()

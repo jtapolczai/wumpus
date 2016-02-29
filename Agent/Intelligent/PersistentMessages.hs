@@ -4,7 +4,6 @@ module Agent.Intelligent.PersistentMessages (
    ) where
 
 import Control.Lens
-import Data.List
 
 import Agent.Intelligent.MessageHandling
 import Types

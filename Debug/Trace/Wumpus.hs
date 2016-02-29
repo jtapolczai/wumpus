@@ -17,7 +17,7 @@ type ModuleName = String
 --------------------------------------------------------------------------------
 
 defaultLogLevel :: LogLevel
-defaultLogLevel = Trace
+defaultLogLevel = Log
 
 logHandles :: M.Map LogLevel Handle
 logHandles = M.fromList [
