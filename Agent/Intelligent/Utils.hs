@@ -17,6 +17,7 @@ module Agent.Intelligent.Utils (
    lastWhere,
    globalMessage,
    socialMessage,
+   selfGlobalMessage,
    sortByInd,
    sortByEntityName,
    insertMaybe,
@@ -126,6 +127,14 @@ globalMessage x@AMPlantHarvested{} = Just x
 globalMessage x@AMKilledAgent{} = Just x
 globalMessage x@AMKilledWumpus{} = Just x
 globalMessage _ = Nothing
+
+-- |A subset of 'globalMessage' that excludes messages for which
+--  @x ^. _agentMessageCellInd = RI (0,0)@.
+--
+--  Use this function to get the global data for the agent's own cell, otherwise, messages like
+--  'AMHaveHealth' will be counted twice.
+selfGlobalMessage :: AgentMessage -> Maybe AgentMessage
+selfGlobalMessage x = if x ^. _agentMessageCellInd == Just (RI (0,0)) then Nothing else globalMessage x
 
 -- |Sieves out social messages. Social messages are all those that contain
 --  an EntityName.

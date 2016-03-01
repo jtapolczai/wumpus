@@ -237,9 +237,9 @@ constructWorld
       -- ^Messages from which to create the world.
    -> BaseWorld cell edge
 constructWorld agentPost wumpusPost mkCell mkEdge mkWorldData xs =
-   logF trace "[constructWorld]" $
+   {- logF trace "[constructWorld]" $
    logF trace "[constructWorld] edge data:" $
-   logF trace (show edgeMsg) $
+   logF trace (show edgeMsg) $ -}
    logF trace "[constructWorld] all messages: " $
    logF trace (show xs) $
    logF trace (replicate 80 '_') $
@@ -899,12 +899,14 @@ evaluateCells imag as = logF trace "[evaluateCells]"
       cells :: M.Map RelInd [AgentMessage']
       cells = M.mapWithKey addData $ fst $ sortByInd ms
 
-      addData k = (if k == RI (0,0) then ((True, AMYouAreHere, ephemeral) :) else id)
-                  . (globalData++)
+      addData k = (if k == RI (0,0) then ((True, AMYouAreHere, ephemeral) : ) else id)
+                  . (globalData k ++)
                   . (socialData++)
 
-      globalData :: [AgentMessage']
-      globalData = mapMaybe (\(i,m,t) -> globalMessage m >$> (i,,t)) ms
+      globalData :: RelInd -> [AgentMessage']
+      globalData k = mapMaybe (\(i,m,t) -> f m >$> (i,,t)) ms
+         where
+            f = if k == RI (0,0) then selfGlobalMessage else globalMessage
 
       socialData :: [AgentMessage']
       socialData = mapMaybe (\(i,m,t) -> socialMessage m >$> (i,,t)) ms

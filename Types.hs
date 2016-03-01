@@ -125,7 +125,7 @@ _wumpusStateLens :: Lens (Wumpus a) (Wumpus b) a b
 _wumpusStateLens = lens _wumpusState (\a x -> a{_wumpusState = x})
 
 -- |Gets the CellInd of an AgentMessage, for all which have one (except AMPosition).
---  Local fields (AMLocal*, AMYouAreHere) are given the index (0,0).
+--  Local fields (AMHave*, AMLocal*) are given the index (0,0)
 _agentMessageCellInd :: Getter AgentMessage (Maybe RelInd)
 _agentMessageCellInd = to go
    where
@@ -140,12 +140,23 @@ _agentMessageCellInd = to go
       go (AMVisualMeat c _) = Just c
       go (AMVisualFruit c _) = Just c
       go (AMVisualPlant c _) = Just c
+      go (AMPosition _) = Just $ RI (0,0)
+      go (AMDirection _) = Just $ RI (0,0)
       go (AMLocalStench _) = Just $ RI (0,0)
       go (AMLocalBreeze _) = Just $ RI (0,0)
       go (AMLocalAgent _) = Just $ RI (0,0)
       go (AMEmotionSympathy c _) = Just c
       go (AMEmotionTrust c _) = Just c
       go (AMEmotionRespect c _) = Just c
+      go (AMHealthDecreased _) = Just $ RI (0,0)
+      go (AMHealthIncreased _) = Just $ RI (0,0)
+      go (AMStaminaDecreased _) = Just $ RI (0,0)
+      go (AMStaminaIncreased _) = Just $ RI (0,0)
+      go (AMHaveHealth _) = Just $ RI (0,0)
+      go (AMHaveStamina _) = Just $ RI (0,0)
+      go (AMHaveMeat _) = Just $ RI (0,0)
+      go (AMHaveGold _) = Just $ RI (0,0)
+      go (AMHaveFruit _) = Just $ RI (0,0)
       go (AMYouAreHere) = Just $ RI (0,0)
       go _ = Nothing
 
