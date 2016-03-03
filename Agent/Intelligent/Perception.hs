@@ -55,6 +55,7 @@ perception n _ (MsgLocalPerception d) = logF trace "[perception] MsgLocalPercept
     AMLocalBreeze (d ^. breeze),
     AMLocalStench (d ^. stench),
     AMLocalAgent n]
+    ++ cond (d ^. plant . to isJust) [AMVisualPlant (RI (0,0)) $ d ^. plant . to (fromMaybe $ error "[Agent.perception.plant]: Nothing")]
 
 perception _ _ (MsgGlobalPerception d) =
    [AMTemperature $ d ^. temperature,

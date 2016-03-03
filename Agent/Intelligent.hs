@@ -355,7 +355,7 @@ mkVisualCell ms = updateFunc def
 --  left undefined. If there's no entity, @id@ is returned.
 constructEntity :: [AgentMessage']
                 -> (VisualCellData -> VisualCellData)
-constructEntity ms = logF trace "[constructEntity]" agentKind
+constructEntity ms = {- logF trace "[constructEntity]" -} agentKind
    where
       agentKind = case (firstWhere _AMVisualAgent ms,
                         firstWhere _AMVisualWumpus ms,
@@ -363,7 +363,7 @@ constructEntity ms = logF trace "[constructEntity]" agentKind
                           (Just _,_,_) -> logF trace "[constructEntity] ag" $ (entity .~ Just (Ag va))
                           (_,Just _,_) -> logF trace "[constructEntity] wu" $ (entity .~ Just (Wu vw))
                           (_,_,Just _) -> logF trace "[constructEntity] local ag" $ (entity .~ Just (Ag va))
-                          _ -> logF trace "[constructEntity] _" $ id
+                          _ -> {- logF trace "[constructEntity] _" $ -} id
 
       va = VisualAgent (vaErr "name") (vaErr "direction") (vaErr "health") (vaErr "stamina") Nothing
       vw = VisualWumpus (vwErr "name") (vwErr "health") (vwErr "stamina")
