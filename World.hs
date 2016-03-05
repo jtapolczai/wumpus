@@ -270,7 +270,7 @@ isActionPossible i action world = if isJust meMaybe then go action else False
       me = fromMaybe (error "isActionPossible.meMaybe: Nothing") meMaybe
       j = inDirection i $ actionDirection action
 
-      -- debugShowCell cmd = logF trace ("[isActionPossible] cmd=" ++ show cmd ++ ", i=" ++ show i ++ ", cell=" ++ show (world ^. cellData . at i))
+      debugShowCell cmd = logF trace ("[isActionPossible] cmd=" ++ show cmd ++ ", i=" ++ show i ++ ", cell=" ++ show (world ^. cellData . at i))
       worldCells = world ^. cellData . to M.toList 
 
       go NoOp = True
@@ -285,7 +285,7 @@ isActionPossible i action world = if isJust meMaybe then go action else False
                         $ -} cellHas canBeEntered j world && hasStamina (i,dir) world
       go (Attack _) = cellAgent j world || cellWumpus j world
       go (Give _ name) = cellAgent j world && numItems me name > 0
-      go Gather = cellHas canBeGathered i world
+      go x@Gather = debugShowCell x $ cellHas canBeGathered i world
       go (Collect item) = cellHas (canBeCollected item) i world
       go (Drop item) = numItems me item > 0
       go (Eat item) = numItems me item > 0 && isEdible item
@@ -436,7 +436,7 @@ wumpusStench world = newStench $ clearStench world
 
 -- |Regenerates the plants.
 regrowPlants :: CellData -> CellData
-regrowPlants = plant %~ fmap (min 0.5 . (cPLANT_REGROWTH+))
+regrowPlants = plant %~ fmap (min cPLANT_MAX . (cPLANT_REGROWTH+))
 
 -- |Increases the hungar of an agent (reduces health by 0.01)
 increaseHunger :: CellData -> CellData

@@ -647,7 +647,7 @@ decisionMakerComponent asInit = logF trace "[decisionMakerComponent]" $ logF tra
 
       logF traceM "mkStep"
       logF traceM $ "newMsg: " ++ show newMsg
-      logF detailedLogM $ "Started a new plan: " ++ showAction' act ++ "." ++ (if not isImag then ". The plan is final." else "")
+      logF detailedLogM $ "Started a new plan under " ++ show dominantEmotion ++ ": " ++ showAction' act ++ (if not isImag then " The plan is final." else "") ++ "\n"
       return $ budgetAddStep $ addMessages newMsg as
    -- if there is one, continue/abandon/OK the plan
    else do
@@ -662,14 +662,14 @@ decisionMakerComponent asInit = logF trace "[decisionMakerComponent]" $ logF tra
             logF traceM $ "leftMemIndex: " ++ (show (leftMemIndex as))
             numSteps <- randomRIO (1,length . runMI . leftMemIndex $ as)
             logF traceM ("num of retracted steps: " ++ show numSteps)
-            logF detailedLogM $ "Retracted " ++ show numSteps ++ " steps."
+            logF detailedLogM $ "Retracted " ++ show numSteps ++ " steps.\n"
             return $ budgetRetractSteps numSteps
                    $ retractSteps numSteps as
       else do
          logF traceM "continue plan"
          act <- getNextAction True planEmotion
          let newMsg = [(True, AMPlannedAction act (leftMemIndex as `mappend` MI [0]) False, ephemeral)]
-         logF detailedLogM $ "Added an action to the plan: " ++ showAction' act
+         logF detailedLogM $ "Added an action to the plan: " ++ showAction' act ++ "\n"
          return $ budgetAddStep $ addMessages newMsg as
    where
       -- chooses another action related to the given emotion

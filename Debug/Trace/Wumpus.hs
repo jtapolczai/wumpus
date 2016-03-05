@@ -3,6 +3,7 @@ module Debug.Trace.Wumpus where
 import Data.List (intercalate)
 import qualified Data.Map as M
 import Data.Maybe
+import System.Directory (removeFile)
 import System.IO
 import System.IO.Unsafe
 
@@ -18,7 +19,7 @@ type ModuleName = String
 
 logFileHandle :: Handle
 {-# NOINLINE logFileHandle #-}
-logFileHandle = unsafePerformIO (openFile "log.txt" AppendMode)
+logFileHandle = unsafePerformIO (removeFile "log.txt" >> openFile "log.txt" AppendMode)
 
 closeLogFileHandle :: IO ()
 closeLogFileHandle = hClose logFileHandle
