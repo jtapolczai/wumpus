@@ -647,7 +647,7 @@ decisionMakerComponent asInit = logF trace "[decisionMakerComponent]" $ logF tra
 
       logF traceM "mkStep"
       logF traceM $ "newMsg: " ++ show newMsg
-      logF detailedLogM $ "Started a new plan: " ++ showAction' act
+      logF detailedLogM $ "Started a new plan: " ++ showAction' act ++ "." ++ (if not isImag then ". The plan is final." else "")
       return $ budgetAddStep $ addMessages newMsg as
    -- if there is one, continue/abandon/OK the plan
    else do
@@ -662,7 +662,7 @@ decisionMakerComponent asInit = logF trace "[decisionMakerComponent]" $ logF tra
             logF traceM $ "leftMemIndex: " ++ (show (leftMemIndex as))
             numSteps <- randomRIO (1,length . runMI . leftMemIndex $ as)
             logF traceM ("num of retracted steps: " ++ show numSteps)
-            logF detailedLogM $ "Retracted " ++ show numStemps ++ " steps."
+            logF detailedLogM $ "Retracted " ++ show numSteps ++ " steps."
             return $ budgetRetractSteps numSteps
                    $ retractSteps numSteps as
       else do
