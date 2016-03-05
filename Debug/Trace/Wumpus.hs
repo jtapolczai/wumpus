@@ -8,7 +8,7 @@ import System.IO.Unsafe
 
 -- Log level type
 
-data LogLevel = Trace | Log | Warning | Fatal | None
+data LogLevel = Trace | DetailedLog | Log | Warning | Fatal | None
    deriving (Eq, Show, Ord)
 
 type ModuleName = String
@@ -16,16 +16,27 @@ type ModuleName = String
 -- PUT CONFIGURATION HERE
 --------------------------------------------------------------------------------
 
+logFileHandle :: Handle
+{-# NOINLINE logFileHandle #-}
+logFileHandle = unsafePerformIO (openFile "log.txt" AppendMode)
+
+closeLogFileHandle :: IO ()
+closeLogFileHandle = hClose logFileHandle
+
+toNull :: String -> IO ()
+toNull = const (return ())
+
 defaultLogLevel :: LogLevel
 defaultLogLevel = Trace
 
-logHandles :: M.Map LogLevel Handle
+logHandles :: M.Map LogLevel (String -> IO ())
 logHandles = M.fromList [
-   (Trace, stderr),
-   (Log, stdout),
-   (Warning, stderr),
-   (Fatal, stderr),
-   (None, stdout)
+   (Trace, hPutStrLn logFileHandle),
+   (DetailedLog, hPutStrLn stdout),
+   (Log, hPutStrLn stdout),
+   (Warning, hPutStrLn stderr),
+   (Fatal, hPutStrLn stderr),
+   (None, hPutStrLn stdout)
    ]
 
 logLevels :: M.Map ModuleName LogLevel
@@ -47,7 +58,7 @@ getLogLevel = fromMaybe defaultLogLevel . flip M.lookup logLevels
 genericLog :: LogLevel -> ModuleName -> String -> a -> a
 genericLog l mn s x =
    if l >= getLogLevel mn
-   then unsafePerformIO (hPutStrLn (logHandles M.! l) s >> return x)
+   then unsafePerformIO ((logHandles M.! l) s >> return x)
    else x
 
 genericLogM :: Monad m => LogLevel -> ModuleName -> String -> m ()
@@ -64,6 +75,9 @@ genericLogId l mn x = genericLog l mn (show x) x
 trace :: ModuleName -> String -> a -> a
 trace = genericLog Trace
 
+detailedLog :: ModuleName -> String -> a -> a
+detailedLog = genericLog DetailedLog
+
 log :: ModuleName -> String -> a -> a
 log = genericLog Log
 
@@ -77,6 +91,9 @@ fatal = genericLog Fatal
 
 traceM :: Monad m => ModuleName -> String -> m ()
 traceM = genericLogM Trace
+
+detailedLogM :: Monad m => ModuleName -> String -> m ()
+detailedLogM = genericLogM DetailedLog
 
 logM :: Monad m => ModuleName -> String -> m ()
 logM = genericLogM Log
@@ -92,6 +109,9 @@ fatalM = genericLogM Fatal
 traceList :: Show a => ModuleName -> [a] -> b -> b
 traceList = genericLogList Trace
 
+detailedLogList :: Show a => ModuleName -> [a] -> b -> b
+detailedLogList = genericLogList Log
+
 logList :: Show a => ModuleName -> [a] -> b -> b
 logList = genericLogList Log
 
@@ -105,6 +125,9 @@ fatalList = genericLogList Fatal
 
 traceId :: Show a => ModuleName -> a -> a
 traceId = genericLogId Trace
+
+detailedLogId :: Show a => ModuleName -> a -> a
+detailedLogId = genericLogId Log
 
 logId :: Show a => ModuleName -> a -> a
 logId = genericLogId Log

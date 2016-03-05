@@ -33,6 +33,7 @@ main' w = do
    ((resWorld, worldStats):_) <- fromMList $ takeM 3 $ fmapM printActions $ runWorld wmi world
    putStrLn $ showStats worldStats
    putStrLn (replicate 40 '-')
+   closeLogFileHandle
    return ()
 
 printActions (w, ws) = do

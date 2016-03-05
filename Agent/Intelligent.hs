@@ -42,6 +42,7 @@ import World
 import World.Constants
 import World.Perception
 import World.Rules
+import World.Statistics
 import World.Utils
 
 import Debug.Trace.Wumpus
@@ -183,6 +184,9 @@ memoryComponent as = logF trace "[memoryComponent]" $ logF trace (replicate 80 '
    -- these are not needed in general
    --when (leftMemIndex as' == mempty) $ error "memory not present in as'!!!"
    --when (leftMemIndex as'' == mempty) $ error "memory not present in as''!!!"
+
+   logF traceM ("[memoryComponent] initial memory index: " ++ show (leftMemIndex as) ++ "\n tree: " ++ printMemoryTree as)
+   logF traceM ("[memoryComponent] final memory index: " ++ show (leftMemIndex as'') ++ "\n tree: " ++ printMemoryTree as'')
 
    return as''
 
@@ -643,24 +647,29 @@ decisionMakerComponent asInit = logF trace "[decisionMakerComponent]" $ logF tra
 
       logF traceM "mkStep"
       logF traceM $ "newMsg: " ++ show newMsg
+      logF detailedLogM $ "Started a new plan: " ++ showAction' act
       return $ budgetAddStep $ addMessages newMsg as
    -- if there is one, continue/abandon/OK the plan
    else do
       logF traceM "has plan"
       if targetEmotionSatisfied' allChanges >= 1 then do
          logF traceM "finalize plan"
+         let actions = map (view $ _2 . _1 . to showAction') $ LS.sortBy (comparing $ view (_2 . _2 . to (length . runMI))) plannedActions
+         logF detailedLogM $ "Finalized a plan: " ++ LS.intercalate ", " actions
          return $ finalizeAction (MI [0]) as
       else if strongestOverruling planEmotion allChanges > 0 then
          do logF traceM "retract step"
             logF traceM $ "leftMemIndex: " ++ (show (leftMemIndex as))
             numSteps <- randomRIO (1,length . runMI . leftMemIndex $ as)
             logF traceM ("num of retracted steps: " ++ show numSteps)
+            logF detailedLogM $ "Retracted " ++ show numStemps ++ " steps."
             return $ budgetRetractSteps numSteps
-                   $ retractSteps (leftMemIndex as) numSteps as
+                   $ retractSteps numSteps as
       else do
          logF traceM "continue plan"
          act <- getNextAction True planEmotion
          let newMsg = [(True, AMPlannedAction act (leftMemIndex as `mappend` MI [0]) False, ephemeral)]
+         logF detailedLogM $ "Added an action to the plan: " ++ showAction' act
          return $ budgetAddStep $ addMessages newMsg as
    where
       -- chooses another action related to the given emotion
@@ -751,19 +760,19 @@ strongestOverruling en m = logF trace ("[strongestOverruling] for emotion:" ++ s
 --  In detail:
 --
 --  * 'AMPlannedAction' and 'AMPlanEmotionChanged' messages are deleted from the 'newMessages' list, and
---  * the memory nodes corresponding to the deleted memory indices are deleted too.
---  * If all steps were retracted, the 'AMPanEmotion' message is deleted too.
+--  * If all steps were retracted, the 'AMPlanEmotion' message is deleted too.
 --  * An 'AMRecallMemory' message is inserted, containing the index of the last non-deleted memory
 --    (i.e. the given memory index, with the last n elements removed).
-retractSteps :: MemoryIndex -- ^The index from which to start deleting upward.
-             -> Int -- ^Number of steps to go back.
+retractSteps :: Int -- ^Number of steps to go back.
              -> AgentState
              -> AgentState
-retractSteps mi n as = logF trace "[retractSteps]"
+retractSteps n as = logF trace "[retractSteps]"
    $ logF trace ("[retractSteps] mi: " ++ show mi)
    $ logF trace ("[retractSteps] n: " ++ show n)
-   $ addMessage (True, AMRecallMemory miRemaining, ephemeral) . over messageSpace delMsg . over memory delMem . over newMessages delMsg $ as
+   $ addMessage (True, AMRecallMemory miRemaining, ephemeral) . over messageSpace delMsg . over newMessages delMsg $ as
    where
+      mi = leftMemIndex as
+
       delMsg = filter (pa . view _2)
 
       pa x@(AMPlannedAction _ mi' _) = tr ("[retractSteps] PlannedAction (" ++ show x ++ ") filter=") $ not (mi' `subIndex` mi && memLength mi' > memLength mi - n)
@@ -771,7 +780,6 @@ retractSteps mi n as = logF trace "[retractSteps]"
       pa x@(AMPlanEmotion _) = tr ("[retractSteps] PlanEmotion (" ++ show x ++ ") filter=") $ (n < memLength (leftMemIndex as))
       pa _ = True
 
-      delMem ms@(T.Node n _) = fromMaybe (T.Node n []) $ deleteMemory mi ms
       memLength = length . runMI
       miRemaining = MI . take (memLength mi - n) . runMI $ mi
 

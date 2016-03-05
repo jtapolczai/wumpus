@@ -86,6 +86,8 @@ showStats ws =
       printAgents :: M.Map AgentIndex Int -> [String]
       printAgents = map (\(k,v) -> "   " ++ showInd k ++ ": " ++ show v ++ "\n") . M.toList
 
+-- |Prints an action as a pretty string.
+--  The result will contain more information than 'showAction''.
 showAction :: ActionRecord -> String
 showAction (n, i, a, t) = mconcat [n, " at ", show i, " ", go a]
    where
@@ -101,3 +103,18 @@ showAction (n, i, a, t) = mconcat [n, " at ", show i, " ", go a]
       go (Drop it) = mconcat ["dropped ", show it, "."]
       go (Eat it) = mconcat ["ate ", show it, "."]
       go (Gesture d g) = mconcat ["gestured '", g, "' to ", t', " to its ", show d, "."]
+
+-- |Prints an action as a pretty string.
+showAction' :: Action -> String
+showAction' = go
+   where
+      go NoOp = "Do nothing." 
+      go (Rotate d) = mconcat ["Turn to ", show d, "."]
+      go (Move d) = mconcat ["Move to ", show d, "."]
+      go (Attack d) = mconcat ["Attack to the  ", show d, "."]
+      go (Give d it) = mconcat ["Give ", show it, " to the ", show d, "." ]
+      go (Gather) = mconcat ["Harvest a plant."]
+      go (Collect it) = mconcat ["Pick up ", show it, "."]
+      go (Drop it) = mconcat ["Drop ", show it, "."]
+      go (Eat it) = mconcat ["Eat ", show it, "."]
+      go (Gesture d g) = mconcat ["Gesture '", g, "' to the ", show d, "."]

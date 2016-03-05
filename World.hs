@@ -436,7 +436,7 @@ wumpusStench world = newStench $ clearStench world
 
 -- |Regenerates the plants.
 regrowPlants :: CellData -> CellData
-regrowPlants = plant %~ fmap (min 1 . (cPLANT_REGROWTH+))
+regrowPlants = plant %~ fmap (min 0.5 . (cPLANT_REGROWTH+))
 
 -- |Increases the hungar of an agent (reduces health by 0.01)
 increaseHunger :: CellData -> CellData
