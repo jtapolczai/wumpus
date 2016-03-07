@@ -680,7 +680,9 @@ decisionMakerComponent asInit = logF trace "[decisionMakerComponent]" $ logF tra
          logF traceM $ "[getNextAction.SEC] " ++ (LS.intercalate "\n" $ map (show . (\x -> (x, getEmotionActions emotion x))) prospectiveCells)
          let actionableCells = dropWhile (null . getEmotionActions emotion) prospectiveCells
          logF traceM $ "[getNextAction.actionableCells] " ++ (LS.intercalate "\n" $ map (show . (\x -> (x, getEmotionActions emotion x))) actionableCells)
-         if null actionableCells then error "[decicionMakerComponent.getNextAction] No possible actions!"
+         if null actionableCells then do
+            logF warningM "[decicionMakerComponent.getNextAction] No possible actions!"
+            return NoOp
          else choose . head . map (getEmotionActions emotion) $ actionableCells
 
       -- Shorthand; gets the actions possible for a given emotion on a given cell.
