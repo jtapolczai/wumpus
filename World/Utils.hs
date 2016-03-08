@@ -409,6 +409,9 @@ instance SG.Semigroup EdgeData where
 --  their semigroup-instances.
 -- 
 --  The entity index is regenerated.
+--
+--  If an entity with the same name occurs in two different places in the
+--  two worlds, we delete it from the left. This is nesessary for internal consistency.
 instance (SG.Semigroup c,
           SG.Semigroup e,
           HasEntity c (Maybe (Entity s t)),
@@ -420,4 +423,16 @@ instance (SG.Semigroup c,
       cells'
       (makeEntityIndex cells')
       where
-         cells' = M.unionWith (SG.<>) (l ^. cellData) (r ^. cellData)
+         -- we first delete the entities from the left world that also occur
+         -- in the right. This is done to prevent an entity showing up in two
+         -- different cells in the following scenario:
+         -- Let an entity E be on a cell X which only occurs in the in the left world.
+         -- Let E also be on a cell Y in the right world and X != Y.
+         -- If we didn't delete E from X, it'd show up in both X and Y.
+         cells' = M.unionWith (SG.<>) cleanedLeftCells (r ^. cellData)
+         cleanedLeftCells = M.mapWithKey cleanEntities . view cellData $ l
+
+         cleanEntities k v =
+            if fromMaybe False . fmap (\e -> M.member (e ^. name) (r ^. agents)) . view entity $ v
+            then v & entity .~ Nothing
+            else v

@@ -2,7 +2,13 @@
    FlexibleContexts
    #-}
 
-module World.Rules where
+module World.Rules (
+   isEdible,
+   canBeGathered,
+   canBeCollected,
+   canBeCollectedAny,
+   canBeEntered,
+   ) where
 
 import Control.Lens
 import Data.Maybe
@@ -10,6 +16,12 @@ import Data.Maybe
 import Types
 import World.Constants
 import World.Utils
+
+import Debug.Trace.Wumpus
+
+-- Module-specific logging function.
+logF :: (String -> a) -> a
+logF f = f "World.Rules"
 
 -- |Returns whether an item can be eaten by an agent.
 isEdible :: Item -> Bool
@@ -32,4 +44,4 @@ canBeCollectedAny c = (>0) $ sum $ map ($ c) [get Meat, get Fruit, get Gold]
 
 -- |Returns True iff the given cell can be entered by an entity.
 canBeEntered :: CellData -> Bool
-canBeEntered = view (entity . to (maybe True (error "Why is there an entity here???")))
+canBeEntered = view (entity . to (maybe True (const $ logF warning "Entity found where there should be none!" $ False)))

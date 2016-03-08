@@ -59,9 +59,8 @@ instance AgentMind AgentState where
          me = w ^. cellData . ju (at i) . ju entity
          dir = fromMaybe (error "[AgentState.pullMessages.dir]: Nothing") (me ^? _Ag . direction)
 
-   receiveMessage msg as = logF trace ("[receiveMessage] " ++ show msg
-                                  ++ "\n___msg space: " ++ show (as ^. messageSpace))
-                           $ logF trace ("___[receiveMessage] msg space: " ++ show (as ^. messageSpace))
+   receiveMessage msg as = logF trace ("[receiveMessage] " ++ show msg)
+                           {- $ logF trace ("___[receiveMessage] msg space: " ++ show (as ^. messageSpace)) -}
                            $ as & messageSpace %~ (msg'++)
       where
         msg' = map (False,,eternal) (perception myName myPos msg)
@@ -247,11 +246,13 @@ constructWorld agentPost wumpusPost mkCell mkEdge mkWorldData xs =
    logF trace "[constructWorld] all messages: " $
    logF trace (show xs) $
    logF trace (replicate 80 '_') $
+   logF trace ("[constructWorld] entityIndex: " ++ show entityIndex)
+   logF trace (replicate 80 '_') $
    BaseWorld (mkWorldData worldDataMsg)
              UnboundedSquareGrid
              edges
              cells
-             (logF trace ("[constructWorld] entityIndex: " ++ show entityIndex) $ entityIndex)
+             entityIndex
    where
       -- applies the post-processing functions to Wumpuses and agents.
       postProc k =
@@ -410,6 +411,9 @@ getMyPerceptions en w = cd ^. ju entity . state . to readMessageSpace
 -- |Reads out relevant messages from a message space and writes information
 --  about the world into the agent state. This resets the agent's memory tree
 --  to a single node.
+--
+--  __Note:__ The old memory root will be merged with the new one, with
+--  the new one overwriting the old in case of conflicts.
 resetMemory :: AgentState -- ^The agent state. Has to have at least one memory.
             -> [AgentMessage']
             -> AgentState
@@ -425,6 +429,7 @@ addMemory xs mi as = logF trace "[addMemory]" $ as & memory %~ addMemNode mi new
   where
     newMem = constructMemory xs $ Just (as ^. memory . memInd mi)
 
+-- |Constructs a memory from messages and an optional base memory.
 constructMemory :: [AgentMessage'] -> Maybe Memory -> Memory
 constructMemory ms baseWorld = maybe curWorld (SG.<> curWorld) baseWorld
    where curWorld = constructWorld M.empty (const id) mkVisualCell mkEdge mkWorldData ms
