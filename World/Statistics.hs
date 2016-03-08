@@ -73,6 +73,8 @@ showStats ws =
    ++ "   fruit: " ++ show (ws ^. numItemsGiven . at' Fruit) ++ "\n"
    ++ "gestures: " ++ show (ws ^. numGesturesSent) ++ "\n"
    ++ "attacks: " ++ show (ws ^. numAttacksPerformed) ++ "\n"
+   ++ "actions:\n"
+   ++ (concat . map (\x -> "   " ++ x ++ "\n")  . map showAction . F.toList . view actions $ ws)
    where
       showFT Weak = "w"
       showFT Strong = "s"

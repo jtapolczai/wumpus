@@ -315,7 +315,8 @@ moveEntity :: (MonadReader WorldMetaInfo m, MonadWriter (WorldStats -> WorldStat
            -> World
            -> m World
 moveEntity i j world = do
-   maybe (return ()) entityDied . join $ world' ^? cellData . at j . _Just . entity
+   when (isNothing . join . preview (cellData . at j . _Just . entity) $ world')
+        (entityDied ent) 
    logF traceM $ "[moveEntity] old index: \n" ++ show (world ^. agents) 
    logF traceM $ "[moveEntity] new index: \n" ++ show (world'' ^. agents)
    logF traceM $ "[moveEntity] new index: \n" ++ (intercalate "\n" . map show . M.toList $ world'' ^. cellData)

@@ -44,4 +44,6 @@ The problem: when the agent is extremely hungry, its attention goes towards itse
 * [x] but the NoActionableCells-error still shouldn't be triggered; (0,0) should still exist!
 
 * [ ] harvest-action is not registered in the statistics
-  * [ ] moveEntity (probably) sends an entityDied-message to the statistics
+  * [x] moveEntity (probably) sends an entityDied-message to the statistics
+
+* [ ] erroneous "Move to South"-action generated in first step :(

@@ -123,7 +123,7 @@ psbcComponent as = logF trace "[psbcComponent]" $ logF trace (replicate 80 '+')
    $ logF trace ("___Contentment:")
    $ (logF traceList $ snd $ outputNodesTrace !! 3) -}
    $ logF trace ("[psbcComponent] new emotion map: " ++ show retMap)
-   $ logF log ("Emotions for " ++ view name as ++ ": \n" ++ retInfo)
+   $ logF detailedLog ("Emotions for " ++ view name as ++ ": \n" ++ retInfo)
    $ return ret_as
    where
       ret_as = foldr (\en as' -> addEmotionMessage en $ psbcEmotion msg en as') as [minBound..maxBound]
