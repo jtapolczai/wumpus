@@ -588,7 +588,7 @@ generateBelief act mi as = liftIO $ do
    let getPerc w = w & cellData . imapped
                    %@~ (\i -> entity . _Just . _Ag . state %~ pullMessages w i . clearMessageSpace)
 
-   (nextWorld, msg) <- simulateConsequences act mi as (simulateStep >=> return . getPerc)
+   ({- nextWorld -} _, msg) <- simulateConsequences act mi as (simulateStep >=> return . getPerc)
    logF traceM "[generateBelief] simulateConsequences done."
    let msg' = map (True,,ttl 1) msg
        as' = addMessages msg' $ {- $ addMessage (True, AMFutureBelief (cast nextWorld), ephemeral) $ -} as

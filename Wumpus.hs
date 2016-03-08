@@ -3,6 +3,7 @@ module Wumpus where
 import Prelude hiding (log)
 
 import Control.Lens
+import Control.Monad
 import qualified Data.Foldable as F
 import Data.MList
 
@@ -17,12 +18,10 @@ import Debug.Trace.Wumpus
 logF :: (String -> a) -> a
 logF f = f "Wumpus"
 
-main' :: String -> IO ()
-main' w = do
+main' :: String -> Int -> (World -> World) -> IO ()
+main' w numSteps setupFunc = do
    (worldInit, wmi) <- readWorld w
-   let world = worldInit & worldData . time .~ 25
-                         & worldData . temperature .~ Hot
-                         & cellData . ix (2,0) . entity . _Just . health .~ 0.1
+   let world = setupFunc worldInit
 
    logF traceM $ show $ world ^. cellData . at (2,0)
    --world `seq` putStrLn "WumpusWorld!"
@@ -30,8 +29,8 @@ main' w = do
    print wmi
    putStrLn $ showStats $ mkStats wmi world
    putStrLn "--------"
-   ((resWorld, worldStats):_) <- fromMList $ takeM 3 $ fmapM printActions $ runWorld wmi world
-   putStrLn $ showStats worldStats
+   stats <- fromMList $ fmap snd $ takeM numSteps $ fmapM printActions $ runWorld wmi world
+   when (not $ null stats) (putStrLn $ showStats $ last stats)
    putStrLn (replicate 40 '-')
    closeLogFileHandle
    return ()
@@ -42,5 +41,16 @@ printActions (w, ws) = do
    logF logM (replicate 80 '_')
    return (w,ws)
 
+-- Setup functions
+--------------------------------------------------------------------------------
+hotTemp = (worldData . time .~ 25)
+          . (worldData . temperature .~ Hot)
+
+
+w4_lowHealth = cellData . ix (2,0) . entity . _Just . health .~ 0.1
+
+-- Setup functions
+--------------------------------------------------------------------------------
+
 main :: IO ()
-main = main' "world4"
+main = main' "world4" 3 (w4_lowHealth . hotTemp)
