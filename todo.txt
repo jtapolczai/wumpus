@@ -40,5 +40,8 @@ The problem: when the agent is extremely hungry, its attention goes towards itse
 
 * [x] rotate actions are not registered (:()
 
-* [ ] memory is overriden, not merged (see Rotate South)-action
-* [ ] but the NoActionableCells-error still shouldn't be triggered; (0,0) should still exist!
+* [x] memory is overriden, not merged (see Rotate South)-action
+* [x] but the NoActionableCells-error still shouldn't be triggered; (0,0) should still exist!
+
+* [ ] harvest-action is not registered in the statistics
+  * [ ] moveEntity (probably) sends an entityDied-message to the statistics
