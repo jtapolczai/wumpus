@@ -267,7 +267,7 @@ runFilter' ms limit filt = -- trace ("runFilter (step case, limit = " ++ show li
                            if null newlyActivatedNodes then filt
                            else runFilter' [] (limit - 1) filt''
    where
-      processMsg f m = foldl' (\f' n -> f' & graph . ix n %~ exciteNode (isOut f' n) m) f $ candidateNodes m f
+      processMsg f m = foldl' (\f' n -> f' & graph . at n %~ fmap (exciteNode (isOut f' n) m)) f $ candidateNodes m f
       filt' = activateNodes $ foldl' processMsg filt ms
 
       isOut f n = HS.member n (f ^. outputNodes)
