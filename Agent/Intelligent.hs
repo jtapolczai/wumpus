@@ -51,6 +51,15 @@ import Debug.Trace.Wumpus
 logF :: (String -> a) -> a
 logF f = f "Agent.Intelligent"
 
+logFmem :: (String -> a) -> a
+logFmem f = f "Agent.Intelligent.Memory"
+
+logFdm :: (String -> a) -> a
+logFdm f = f "Agent.Intelligent.DecisionMaker"
+
+logFbg :: (String -> a) -> a
+logFbg f = f "Agent.Intelligent.BeliefGeneratorf"
+
 instance AgentMind AgentState where
    pullMessages w i = logF trace "[pullMessages]" $
                       logF trace (show msg) $ receiveMessages msg
@@ -73,14 +82,14 @@ instance AgentMind AgentState where
 
 getAction' :: AgentState -> IO (Action, AgentState)
 getAction' initAs = do
-   logF traceM $ "[getAction] my name: " ++ (initAs ^. name)
-   logF traceM $ "[getAction] my message space: " ++ (show $ initAs ^. messageSpace)
+   logFdm traceM $ "[getAction] my name: " ++ (initAs ^. name)
+   logFdm traceM $ "[getAction] my message space: " ++ (show $ initAs ^. messageSpace)
    -- create an initial memory and 
    as' <- callComponents False [initialMemoryComponent,
                                initialDecisionMakerComponent,
                                temporalizePerceptionsComponent] initAs
    action <- loop action (cc' components) as'
-   logF traceM $ "[getAction] action: " ++ show action
+   logFdm traceM $ "[getAction] action: " ++ show action
    return (action, as' & messageSpace .~ [])
 
    where
@@ -91,12 +100,12 @@ getAction' initAs = do
           => [AgentComponent m]
           -> AgentState
           -> m AgentState
-      cc' comps as = do logF traceM $ "[cc'] initMsg:" ++ show (as ^. messageSpace)
+      cc' comps as = do logFdm traceM $ "[cc'] initMsg:" ++ show (as ^. messageSpace)
                         asAfterCC <- callComponents True comps as
-                        logF traceM $ "[cc'] callComponents done."
-                        logF traceM $ "[cc'] output msg:" ++ show (asAfterCC ^. messageSpace)
+                        logFdm traceM $ "[cc'] callComponents done."
+                        logFdm traceM $ "[cc'] output msg:" ++ show (asAfterCC ^. messageSpace)
                         asAfterPruning <- callComponents False [persistentMessagesComponent] asAfterCC
-                        logF traceM $ "[cc'| after pruning] output msg:" ++ show (asAfterPruning ^. messageSpace)
+                        logFdm traceM $ "[cc'| after pruning] output msg:" ++ show (asAfterPruning ^. messageSpace)
                         return $ asAfterPruning
 
       -- gets the first non-imaginary action, if it exists.
@@ -148,14 +157,14 @@ instance Castable VisualAgent (Agent SomeMind) where
 --  This should only be called when the agent begins its thought process.
 --  After that, memoryComponent should be called for planning.
 initialMemoryComponent :: Monad m => AgentComponent m
-initialMemoryComponent as = logF trace "[initialMemoryComponent]" $ logF trace (replicate 80 '+')
-   -- logF trace "[initialMemoryComponent] messages: " $
-   -- logF trace (show $ as ^. messageSpace) $
-   -- logF trace (replicate 80 '~') $
+initialMemoryComponent as = logFmem trace "[initialMemoryComponent]" $ logFmem trace (replicate 80 '+')
+   -- logFmem trace "[initialMemoryComponent] messages: " $
+   -- logFmem trace (show $ as ^. messageSpace) $
+   -- logFmem trace (replicate 80 '~') $
    return $ resetMemory as (as ^. messageSpace) 
 
 memoryComponent :: Monad m => AgentComponent m
-memoryComponent as = logF trace "[memoryComponent]" $ logF trace (replicate 80 '+') $ do
+memoryComponent as = logFmem trace "[memoryComponent]" $ logFmem trace (replicate 80 '+') $ do
    let -- all planned actions, regardless of discharge state or TTL
        allPlannedActions = msgWhere _AMPlannedAction . view messageSpace $ as
        -- discharged planned actions with a ttl of 1. These are the MIs for which we want to keep the memories.
@@ -170,22 +179,22 @@ memoryComponent as = logF trace "[memoryComponent]" $ logF trace (replicate 80 '
        mi :: MemoryIndex
        mi = MI . init . runMI . head . map (view _2) $ pendingActions
 
-   logF traceM ("[memoryComponent] allPlannedActions: " ++ show allPlannedActions)
-   logF traceM ("[memoryComponent] keepActions: " ++ show keepActions)
-   logF traceM ("[memoryComponent] pendingActions: " ++ show pendingActions)
+   logFmem traceM ("[memoryComponent] allPlannedActions: " ++ show allPlannedActions)
+   logFmem traceM ("[memoryComponent] keepActions: " ++ show keepActions)
+   logFmem traceM ("[memoryComponent] pendingActions: " ++ show pendingActions)
 
    when (length pendingActions > 1 ) $ error "memoryComponent: more than 1 non-discharged planned action!"
-   let as' = if length pendingActions == 1 then logF trace ("[memoryComponent] executing pending action with mi " ++ show mi)
+   let as' = if length pendingActions == 1 then logFmem trace ("[memoryComponent] executing pending action with mi " ++ show mi)
                                                 $ addMemory currentMsg mi as
-                                           else logF trace "[memoryComponent] no pending action." as
+                                           else logFmem trace "[memoryComponent] no pending action." as
        as'' = removeUnplannedMemories (mempty : keepActions) as'
 
    -- these are not needed in general
    --when (leftMemIndex as' == mempty) $ error "memory not present in as'!!!"
    --when (leftMemIndex as'' == mempty) $ error "memory not present in as''!!!"
 
-   logF traceM ("[memoryComponent] initial memory index: " ++ show (leftMemIndex as) ++ "\n tree: " ++ printMemoryTree as)
-   logF traceM ("[memoryComponent] final memory index: " ++ show (leftMemIndex as'') ++ "\n tree: " ++ printMemoryTree as'')
+   logFmem traceM ("[memoryComponent] initial memory index: " ++ show (leftMemIndex as) ++ "\n tree: " ++ printMemoryTree as)
+   logFmem traceM ("[memoryComponent] final memory index: " ++ show (leftMemIndex as'') ++ "\n tree: " ++ printMemoryTree as'')
 
    return as''
 
@@ -195,9 +204,9 @@ removeUnplannedMemories
    -> AgentState
    -> AgentState
 removeUnplannedMemories mi as =
-   logF trace ("[removeUnplannedMemories] keeping MIs " ++ show mi)
-   $ logF trace ("[removeUnplannedMemories] initial leftMemIndex = " ++ show (leftMemIndex as) ++ "\n" ++ printMemoryTree as)
-   $ logF trace ("[removeUnplannedMemories] final leftMemIndex = " ++ show (leftMemIndex ret) ++ "\n" ++ printMemoryTree ret)
+   logFmem trace ("[removeUnplannedMemories] keeping MIs " ++ show mi)
+   $ logFmem trace ("[removeUnplannedMemories] initial leftMemIndex = " ++ show (leftMemIndex as) ++ "\n" ++ printMemoryTree as)
+   $ logFmem trace ("[removeUnplannedMemories] final leftMemIndex = " ++ show (leftMemIndex ret) ++ "\n" ++ printMemoryTree ret)
    $ ret
    where
       ret = as & memory %~ fromMaybe (error "[removeUnplannedMemories] root memory was removed!") . go mempty
@@ -240,14 +249,14 @@ constructWorld
       -- ^Messages from which to create the world.
    -> BaseWorld cell edge
 constructWorld agentPost wumpusPost mkCell mkEdge mkWorldData xs =
-   {- logF trace "[constructWorld]" $
-   logF trace "[constructWorld] edge data:" $
-   logF trace (show edgeMsg) $ -}
-   logF trace "[constructWorld] all messages: " $
-   logF trace (show xs) $
-   logF trace (replicate 80 '_') $
-   logF trace ("[constructWorld] entityIndex: " ++ show entityIndex)
-   logF trace (replicate 80 '_') $
+   {- logFmem trace "[constructWorld]" $
+   logFmem trace "[constructWorld] edge data:" $
+   logFmem trace (show edgeMsg) $ -}
+   logFmem trace "[constructWorld] all messages: " $
+   logFmem trace (show xs) $
+   logFmem trace (replicate 80 '_') $
+   logFmem trace ("[constructWorld] entityIndex: " ++ show entityIndex)
+   logFmem trace (replicate 80 '_') $
    BaseWorld (mkWorldData worldDataMsg)
              UnboundedSquareGrid
              edges
@@ -345,12 +354,12 @@ mkVisualCell ms = updateFunc def
       go (AMLocalStench n) = stench ?~ n
       go (AMLocalBreeze n) = breeze ?~ n
       go (AMDirection n) = entity . _Just . _Ag . direction .~ n
-      go (AMLocalAgent n) = logF trace "[constructCell] LOCALAGENT FOUND. " (entity . _Just . name .~ n)
+      go (AMLocalAgent n) = logFmem trace "[constructCell] LOCALAGENT FOUND. " (entity . _Just . name .~ n)
       go (AMHaveHealth n) = entity . _Just . health .~ n
       go (AMHaveStamina n) = entity . _Just . stamina .~ n
-      go (AMHaveGold n) = logF trace "[constructCell] AMHaveGold message." $ onInv (at Gold ?~ n)
-      go (AMHaveMeat n) = logF trace "[constructCell] AMHaveMeat message." $ onInv (at Meat ?~ n)
-      go (AMHaveFruit n) = logF trace "[constructCell] AMHaveFruit message." $ onInv (at Fruit ?~ n)
+      go (AMHaveGold n) = logFmem trace "[constructCell] AMHaveGold message." $ onInv (at Gold ?~ n)
+      go (AMHaveMeat n) = logFmem trace "[constructCell] AMHaveMeat message." $ onInv (at Meat ?~ n)
+      go (AMHaveFruit n) = logFmem trace "[constructCell] AMHaveFruit message." $ onInv (at Fruit ?~ n)
 
       go _ = id
 
@@ -360,15 +369,15 @@ mkVisualCell ms = updateFunc def
 --  left undefined. If there's no entity, @id@ is returned.
 constructEntity :: [AgentMessage']
                 -> (VisualCellData -> VisualCellData)
-constructEntity ms = {- logF trace "[constructEntity]" -} agentKind
+constructEntity ms = {- logFmem trace "[constructEntity]" -} agentKind
    where
       agentKind = case (firstWhere _AMVisualAgent ms,
                         firstWhere _AMVisualWumpus ms,
                         firstWhere _AMLocalAgent ms) of
-                          (Just _,_,_) -> logF trace "[constructEntity] ag" $ (entity .~ Just (Ag va))
-                          (_,Just _,_) -> logF trace "[constructEntity] wu" $ (entity .~ Just (Wu vw))
-                          (_,_,Just _) -> logF trace "[constructEntity] local ag" $ (entity .~ Just (Ag va))
-                          _ -> {- logF trace "[constructEntity] _" $ -} id
+                          (Just _,_,_) -> logFmem trace "[constructEntity] ag" $ (entity .~ Just (Ag va))
+                          (_,Just _,_) -> logFmem trace "[constructEntity] wu" $ (entity .~ Just (Wu vw))
+                          (_,_,Just _) -> logFmem trace "[constructEntity] local ag" $ (entity .~ Just (Ag va))
+                          _ -> {- logFmem trace "[constructEntity] _" $ -} id
 
       va = VisualAgent (vaErr "name") (vaErr "direction") (vaErr "health") (vaErr "stamina") Nothing
       vw = VisualWumpus (vwErr "name") (vwErr "health") (vwErr "stamina")
@@ -417,7 +426,7 @@ getMyPerceptions en w = cd ^. ju entity . state . to readMessageSpace
 resetMemory :: AgentState -- ^The agent state. Has to have at least one memory.
             -> [AgentMessage']
             -> AgentState
-resetMemory as xs = logF trace ("[resetMemory] output world: ") $ logF trace (show $ ret ^. memory) $ ret
+resetMemory as xs = logFmem trace ("[resetMemory] output world: ") $ logFmem trace (show $ ret ^. memory) $ ret
    where
       ret = as & memory %~ (\(T.Node mem _) -> T.Node (upd mem) [])
       upd m = constructMemory xs (Just m)
@@ -425,7 +434,7 @@ resetMemory as xs = logF trace ("[resetMemory] output world: ") $ logF trace (sh
 -- |Adds a memory as a last child to an existent one. The memory given by the
 --  MemoryIndex has to exist.
 addMemory :: [AgentMessage'] -> MemoryIndex -> AgentState -> AgentState
-addMemory xs mi as = logF trace "[addMemory]" $ as & memory %~ addMemNode mi newMem
+addMemory xs mi as = logFmem trace "[addMemory]" $ as & memory %~ addMemNode mi newMem
   where
     newMem = constructMemory xs $ Just (as ^. memory . memInd mi)
 
@@ -467,13 +476,13 @@ instance Castable VisualCellData CellData where
 --  The newly discharged planned actions will be reinserted with a ttl of 1.
 beliefGeneratorComponent :: MonadIO m => AgentComponent m
 beliefGeneratorComponent as = liftIO $ do
-   logF traceM ("[beliefGeneratorComponent]")
-   logF traceM (replicate 80 '+')
-   logF traceM ("___num acts: " ++ show (length acts))
-   logF traceM ("___acts: " ++ show acts)
-   logF traceM ("___memory tree before: " ++ printMemoryTree as)
+   logFbg traceM ("[beliefGeneratorComponent]")
+   logFbg traceM (replicate 80 '+')
+   logFbg traceM ("___num acts: " ++ show (length acts))
+   logFbg traceM ("___acts: " ++ show acts)
+   logFbg traceM ("___memory tree before: " ++ printMemoryTree as)
    ret <- flip (foldM genRecalls) recalls  =<< foldM genActs as acts
-   logF traceM ("___memory tree after: " ++ printMemoryTree ret)
+   logFbg traceM ("___memory tree after: " ++ printMemoryTree ret)
    return ret
    where
       -- For planned actions, we generate a future world and reinsert the planned action with its
@@ -517,8 +526,8 @@ simulateConsequences
    -> IO (World, [AgentMessage])
 simulateConsequences action mi as simulateAction = do
    --when (mi == mempty) (error "EMPTY MI GIVEN TO simulateConsequences!")
-   logF traceM $ "[simulateConsequences]"
-   logF traceM $ "[simulateConsequences] mi: " ++ show mi
+   logFbg traceM $ "[simulateConsequences]"
+   logFbg traceM $ "[simulateConsequences] mi: " ++ show mi
    let myName = as ^. name
        myMind = M.fromList [(myName, \_ _ -> SM $ DummyMind action True [])]
        currentWorld :: World
@@ -527,17 +536,17 @@ simulateConsequences action mi as simulateAction = do
        parentWorld = as ^. memory . memInd (parentMemIndex mi)
 
 
-       myPos = logF trace "[simulateConsequences.myPos]" $ fromMaybe
-          (logF trace ("[simulateConsequences].myPos: +++Agent not found in current world "
+       myPos = logFbg trace "[simulateConsequences.myPos]" $ fromMaybe
+          (logFbg trace ("[simulateConsequences].myPos: +++Agent not found in current world "
                   ++ show mi ++ ". Looking in parent world.") $ fromMaybe
              (error "[simulateConsequences].myPos: Nothing for pos. in parent world!")
              (entityPosition myName parentWorld))
           (entityPosition myName currentWorld)
-       isAlive = logF trace "[simulateConsequences.isAlive]" $ isPresent myName currentWorld
-   logF traceM $ "[simulateConsequences] reconstructed world: " ++ show currentWorld
+       isAlive = logFbg trace "[simulateConsequences.isAlive]" $ isPresent myName currentWorld
+   logFbg traceM $ "[simulateConsequences] reconstructed world: " ++ show currentWorld
    nextWorld <- simulateAction currentWorld
-   logF traceM $ "[simulateConsequences] next world: " ++ show nextWorld
-   logF traceM $ "[simulateConsequences] nextWorld computed."
+   logFbg traceM $ "[simulateConsequences] next world: " ++ show nextWorld
+   logFbg traceM $ "[simulateConsequences] nextWorld computed."
    -- get the messages from the agent at its new position.
    -- the agent not being present means that it has died, so create an
    -- appropriate "health decreased by 100 percept" message.
@@ -546,22 +555,22 @@ simulateConsequences action mi as simulateAction = do
    -- IsAlive-field of the memory is false.
    let deadMessages = [AMHealthDecreased 100, AMYouDied, AMPosition myPos]
        messages = fromMaybe deadMessages $ do
-          logF traceM "[simulateConsequences] messages"
+          logFbg traceM "[simulateConsequences] messages"
           -- traceM $ "[simulateConsequences.messages] agents: " ++ show (nextWorld ^. agents)
-          logF traceM $ "[simulateConsequences.messages] my name: " ++ (as ^. name)
+          logFbg traceM $ "[simulateConsequences.messages] my name: " ++ (as ^. name)
           newPos <- nextWorld ^. agents . at (as ^. name)
-          logF traceM $ "[simulateConsequences.messages] newPos: " ++ show newPos
-          logF traceM $ "[simulateConsequences.messages] world cells: " ++ show (nextWorld ^. cellData)
+          logFbg traceM $ "[simulateConsequences.messages] newPos: " ++ show newPos
+          logFbg traceM $ "[simulateConsequences.messages] world cells: " ++ show (nextWorld ^. cellData)
           -- traceM $ "[simulateConsequences.messages] cell at my pos: " ++ show (nextWorld ^? cellData . at newPos . _Just)
           -- traceM $ "[simulateConsequences.messages] entity at my pos present: " ++ show (isJust $ nextWorld ^? cellData . at newPos . _Just . entity)
-          logF traceM $ "[simulateConsequences.messages] agent at my pos present: " ++ show (isJust $ nextWorld ^? cellData . at newPos . _Just . entity . _Just . _Ag)
+          logFbg traceM $ "[simulateConsequences.messages] agent at my pos present: " ++ show (isJust $ nextWorld ^? cellData . at newPos . _Just . entity . _Just . _Ag)
           me <- nextWorld ^? cellData . at newPos . _Just . entity . _Just . _Ag
-          logF traceM $ "[simulateConsequences.messages] me: Just"
+          logFbg traceM $ "[simulateConsequences.messages] me: Just"
           return $ concatMap (perception myName newPos) $ readMessageSpace $ me ^. state
 
    return (nextWorld, if isAlive
-                      then logF trace ("[simulateConsequences] messages: " ++ show messages) messages
-                      else logF trace "[simulateConsequences] agent dead (through isAlive-field)!"  deadMessages)
+                      then logFbg trace ("[simulateConsequences] messages: " ++ show messages) messages
+                      else logFbg trace "[simulateConsequences] agent dead (through isAlive-field)!"  deadMessages)
 
 -- |Recalls an existing memory and returns the perception-messages that correspond to it.
 --  Note that these resultant messages shouldn't be inserted directly into
@@ -571,7 +580,7 @@ recallMemory
    :: MemoryIndex
    -> AgentState
    -> IO [AgentMessage]
-recallMemory mi as = logF trace "[recallMemory]" $ snd <$> simulateConsequences NoOp mi as getPerc
+recallMemory mi as = logFbg trace "[recallMemory]" $ snd <$> simulateConsequences NoOp mi as getPerc
    where
       -- calls pullMessages on all agents
       -- %@~ is the indexed update operator that takes a function (k -> v -> v). Note imapped.
@@ -584,15 +593,15 @@ generateBelief :: MonadIO m
                -> MemoryIndex
                -> AgentComponent m
 generateBelief act mi as = liftIO $ do
-   logF traceM "[generateBelief]"
+   logFbg traceM "[generateBelief]"
    let getPerc w = w & cellData . imapped
                    %@~ (\i -> entity . _Just . _Ag . state %~ pullMessages w i . clearMessageSpace)
 
    ({- nextWorld -} _, msg) <- simulateConsequences act mi as (simulateStep >=> return . getPerc)
-   logF traceM "[generateBelief] simulateConsequences done."
+   logFbg traceM "[generateBelief] simulateConsequences done."
    let msg' = map (True,,ttl 1) msg
        as' = addMessages msg' $ {- $ addMessage (True, AMFutureBelief (cast nextWorld), ephemeral) $ -} as
-   logF traceM ("   generated msg: " ++ show msg)
+   logFbg traceM ("   generated msg: " ++ show msg)
    return as'
 
 -- Decision maker
@@ -609,7 +618,7 @@ type ActionSelector a =
 
 -- |Adds 'AMPlanLocalBudget' and 'AMPlanGlobalBudget' messages.
 initialDecisionMakerComponent :: Monad m => AgentComponent m
-initialDecisionMakerComponent = logF trace "[initialDecisionMakerComponent]" $ logF trace (replicate 80 '+') $ return . addMessages msg
+initialDecisionMakerComponent = logFdm trace "[initialDecisionMakerComponent]" $ logFdm trace (replicate 80 '+') $ return . addMessages msg
    where
       msg = [(True, AMPlanLocalBudget cAGENT_PLAN_LIMIT, ephemeral),
              (True, AMPlanGlobalBudget $ cAGENT_GLOBAL_PLAN_LIMIT, ephemeral)]
@@ -619,8 +628,8 @@ initialDecisionMakerComponent = logF trace "[initialDecisionMakerComponent]" $ l
 --  The memory index of the new messages will be leftMemIndex.
 recordPlanEmotionChangesComponent :: Monad m => AgentComponent m
 recordPlanEmotionChangesComponent as =
-   logF trace "[recordPlanEmotionChangesComponent]" $ logF trace (replicate 80 '_')
-   $ logF trace ("[recordPlanEmotionChangesComponent] leftMemIndex: " ++ show memInd)
+   logFdm trace "[recordPlanEmotionChangesComponent]" $ logFdm trace (replicate 80 '_')
+   $ logFdm trace ("[recordPlanEmotionChangesComponent] leftMemIndex: " ++ show memInd)
    $ return $ addMessages planChMsg as
    where
       memInd = leftMemIndex as
@@ -633,60 +642,60 @@ recordPlanEmotionChangesComponent as =
 --  Chooses a next planned step and inserts the corresponding memory and
 --  imaginary 'AMPlannedAction' into the message space.
 decisionMakerComponent :: AgentComponent IO
-decisionMakerComponent asInit = logF trace "[decisionMakerComponent]" $ logF trace (replicate 80 '+')
-   $ logF trace ("[decisionMakerComponent] leftMemIndex: " ++ show (leftMemIndex as))
-   $ logF trace ("[decisionMakerComponent] memory tree: " ++ printMemoryTree as) $
+decisionMakerComponent asInit = logF trace "[decisionMakerComponent]" $ logFdm trace (replicate 80 '+')
+   $ logFdm trace ("[decisionMakerComponent] leftMemIndex: " ++ show (leftMemIndex as))
+   $ logFdm trace ("[decisionMakerComponent] memory tree: " ++ printMemoryTree as) $
    -- if there's no plan, start one.
    if null plannedActions || not hasBudget then do
-      logF traceM "no plan"
-      logF traceM $ "dominantEmotion: " ++ show dominantEmotion
-      logF traceM $ "dominantEmotionLevel: " ++ show dominantEmotionLevel
+      logFdm traceM "no plan"
+      logFdm traceM $ "dominantEmotion: " ++ show dominantEmotion
+      logFdm traceM $ "dominantEmotionLevel: " ++ show dominantEmotionLevel
       -- randomly choose an emotion-appropriate action
       act <- getNextAction (leftMemIndex as /= mempty) dominantEmotion
-      logF traceM (show act)
+      logFdm traceM (show act)
       -- Imaginary AMPlannedActions are picked up and reinserted by the BG; non-imaginary ones
       -- get a TTL 1 so that they aren't pruned at the end of the round - they have to be picked up
       -- in the main loop in Agent/Intelligent.
       let newMsg = [(isImag, AMPlannedAction act (MI [0]) False, if isImag then ephemeral else ttl 1),
                     (isImag, AMPlanEmotion dominantEmotion, ttl 1)]
 
-      logF traceM "mkStep"
-      logF traceM $ "newMsg: " ++ show newMsg
-      logF detailedLogM $ "Started a new plan under " ++ show dominantEmotion ++ ": " ++ showAction' act ++ (if not isImag then " The plan is final." else "") ++ "\n"
+      logFdm traceM "mkStep"
+      logFdm traceM $ "newMsg: " ++ show newMsg
+      logFdm detailedLogM $ "Started a new plan under " ++ show dominantEmotion ++ ": " ++ showAction' act ++ (if not isImag then " The plan is final." else "") ++ "\n"
       return $ budgetAddStep $ addMessages newMsg as
    -- if there is one, continue/abandon/OK the plan
    else do
-      logF traceM "has plan"
+      logFdm traceM "has plan"
       if targetEmotionSatisfied' allChanges >= 1 then do
-         logF traceM "finalize plan"
+         logFdm traceM "finalize plan"
          let actions = map (view $ _2 . _1 . to showAction') $ LS.sortBy (comparing $ view (_2 . _2 . to (length . runMI))) plannedActions
-         logF detailedLogM $ "Finalized a plan: " ++ LS.intercalate ", " actions
+         logFdm detailedLogM $ "Finalized a plan: " ++ LS.intercalate ", " actions
          return $ finalizeAction (MI [0]) as
       else if strongestOverruling planEmotion allChanges > 0 then
-         do logF traceM "retract step"
-            logF traceM $ "leftMemIndex: " ++ (show (leftMemIndex as))
+         do logFdm traceM "retract step"
+            logFdm traceM $ "leftMemIndex: " ++ (show (leftMemIndex as))
             numSteps <- randomRIO (1,length . runMI . leftMemIndex $ as)
-            logF traceM ("num of retracted steps: " ++ show numSteps)
-            logF detailedLogM $ "Retracted " ++ show numSteps ++ " steps.\n"
+            logFdm traceM ("num of retracted steps: " ++ show numSteps)
+            logFdm detailedLogM $ "Retracted " ++ show numSteps ++ " steps.\n"
             return $ budgetRetractSteps numSteps
                    $ retractSteps numSteps as
       else do
-         logF traceM "continue plan"
+         logFdm traceM "continue plan"
          act <- getNextAction True planEmotion
          let newMsg = [(True, AMPlannedAction act (leftMemIndex as `mappend` MI [0]) False, ephemeral)]
-         logF detailedLogM $ "Added an action to the plan: " ++ showAction' act ++ "\n"
+         logFdm detailedLogM $ "Added an action to the plan: " ++ showAction' act ++ "\n"
          return $ budgetAddStep $ addMessages newMsg as
    where
       -- chooses another action related to the given emotion
       getNextAction :: IsImaginary -> EmotionName -> IO Action
       getNextAction imag emotion = do
          let prospectiveCells = strongestEmotionCells imag emotion as
-         logF traceM $ "[getNextAction] with emotion " ++ show emotion
-         logF traceM $ "[getNextAction.SEC] " ++ (LS.intercalate "\n" $ map (show . (\x -> (x, getEmotionActions emotion x))) prospectiveCells)
+         logFdm traceM $ "[getNextAction] with emotion " ++ show emotion
+         logFdm traceM $ "[getNextAction.SEC] " ++ (LS.intercalate "\n" $ map (show . (\x -> (x, getEmotionActions emotion x))) prospectiveCells)
          let actionableCells = dropWhile (null . getEmotionActions emotion) prospectiveCells
-         logF traceM $ "[getNextAction.actionableCells] " ++ (LS.intercalate "\n" $ map (show . (\x -> (x, getEmotionActions emotion x))) actionableCells)
+         logFdm traceM $ "[getNextAction.actionableCells] " ++ (LS.intercalate "\n" $ map (show . (\x -> (x, getEmotionActions emotion x))) actionableCells)
          if null actionableCells then do
-            logF warningM "[decicionMakerComponent.getNextAction] No possible actions!"
+            logFdm warningM "[decicionMakerComponent.getNextAction] No possible actions!"
             return NoOp
          else choose . head . map (getEmotionActions emotion) $ actionableCells
 
@@ -709,13 +718,13 @@ decisionMakerComponent asInit = logF trace "[decisionMakerComponent]" $ logF tra
       as = addMessages (reinsertablePlanMsg asInit) asInit
 
       planStartEmotion = planStartEmotions as M.! planEmotion
-      targetEmotionSatisfied' = logF trace "[decisionMakerComponent.targetEmotionSatisfied]" $ targetEmotionSatisfied planStartEmotion planEmotion
+      targetEmotionSatisfied' = logFdm trace "[decisionMakerComponent.targetEmotionSatisfied]" $ targetEmotionSatisfied planStartEmotion planEmotion
 
       -- the changes in emotional states since the beginning of the planning
       allChanges :: M.Map EmotionName Rational
-      allChanges = logF trace "[decisionMakerComponent.allChanges]"
-                   $ logF trace ("[decisionMakerComponent.allChanges] emotionChanges: " ++ show (emotionChanges as))
-                   $ logF trace ("[decisionMakerComponent.allChanges] emotionChanges: " ++ show (sumEmotionChanges (leftMemIndex as) $ emotionChanges as))
+      allChanges = logFdm trace "[decisionMakerComponent.allChanges]"
+                   $ logFdm trace ("[decisionMakerComponent.allChanges] emotionChanges: " ++ show (emotionChanges as))
+                   $ logFdm trace ("[decisionMakerComponent.allChanges] emotionChanges: " ++ show (sumEmotionChanges (leftMemIndex as) $ emotionChanges as))
                    $ sumEmotionChanges (leftMemIndex as) (emotionChanges as)
 
       -- |Gets the strongest current emotion, as indicated by the AMEmotion* messages.
@@ -752,14 +761,14 @@ decisionMakerComponent asInit = logF trace "[decisionMakerComponent]" $ logF tra
 -- |Returns the amount by which the strongest conflicting emotion is stronger
 --  than a given one. If no confliction emotion is stronger, 0 is returned. 
 strongestOverruling :: EmotionName -> M.Map EmotionName Rational -> Rational
-strongestOverruling en m = logF trace ("[strongestOverruling] for emotion:" ++ show en) fromMaybe 0 $ do
-   logF traceM $ "strongestOverruling] emotions: " ++ show m
+strongestOverruling en m = logFdm trace ("[strongestOverruling] for emotion:" ++ show en) fromMaybe 0 $ do
+   logFdm traceM $ "strongestOverruling] emotions: " ++ show m
    enVal <- m ^. at en
-   logF traceM $ "[strongestOverruling] enVal: " ++ show enVal
+   logFdm traceM $ "[strongestOverruling] enVal: " ++ show enVal
    confVals <- mapM (\e -> m ^. at e) (conflictingEmotions en)
-   logF traceM $ "[strongestOverruling] confVals: " ++ show confVals
+   logFdm traceM $ "[strongestOverruling] confVals: " ++ show confVals
    let ret = max 0 . maximum . map (subtract enVal) $ confVals
-   logF traceM $ "[strongestOverruling] ret: " ++ show ret
+   logFdm traceM $ "[strongestOverruling] ret: " ++ show ret
    return ret
 
 -- |Deletes n steps from end of a given memory index.
@@ -773,9 +782,9 @@ strongestOverruling en m = logF trace ("[strongestOverruling] for emotion:" ++ s
 retractSteps :: Int -- ^Number of steps to go back.
              -> AgentState
              -> AgentState
-retractSteps n as = logF trace "[retractSteps]"
-   $ logF trace ("[retractSteps] mi: " ++ show mi)
-   $ logF trace ("[retractSteps] n: " ++ show n)
+retractSteps n as = logFdm trace "[retractSteps]"
+   $ logFdm trace ("[retractSteps] mi: " ++ show mi)
+   $ logFdm trace ("[retractSteps] n: " ++ show n)
    $ addMessage (True, AMRecallMemory miRemaining, ephemeral) . over messageSpace delMsg . over newMessages delMsg $ as
    where
       mi = leftMemIndex as
@@ -791,7 +800,7 @@ retractSteps n as = logF trace "[retractSteps]"
       miRemaining = MI . take (memLength mi - n) . runMI $ mi
 
       tr :: Show a => String -> a -> a
-      tr s x = logF trace (s ++ show x) x
+      tr s x = logFdm trace (s ++ show x) x
 
 -- |Gets the 'AMPlannedAction' with the given memory index and from the message space and
 --  inserts it into 'newMessages', with its 'IsImaginary' flag set to False.
@@ -858,8 +867,8 @@ targetEmotionSatisfied :: Rational -- ^The strength of the emotion at the start 
                        -> EmotionName
                        -> M.Map EmotionName Rational -- ^Map of emotional changes since the start of planning.
                        -> Rational -- ^The degree to which the decrease limit was reached. In [0,1].
-targetEmotionSatisfied start n m = logF trace "[targetEmotionSatisfied]"
-   $ logF trace ("   start = " ++ show start ++ "; cur = " ++ show cur ++ "; n = " ++ show n)
+targetEmotionSatisfied start n m = logFdm trace "[targetEmotionSatisfied]"
+   $ logFdm trace ("   start = " ++ show start ++ "; cur = " ++ show cur ++ "; n = " ++ show n)
    $ (*) (1/lim) $ max 0 $ min lim ratio
    where
       lim = cAGENT_EMOTION_DECREASE_GOAL
@@ -872,7 +881,7 @@ sumEmotionChanges :: MemoryIndex
                   -> [(MemoryIndex, EmotionName, Rational)]
                   -> M.Map EmotionName Rational
 sumEmotionChanges goalMI =
-      logF trace ("[sumEmotionChanges] goalMI: " ++ show goalMI)
+      logFdm trace ("[sumEmotionChanges] goalMI: " ++ show goalMI)
       $ LS.foldl' f (psbcEmotionMap 0)
    where 
       f :: M.Map EmotionName Rational -> (MemoryIndex, EmotionName, Rational) -> M.Map EmotionName Rational
@@ -883,10 +892,10 @@ sumEmotionChanges goalMI =
 -- |Gets the cells that evoke a given emotion, sorted descendingly by the
 --  strength of the emotion invokeed.
 strongestEmotionCells :: IsImaginary -> EmotionName -> AgentState-> [RelInd]
-strongestEmotionCells imag en as = logF trace "[strongestEmotionCell]"
-   $ logF trace ("[strongestEmotionCell.evCells] " ++ (show evCells))
-   $ logF trace ("[strongestEmotionCell.sortedCells] " ++ (show sortedCells))
-   $ logF trace ("   [strongestEmotionCell.returnValue] " ++ show ret)
+strongestEmotionCells imag en as = logFdm trace "[strongestEmotionCell]"
+   $ logFdm trace ("[strongestEmotionCell.evCells] " ++ (show evCells))
+   $ logFdm trace ("[strongestEmotionCell.sortedCells] " ++ (show sortedCells))
+   $ logFdm trace ("   [strongestEmotionCell.returnValue] " ++ show ret)
    $ ret
    where
       evCells = evaluateCells imag as
@@ -899,11 +908,11 @@ strongestEmotionCells imag en as = logF trace "[strongestEmotionCell]"
 
 -- |Performs affective evaluation separately on every cell.
 evaluateCells :: IsImaginary -> AgentState -> M.Map RelInd (M.Map EmotionName Rational)
-evaluateCells imag as = logF trace "[evaluateCells]" 
-   $ logF trace ("   image: " ++ show imag)
-   $ logF trace ("   cells: " ++ (show $ map fst $ M.toList cells))
-   $ logF trace ("   cell vals: " ++ show (fmap evaluateCell cells))
-   $ logF trace ("   cell messages:\n" ++ (concat . fmap (\(k,v) -> show k ++ "\n   " ++ show v ++ "\n\n") . M.toList $ cells))
+evaluateCells imag as = logFdm trace "[evaluateCells]" 
+   $ logFdm trace ("   image: " ++ show imag)
+   $ logFdm trace ("   cells: " ++ (show $ map fst $ M.toList cells))
+   $ logFdm trace ("   cell vals: " ++ show (fmap evaluateCell cells))
+   $ logFdm trace ("   cell messages:\n" ++ (concat . fmap (\(k,v) -> show k ++ "\n   " ++ show v ++ "\n\n") . M.toList $ cells))
    $ fmap evaluateCell cells
    where
       ms = filter ((imag==) . view _1) $ as ^. messageSpace
@@ -972,8 +981,8 @@ angerActions gestures i dir j w = filter (\x -> isActionPossible i x w) actions
 --  * Eat an food item.
 enthusiasmActions :: ActionSelector [Action]
 enthusiasmActions gestures i dir j w = 
-   {- logF trace ("[enthusiasmActions] i=" ++ show i ++ ", j=" ++ show j ++ ", actions=" ++ show actions)
-   $ logF trace ("possible actions=" ++ show possibleActions)
+   {- logFdm trace ("[enthusiasmActions] i=" ++ show i ++ ", j=" ++ show j ++ ", actions=" ++ show actions)
+   $ logFdm trace ("possible actions=" ++ show possibleActions)
    $ -} possibleActions
    where
       possibleActions = filter (\x -> isActionPossible i x w) actions
@@ -1004,11 +1013,11 @@ enthusiasmActions gestures i dir j w =
 --  If the target is still distant a 'Just' will be returned, otherwise Nothing.
 approachDistantActions :: ActionSelector (Maybe [Action])
 approachDistantActions _ i dir j _
-      | not withinView && dist i j > 0 = {- logF trace ("[rotate-case for " ++ show i ++ " " ++ show j) $ -} Just [Rotate closestDir]
-      | distant                        = {- logF trace ("[move-case for " ++ show i ++ " " ++ show j) $ -} Just $ map Move targetDirs
-      | otherwise                      = {- logF trace ("[otherwise-case for " ++ show i ++ " " ++ show j) $ -} Nothing
+      | not withinView && dist i j > 0 = {- logFdm trace ("[rotate-case for " ++ show i ++ " " ++ show j) $ -} Just [Rotate closestDir]
+      | distant                        = {- logFdm trace ("[move-case for " ++ show i ++ " " ++ show j) $ -} Just $ map Move targetDirs
+      | otherwise                      = {- logFdm trace ("[otherwise-case for " ++ show i ++ " " ++ show j) $ -} Nothing
       where
-      withinView = {- logF trace (mconcat ["[approachDistantActions] i=",show i, ", j=",show j,", angle=",show $ angle i j,", coneOf ",show dir,"=",show $ coneOf dir,", inCone=",show (inCone (coneOf dir) (abs $ angle i j))]) $ -} inCone (coneOf dir) (abs $ angle i j) 
+      withinView = {- logFdm trace (mconcat ["[approachDistantActions] i=",show i, ", j=",show j,", angle=",show $ angle i j,", coneOf ",show dir,"=",show $ coneOf dir,", inCone=",show (inCone (coneOf dir) (abs $ angle i j))]) $ -} inCone (coneOf dir) (abs $ angle i j) 
       closestDir = angleToDirection (angle i j)
       targetDirs = getDirections i j
       distant = dist i j > 1
