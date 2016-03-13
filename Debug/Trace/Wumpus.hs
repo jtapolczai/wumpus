@@ -46,7 +46,9 @@ logHandles = M.fromList [
 logLevels :: M.Map ModuleName LogLevel
 logLevels = M.fromList [
    ("Agent.Intelligent.Affect.Fragments", None),
+   ("Agent.Intelligent.BeliefGenerator", None),
    ("Agent.Intelligent.Filter", None),
+   ("Agent.Intelligent.Memory", None),
    ("Agent.Intelligent.MessageHandling", None),
    ("Agent.Intelligent.Perception", None),
    ("World.Read", None),
