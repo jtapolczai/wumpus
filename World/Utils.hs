@@ -82,7 +82,7 @@ actionDirection (Move dir) = dir
 actionDirection (Attack dir) = dir
 actionDirection (Give dir _) = dir
 actionDirection (Gesture dir _) = dir
-actionirection x = error $ "error: actionDirection called with " ++ show x
+actionDirection x = error $ "error: actionDirection called with " ++ show x
 
 -- |Returns True iff the given cell has an agent.
 cellAgent :: CellInd -> World -> Bool
@@ -430,9 +430,9 @@ instance (SG.Semigroup c,
          -- Let E also be on a cell Y in the right world and X != Y.
          -- If we didn't delete E from X, it'd show up in both X and Y.
          cells' = M.unionWith (SG.<>) cleanedLeftCells (r ^. cellData)
-         cleanedLeftCells = M.mapWithKey cleanEntities . view cellData $ l
+         cleanedLeftCells = fmap cleanEntities . view cellData $ l
 
-         cleanEntities k v =
+         cleanEntities v =
             if fromMaybe False . fmap (\e -> M.member (e ^. name) (r ^. agents)) . view entity $ v
             then v & entity .~ Nothing
             else v

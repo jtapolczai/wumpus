@@ -880,10 +880,13 @@ targetEmotionSatisfied start n m = logFdm trace "[targetEmotionSatisfied]"
 sumEmotionChanges :: MemoryIndex
                   -> [(MemoryIndex, EmotionName, Rational)]
                   -> M.Map EmotionName Rational
-sumEmotionChanges goalMI =
+sumEmotionChanges goalMI messages =
       logFdm trace ("[sumEmotionChanges] goalMI: " ++ show goalMI)
-      $ LS.foldl' f (psbcEmotionMap 0)
+      $ logFdm trace ("[sumEmotionChanges] messages: " ++ concat (map (flip mappend "\n" . show) messages))
+      $ ret
    where 
+      ret = LS.foldl' f (psbcEmotionMap 0) messages
+
       f :: M.Map EmotionName Rational -> (MemoryIndex, EmotionName, Rational) -> M.Map EmotionName Rational
       f m (mi, n, v) = if mi `subIndex` goalMI
                        then M.adjust (v+) n m

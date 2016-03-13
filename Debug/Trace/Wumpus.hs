@@ -25,7 +25,7 @@ logFileHandle :: Handle
 logFileHandle = unsafePerformIO (catch (removeFile "log.txt") (\(_ :: SomeException) -> return ()) >> openFile "log.txt" AppendMode)
 
 closeLogFileHandle :: IO ()
-closeLogFileHandle = hClose logFileHandle
+closeLogFileHandle = catch (hClose logFileHandle) (\(_ :: SomeException) -> return ())
 
 toNull :: String -> IO ()
 toNull = const (return ())
@@ -45,14 +45,14 @@ logHandles = M.fromList [
 
 logLevels :: M.Map ModuleName LogLevel
 logLevels = M.fromList [
-   ("Agent.Intelligent.Affect.Fragments", None),
-   ("Agent.Intelligent.BeliefGenerator", None),
-   ("Agent.Intelligent.Filter", None),
-   ("Agent.Intelligent.Memory", None),
-   ("Agent.Intelligent.MessageHandling", None),
-   ("Agent.Intelligent.Perception", None),
-   ("World.Read", None),
-   ("World.Utils", None)
+   ("Agent.Intelligent.Affect.Fragments", Log),
+   ("Agent.Intelligent.BeliefGenerator", Log),
+   ("Agent.Intelligent.Filter", Log),
+   ("Agent.Intelligent.Memory", Log),
+   ("Agent.Intelligent.MessageHandling", Log),
+   ("Agent.Intelligent.Perception", Log),
+   ("World.Read", Log),
+   ("World.Utils", Log)
    ]
 
 getLogLevel :: ModuleName -> LogLevel

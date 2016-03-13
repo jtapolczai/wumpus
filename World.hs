@@ -270,12 +270,12 @@ isActionPossible i action world = if isJust meMaybe then go action else False
       me = fromMaybe (error "isActionPossible.meMaybe: Nothing") meMaybe
       j = inDirection i $ actionDirection action
 
-      debugShowCell cmd = logF trace ("[isActionPossible] cmd=" ++ show cmd ++ ", i=" ++ show i ++ ", cell=" ++ show (world ^. cellData . at i))
-      worldCells = world ^. cellData . to M.toList 
+      -- debugShowCell cmd = logF trace ("[isActionPossible] cmd=" ++ show cmd ++ ", i=" ++ show i ++ ", cell=" ++ show (world ^. cellData . at i))
+      -- worldCells = world ^. cellData . to M.toList 
 
       go NoOp = True
       go (Rotate _) = True
-      go x@(Move dir) = {- debugShowCell x
+      go (Move dir) = {- debugShowCell x
                         $ logF trace "World cells: "
                         $ logF trace (replicate 80 '_')
                         $ logF traceList worldCells
@@ -285,7 +285,7 @@ isActionPossible i action world = if isJust meMaybe then go action else False
                         $ -} cellHas canBeEntered j world && hasStamina (i,dir) world
       go (Attack _) = cellAgent j world || cellWumpus j world
       go (Give _ name) = cellAgent j world && numItems me name > 0
-      go x@Gather = debugShowCell x $ cellHas canBeGathered i world
+      go Gather = {- debugShowCell x $ -} cellHas canBeGathered i world
       go (Collect item) = cellHas (canBeCollected item) i world
       go (Drop item) = numItems me item > 0
       go (Eat item) = numItems me item > 0 && isEdible item
