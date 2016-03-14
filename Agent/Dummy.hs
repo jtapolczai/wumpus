@@ -36,7 +36,7 @@ instance AgentMind DummyMind where
 
    clearMessageSpace d = d{_dummyMindMessageSpace = []}
 
-   filterMessageSpace f d = logF log ("[filterMessageSpace] remaining: " ++ retMsg) ret
+   filterMessageSpace f d = logF trace ("[filterMessageSpace] remaining: " ++ retMsg) ret
       where
          retMsg = show $ ret ^. messageSpace
          ret = d & messageSpace %~ filter f

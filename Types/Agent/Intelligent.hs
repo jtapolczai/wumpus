@@ -143,6 +143,9 @@ data AgentMessage =
    | AMRecallMemory MemoryIndex
    -- |The emotion that dominates the current plan.
    | AMPlanEmotion EmotionName
+   -- |The level of emotion felt at the beginning of the planning
+   --  process.
+   | AMPlanInitialEmotion EmotionName Rational
    -- |Changes in emotional states as a result of hypothetical actions.
    | AMPlanEmotionChanged MemoryIndex EmotionName Rational
    -- |Indicates that the other messages only pertain to the
@@ -218,6 +221,7 @@ data AgentMessageName =
    | AMNPlannedAction
    | AMNRecallMemory
    | AMNPlanEmotion
+   | AMNPlanInitialEmotion
    | AMNPlanEmotionChanged
    | AMNYouAreHere
    | AMNPlanLocalBudget

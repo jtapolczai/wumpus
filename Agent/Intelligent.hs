@@ -675,6 +675,8 @@ decisionMakerComponent asInit = logF trace "[decisionMakerComponent]" $ logFdm t
       -- in the main loop in Agent/Intelligent.
       let newMsg = [(isImag, AMPlannedAction act (MI [0]) False, if isImag then ephemeral else ttl 1),
                     (isImag, AMPlanEmotion dominantEmotion, ttl 1)]
+                   ++ map ((isImag,,ttl 1) . uncurry AMPlanInitialEmotion) currentEmotions
+
 
       logFdm traceM "mkStep"
       logFdm traceM $ "newMsg: " ++ show newMsg
@@ -683,7 +685,7 @@ decisionMakerComponent asInit = logF trace "[decisionMakerComponent]" $ logFdm t
    -- if there is one, continue/abandon/OK the plan
    else do
       logFdm traceM "has plan"
-      if targetEmotionSatisfied' allChanges >= 1 then do
+      if targetEmotionSatisfied' mostRecentChanges >= 1 then do
          logFdm traceM "finalize plan"
          let actions = map (view $ _2 . _1 . to showAction') plannedActions
          logFdm detailedLogM $ "Finalized a plan: " ++ LS.intercalate ", " actions
@@ -741,8 +743,15 @@ decisionMakerComponent asInit = logF trace "[decisionMakerComponent]" $ logFdm t
       allChanges :: M.Map EmotionName Rational
       allChanges = logFdm trace "[decisionMakerComponent.allChanges]"
                    $ logFdm trace ("[decisionMakerComponent.allChanges] emotionChanges: " ++ show (emotionChanges as))
-                   $ logFdm trace ("[decisionMakerComponent.allChanges] emotionChanges: " ++ show (sumEmotionChanges (leftMemIndex as) $ emotionChanges as))
                    $ sumEmotionChanges (leftMemIndex as) (emotionChanges as)
+
+      -- |The most recent changes
+      mostRecentChanges :: M.Map EmotionName Rational
+      mostRecentChanges = 
+         M.fromList
+         $ fmap (view _2)
+         $ msgWhere _AMEmotionChanged
+         $ as ^. messageSpace
 
       -- |Gets the strongest current emotion, as indicated by the AMEmotion* messages.
       dominantEmotion :: EmotionName
@@ -750,9 +759,11 @@ decisionMakerComponent asInit = logF trace "[decisionMakerComponent]" $ logFdm t
       (dominantEmotion, dominantEmotionLevel) =
          head
          $ LS.sortBy (flip $ comparing snd)
-         $ map (view _2)
-         $ msgWhereAny psbcPrisms
-         $ as ^. messageSpace
+         $ currentEmotions
+
+      -- |The current emotions, as indicated by the AMEmotion*-messages.
+      currentEmotions :: [(EmotionName, Rational)]
+      currentEmotions = map (view _2) . msgWhereAny psbcPrisms . view messageSpace $ as
 
       -- |The sorted list of planned actions, starting with the first
       plannedActions = LS.sortBy (comparing $ view (_2 . _2 . to (length . runMI))) $ as ^. messageSpace . to (msgWhere _AMPlannedAction)
@@ -836,7 +847,7 @@ emotionChanges = map (view _2) . msgWhere _AMPlanEmotionChanged . view messageSp
 
 -- |Gets the level of emotions felt at the beginning of the planning.
 planStartEmotions :: AgentState -> M.Map EmotionName Rational
-planStartEmotions = LS.foldl' f M.empty . map (view _2) . msgWhereAny psbcPrisms . view messageSpace
+planStartEmotions = LS.foldl' f M.empty . map (view _2) . msgWhere _AMPlanInitialEmotion . view messageSpace
    where
       f m n | M.size m >= cAGENT_NUM_EMOTIONS = m
             | otherwise                       = case n of
@@ -850,20 +861,19 @@ reinsertablePlanMsg = map incttl . filter (f . view _2) . view messageSpace
       incttl :: AgentMessage' -> AgentMessage'
       incttl = over _3 (+1)
 
-      f = (\x y z u v -> x || y || z || u || v)
+      f = (\x y z u v w -> x || y || z || u || v || w)
           <$> (\case{(AMPlannedAction _ _ True) -> True; _ -> False})
           <*> isP _AMPlanEmotion
           <*> isP _AMPlanEmotionChanged
           <*> isP _AMPlanLocalBudget
           <*> isP _AMPlanGlobalBudget
+          <*> isP _AMPlanInitialEmotion
       
 -- |Getters for the four PSBC-emotions.
---psbcPrisms :: [Prism' ]
 psbcPrisms = [_AMEmotionAnger . to (Anger,),
               _AMEmotionFear . to (Fear,),
               _AMEmotionEnthusiasm . to (Enthusiasm,),
               _AMEmotionContentment . to (Contentment,)]
-
 
 -- |Outputs AMPlanEmotionChanged-messages.
 --  'AMEmotionChanged' messages and turns them into 'AMPlanEmotionChanged'-messages
@@ -880,19 +890,29 @@ recordPlanEmotionChanges mi = map (True,,ephemeral) . M.foldrWithKey mkMsg [] . 
       f m _ = m
 
 -- |Returns the degree to which the target emotion's decree satisfies the criterion
---  given by 'cAGENT_EMOTION_DECREASE_GOAL'.
+--  given by 'cAGENT_EMOTION_DECREASE_LIMIT'.
+--
+--  If the ratio between the current leven and the initial level is at or above 100%,
+--  we return 0. If it is at or below 'cAGENT_EMOTION_DECREASE_LIMIT', we return 1.
+--  The return value is interpolated linearly between the two extremes.
 targetEmotionSatisfied :: Rational -- ^The strength of the emotion at the start of planning.
                        -> EmotionName
                        -> M.Map EmotionName Rational -- ^Map of emotional changes since the start of planning.
                        -> Rational -- ^The degree to which the decrease limit was reached. In [0,1].
 targetEmotionSatisfied start n m = logFdm trace "[targetEmotionSatisfied]"
-   $ logFdm trace ("   start = " ++ show start ++ "; cur = " ++ show cur ++ "; n = " ++ show n)
-   $ (*) (1/lim) $ max 0 $ min lim ratio
+   $ logFdm log ("   start = " ++ show start ++ "; cur = " ++ show cur ++ "; n = " ++ show n)
+   $ logFdm log ("   TES (decrease_percent = " ++ show decrease_percent ++ ", decrease = " ++ show decrease)
+   $ decrease
    where
-      lim = cAGENT_EMOTION_DECREASE_GOAL
-      cur = m M.! n
+      cur = (m M.! n)
+      --ratio = if start == 0 then 0 else cur / start
 
-      ratio = if start == 0 then 0 else cur / start
+      decrease_max = 1 - cAGENT_EMOTION_DECREASE_LIMIT
+      --decrease_percent = max ((min ratio 1) - cAGENT_EMOTION_DECREASE_LIMIT) 0
+      decrease_percent = min (max (negate (m M.! n)) 0) decrease_max
+      --decrease = (decrease_max - decrease_percent) / decrease_max
+      decrease = decrease_percent / decrease_max
+
 
 -- |Returns the summed emotional changes along a path in a plan.
 sumEmotionChanges :: MemoryIndex
@@ -901,7 +921,7 @@ sumEmotionChanges :: MemoryIndex
 sumEmotionChanges goalMI messages =
       logFdm log ("[sumEmotionChanges] goalMI: " ++ show goalMI)
       $ logFdm log ("[sumEmotionChanges] messages: " ++ concat (map (flip mappend "\n" . show . (_3 %~ showF3)) messages))
-      $ logFdm log ("[sumEmotionChanged] ret: " ++ (concat $ map (\(k,v) -> show k ++ ": " ++ showF3 v ++ "\n") $ M.toList $ ret))
+      $ logFdm log ("[sumEmotionChanges] ret: " ++ (concat $ map (\(k,v) -> show k ++ ": " ++ showF3 v ++ "\n") $ M.toList $ ret))
       $ ret
    where 
       ret = LS.foldl' f (psbcEmotionMap 0) messages
