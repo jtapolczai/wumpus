@@ -6,6 +6,7 @@ import Control.Lens
 import Control.Monad
 import qualified Data.Foldable as F
 import Data.MList
+import System.FilePath
 
 import Types
 import World.Read
@@ -52,5 +53,17 @@ w4_lowHealth = cellData . ix (2,0) . entity . _Just . health .~ 0.1
 -- Setup functions
 --------------------------------------------------------------------------------
 
+worlds :: [String]
+worlds = map ("worlds" </>)
+   ["world1",
+    "world2",
+    "world3",
+    "empty_itemPickup",
+    "empty_plants",
+    "oneWumpus",
+    "friends",
+    "enemiesWithWumpus"
+   ]
+
 main :: IO ()
-main = main' "world4" 3 (w4_lowHealth . hotTemp)
+main = main' (worlds !! 4) 3 (w4_lowHealth . hotTemp)

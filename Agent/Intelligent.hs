@@ -11,6 +11,8 @@
 
 module Agent.Intelligent where
 
+import Prelude hiding (log)
+
 import Control.Arrow (first)
 import Control.Lens
 import Control.Monad
@@ -79,6 +81,8 @@ instance AgentMind AgentState where
    getAction = getAction'
 
    clearMessageSpace = id
+
+   filterMessageSpace _ = id
 
 getAction' :: AgentState -> IO (Action, AgentState)
 getAction' initAs = do
@@ -444,7 +448,8 @@ constructMemory ms baseWorld = maybe curWorld (SG.<> curWorld) baseWorld
    where curWorld = constructWorld M.empty (const id) mkVisualCell mkEdge mkWorldData ms
 
 -- |A dummy mind for an agent that always performs the same action and stores
---  incoming messages.
+--  incoming messages. It does not actively pull messages, though
+--  (pullMessages just discards everything).
 agentDummyMind :: Action -> SomeMind
 agentDummyMind act = SM $ DummyMind act True []
 
@@ -518,11 +523,15 @@ beliefGeneratorComponent as = liftIO $ do
 --  The given MI should refer to an existing memory!
 --
 --  This function doesn't create any new memories; it only inserts messages.
+--
+--  Note that the agent's pullMessage will be a no-op unless you manually
+--  set the flag to True in the update function.
 simulateConsequences
    :: Action
    -> MemoryIndex
    -> AgentState
-   -> (World -> IO World)
+   -> (World -> IO World) -- ^Update function. Use'simulateStep' if you want
+                          --  to get the next world state.
    -> IO (World, [AgentMessage])
 simulateConsequences action mi as simulateAction = do
    --when (mi == mempty) (error "EMPTY MI GIVEN TO simulateConsequences!")
@@ -595,7 +604,9 @@ generateBelief :: MonadIO m
 generateBelief act mi as = liftIO $ do
    logFbg traceM "[generateBelief]"
    let getPerc w = w & cellData . imapped
-                   %@~ (\i -> entity . _Just . _Ag . state %~ pullMessages w i . clearMessageSpace)
+                   %@~ (\i -> entity . _Just . _Ag . state
+                              %~ pullMessages w i
+                                 . filterMessageSpace isActionResultMessage)
 
    ({- nextWorld -} _, msg) <- simulateConsequences act mi as (simulateStep >=> return . getPerc)
    logFbg traceM "[generateBelief] simulateConsequences done."
@@ -888,9 +899,9 @@ sumEmotionChanges :: MemoryIndex
                   -> [(MemoryIndex, EmotionName, Rational)]
                   -> M.Map EmotionName Rational
 sumEmotionChanges goalMI messages =
-      logFdm trace ("[sumEmotionChanges] goalMI: " ++ show goalMI)
-      $ logFdm trace ("[sumEmotionChanges] messages: " ++ concat (map (flip mappend "\n" . show) messages))
-      $ logFdm trace ("[sumEmotionChanged] ret: " ++ show ret)
+      logFdm log ("[sumEmotionChanges] goalMI: " ++ show goalMI)
+      $ logFdm log ("[sumEmotionChanges] messages: " ++ concat (map (flip mappend "\n" . show . (_3 %~ showF3)) messages))
+      $ logFdm log ("[sumEmotionChanged] ret: " ++ (concat $ map (\(k,v) -> show k ++ ": " ++ showF3 v ++ "\n") $ M.toList $ ret))
       $ ret
    where 
       ret = LS.foldl' f (psbcEmotionMap 0) messages

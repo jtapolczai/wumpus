@@ -339,6 +339,17 @@ class AgentMind a where
    -- @
    clearMessageSpace :: a -> a
 
+   -- |Filters the messages space, keeping only messages that fulfil a predicate.
+   -- The following should hold:
+   --
+   -- @
+   -- filter (not . f) (readMessageSpace (filterMessageSpace x f)) == null
+   -- @
+   --
+   -- I.e. if a message failed the predicate 'f' in 'filterMessageSpace',
+   -- it should not occur in the resul of 'readMessageSpace'.
+   filterMessageSpace :: (Message -> Bool) -> a -> a
+
 -- |Existentially quantifier mind.
 data SomeMind = forall m.AgentMind m => SM m
 
@@ -349,4 +360,5 @@ instance AgentMind SomeMind where
                          return (a, SM m')
    readMessageSpace (SM m) = readMessageSpace m
    clearMessageSpace (SM m) = SM (clearMessageSpace m)
+   filterMessageSpace f (SM m) = SM (filterMessageSpace f m)
 

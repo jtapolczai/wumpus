@@ -7,6 +7,8 @@ module Agent.Dummy (
    dummyMind,
    ) where
 
+import Prelude hiding (log)
+
 import Control.Lens
 
 import Types.Agent.Dummy
@@ -33,6 +35,11 @@ instance AgentMind DummyMind where
    readMessageSpace DummyMind{_dummyMindMessageSpace=ms} = ms
 
    clearMessageSpace d = d{_dummyMindMessageSpace = []}
+
+   filterMessageSpace f d = logF log ("[filterMessageSpace] remaining: " ++ retMsg) ret
+      where
+         retMsg = show $ ret ^. messageSpace
+         ret = d & messageSpace %~ filter f
 
 -- |A dummy mind that does nothing and does not store messages.
 dummyMind :: DummyMind

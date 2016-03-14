@@ -92,6 +92,8 @@ instance AgentMind WumpusMind where
 
    clearMessageSpace = id
 
+   filterMessageSpace _ = id
+
 
 -- |Uniformly randomly selects an element of a list.
 randomInd :: [a] -> IO a

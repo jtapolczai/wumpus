@@ -14,6 +14,7 @@ module World (
    worldAgents,
    doEntityAction,
    doAction,
+   isActionResultMessage,
    collect,
    isActionPossible,
    hasStamina,
@@ -36,6 +37,8 @@ module World (
    entityDied,
    ) where
 
+import Prelude hiding (log)
+
 import Control.Lens
 import Control.Monad.Reader
 import qualified Control.Monad.RWS as RWS
@@ -48,6 +51,7 @@ import Data.Ratio
 import Math.Geometry.Grid hiding (null)
 import Math.Geometry.Grid.Square
 
+import Agent.Intelligent.Utils
 import Types
 import World.Constants
 import World.Statistics
@@ -241,10 +245,10 @@ doAction i action world =
                                  . (health .~ newH)) c
                where
                   curH = c ^. ju entity . health
-                  newH = min cMAX_AGENT_HEALTH (cHEAL_FOOD + cHUNGER_RATE + curH)
+                  newH = min cMAX_AGENT_HEALTH (cHEAL_FOOD + curH)
 
                   -- |Change in health in percent.
-                  dH = (curH / newH) - 1
+                  dH = (newH / curH) - 1
 
       go (Gesture dir s) = do tell gestureSent
                               tell $ iDidT (Gesture dir s)
@@ -257,6 +261,19 @@ collect item lens c =
    (lens .~ 0)
    . onAgent (sendMsg (MsgReceivedItem Nothing item)
               . (inventory . ix item +~ (c ^. lens))) $ c
+
+-- |Returns True iff a message is potentially the result of an action
+--  the agent takes, not just a passive perception.
+isActionResultMessage :: Message -> Bool
+isActionResultMessage = go
+   where
+      go (MsgGesture _ _) = True
+      go (MsgHealthChanged _) = True
+      go (MsgStaminaChanged _) = True
+      go MsgPlantHarvested = True
+      go (MsgReceivedItem _ _) = True
+      go (MsgLostItem _) = True
+      go _ = False
 
 -- |Returns Truee if the given cell has an agent on it and that agent
 --  can perform the given action, taking all preconditions into account. 
