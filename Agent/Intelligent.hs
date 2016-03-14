@@ -647,11 +647,17 @@ decisionMakerComponent asInit = logF trace "[decisionMakerComponent]" $ logFdm t
    $ logFdm trace ("[decisionMakerComponent] memory tree: " ++ printMemoryTree as) $
    -- if there's no plan, start one.
    if null plannedActions || not hasBudget then do
-      logFdm traceM "no plan"
+      if null plannedActions then logFdm traceM "no plan" else logFdm traceM "out of budget"
       logFdm traceM $ "dominantEmotion: " ++ show dominantEmotion
       logFdm traceM $ "dominantEmotionLevel: " ++ show dominantEmotionLevel
-      -- randomly choose an emotion-appropriate action
-      act <- getNextAction (leftMemIndex as /= mempty) dominantEmotion
+      -- if we have no plan, we randomly choose an emotion-appropriate action
+      -- if we do, we just choose the first action of our plan
+      --    keep in mind that we already have some imaginary world-state in our
+      --    message space if there are planned actions. We can't choose a new one
+      --    to do immediately, but we at least know that the existing parts of the
+      --    plan are feasible.
+      act <- if null plannedActions then getNextAction (leftMemIndex as /= mempty) dominantEmotion
+                                    else return . view (_2 . _1) . head $ plannedActions
       logFdm traceM (show act)
       -- Imaginary AMPlannedActions are picked up and reinserted by the BG; non-imaginary ones
       -- get a TTL 1 so that they aren't pruned at the end of the round - they have to be picked up
@@ -668,7 +674,7 @@ decisionMakerComponent asInit = logF trace "[decisionMakerComponent]" $ logFdm t
       logFdm traceM "has plan"
       if targetEmotionSatisfied' allChanges >= 1 then do
          logFdm traceM "finalize plan"
-         let actions = map (view $ _2 . _1 . to showAction') $ LS.sortBy (comparing $ view (_2 . _2 . to (length . runMI))) plannedActions
+         let actions = map (view $ _2 . _1 . to showAction') plannedActions
          logFdm detailedLogM $ "Finalized a plan: " ++ LS.intercalate ", " actions
          return $ finalizeAction (MI [0]) as
       else if strongestOverruling planEmotion allChanges > 0 then
@@ -737,7 +743,8 @@ decisionMakerComponent asInit = logF trace "[decisionMakerComponent]" $ logFdm t
          $ msgWhereAny psbcPrisms
          $ as ^. messageSpace
 
-      plannedActions = as ^. messageSpace . to (msgWhere _AMPlannedAction)
+      -- |The sorted list of planned actions, starting with the first
+      plannedActions = LS.sortBy (comparing $ view (_2 . _2 . to (length . runMI))) $ as ^. messageSpace . to (msgWhere _AMPlannedAction)
       planEmotion = fromMaybe (error "[decisionMakerComponent.planEmotion]: Nothing") $ firstWhere _AMPlanEmotion $ as ^. messageSpace
 
       -- |Returns whether an emotion is strong enough to lead to an immediate choice
@@ -883,6 +890,7 @@ sumEmotionChanges :: MemoryIndex
 sumEmotionChanges goalMI messages =
       logFdm trace ("[sumEmotionChanges] goalMI: " ++ show goalMI)
       $ logFdm trace ("[sumEmotionChanges] messages: " ++ concat (map (flip mappend "\n" . show) messages))
+      $ logFdm trace ("[sumEmotionChanged] ret: " ++ show ret)
       $ ret
    where 
       ret = LS.foldl' f (psbcEmotionMap 0) messages
