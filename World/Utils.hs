@@ -177,8 +177,8 @@ lineDistance :: CellInd -- V
              -> CellInd -- W
              -> CellInd -- D
              -> Rational
-lineDistance v@(x1,y1) w@(x2,y2) (dx,dy) = if dist v w == 0 then logF warning "[lineDistance] zero distance!" 0
-                                                            else fromIntegral (abs nom) / dist v w
+lineDistance v@(x1,y1) w@(x2,y2) (dx,dy) =
+   if dist v w == 0 then 0 else fromIntegral (abs nom) / dist v w
    where
       nom = (y2 - y1)*dx - (x2-x1)*dy + x2*y1 - y2*x1
 

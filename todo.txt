@@ -46,4 +46,6 @@ The problem: when the agent is extremely hungry, its attention goes towards itse
 * [ ] harvest-action is not registered in the statistics
   * [x] moveEntity (probably) sends an entityDied-message to the statistics
 
-* [ ] erroneous "Move to South"-action generated in first step :(
+* [y] erroneous "Move to South"-action generated in first step :(
+
+* [x] no possible actions if the agent turns south :(
