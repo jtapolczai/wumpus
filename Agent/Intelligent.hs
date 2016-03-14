@@ -710,13 +710,16 @@ decisionMakerComponent asInit = logF trace "[decisionMakerComponent]" $ logFdm t
       getNextAction imag emotion = do
          let prospectiveCells = strongestEmotionCells imag emotion as
          logFdm traceM $ "[getNextAction] with emotion " ++ show emotion
-         logFdm traceM $ "[getNextAction.SEC] " ++ (LS.intercalate "\n" $ map (show . (\x -> (x, getEmotionActions emotion x))) prospectiveCells)
-         let actionableCells = dropWhile (null . getEmotionActions emotion) prospectiveCells
-         logFdm traceM $ "[getNextAction.actionableCells] " ++ (LS.intercalate "\n" $ map (show . (\x -> (x, getEmotionActions emotion x))) actionableCells)
+         logFdm traceM $ "[getNextAction.SEC] " ++ (LS.intercalate "\n" $ map (show . (\x -> (x, getEmotionActions emotion $ fst x))) prospectiveCells)
+         let actionableCells = dropWhile (null . getEmotionActions emotion . fst) prospectiveCells
+         logFdm traceM $ "[getNextAction.actionableCells] " ++ (LS.intercalate "\n" $ map (show . (\x -> (x, getEmotionActions emotion (fst x)))) actionableCells)
          if null actionableCells then do
             logFdm warningM "[decicionMakerComponent.getNextAction] No possible actions!"
             return NoOp
-         else choose . head . map (getEmotionActions emotion) $ actionableCells
+         else do
+            let (targetCell, targetCellIntensity) = head actionableCells
+            logFdm detailedLogM ("Target cell is " ++ show targetCell ++ " with emotion strength " ++ showF3 targetCellIntensity)
+            choose . getEmotionActions emotion $ targetCell
 
       -- Shorthand; gets the actions possible for a given emotion on a given cell.
       getEmotionActions e i = emotionActions e
@@ -772,7 +775,7 @@ decisionMakerComponent asInit = logF trace "[decisionMakerComponent]" $ logFdm t
       -- |Returns whether an emotion is strong enough to lead to an immediate choice
       --  (instead of planning).
       strongEnough :: Rational -> Bool
-      strongEnough = (> cAGENT_EMOTION_IMMEDIATE)
+      strongEnough = (>= cAGENT_EMOTION_IMMEDIATE)
 
       localBudget = fromMaybe (error "[decisionMakerComponent.localBudget]: Nothing") $ firstWhere _AMPlanLocalBudget $ as ^. messageSpace
       globalBudget = fromMaybe (error "[decisionMakerComponent.globalBudget]: Nothing") $ firstWhere _AMPlanGlobalBudget $ as ^. messageSpace
@@ -933,24 +936,20 @@ sumEmotionChanges goalMI messages =
 
 -- |Gets the cells that evoke a given emotion, sorted descendingly by the
 --  strength of the emotion invokeed.
-strongestEmotionCells :: IsImaginary -> EmotionName -> AgentState-> [RelInd]
+strongestEmotionCells :: IsImaginary -> EmotionName -> AgentState-> [(RelInd, Rational)]
 strongestEmotionCells imag en as = logFdm trace "[strongestEmotionCell]"
    $ logFdm trace ("[strongestEmotionCell.evCells] " ++ (show evCells))
    $ logFdm trace ("[strongestEmotionCell.sortedCells] " ++ (show sortedCells))
    $ logFdm trace ("   [strongestEmotionCell.returnValue] " ++ show ret)
    $ ret
    where
-      evCells = evaluateCells imag as
-      sortedCells = LS.sortBy (flip $ comparing f) $ M.toList evCells
-      ret = map fst sortedCells
-
-      --ret = fst . head . sortBy (flip $ comparing f) . M.toList . evaluateCells
-
-      f = view (at' en) . snd
+      evCells = evaluateCells imag en as
+      sortedCells = LS.sortBy (flip $ comparing snd) $ M.toList evCells
+      ret = sortedCells
 
 -- |Performs affective evaluation separately on every cell.
-evaluateCells :: IsImaginary -> AgentState -> M.Map RelInd (M.Map EmotionName Rational)
-evaluateCells imag as = logFdm trace "[evaluateCells]" 
+evaluateCells :: IsImaginary -> EmotionName -> AgentState -> M.Map RelInd Rational
+evaluateCells imag en as = logFdm trace "[evaluateCells]" 
    $ logFdm trace ("   image: " ++ show imag)
    $ logFdm trace ("   cells: " ++ (show $ map fst $ M.toList cells))
    $ logFdm trace ("   cell vals: " ++ show (fmap evaluateCell cells))
@@ -977,8 +976,8 @@ evaluateCells imag as = logFdm trace "[evaluateCells]"
       socialData :: [AgentMessage']
       socialData = mapMaybe (\(i,m,t) -> socialMessage m >$> (i,,t)) ms
 
-      evaluateCell :: [AgentMessage'] -> M.Map EmotionName Rational
-      evaluateCell ms' = fmap (emotionValue (map (view _2) ms')) $ as ^. psbc . to (fmap snd)
+      evaluateCell :: [AgentMessage'] -> Rational
+      evaluateCell ms' = emotionValue (map (view _2) ms') $ as ^. psbc . at' en . to snd
 
 
    -- possible solution: AMPlanDirection EmotionName, so that 'good' means 'the planned emotion'

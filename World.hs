@@ -51,7 +51,6 @@ import Data.Ratio
 import Math.Geometry.Grid hiding (null)
 import Math.Geometry.Grid.Square
 
-import Agent.Intelligent.Utils
 import Types
 import World.Constants
 import World.Statistics

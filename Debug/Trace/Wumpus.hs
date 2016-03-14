@@ -31,7 +31,7 @@ toNull :: String -> IO ()
 toNull = const (return ())
 
 defaultLogLevel :: LogLevel
-defaultLogLevel = Log
+defaultLogLevel = DetailedLog
 
 logHandles :: M.Map LogLevel (String -> IO ())
 logHandles = M.fromList [
