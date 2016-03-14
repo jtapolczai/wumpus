@@ -31,7 +31,7 @@ main' w numSteps setupFunc = do
    putStrLn $ showStats $ mkStats wmi world
    putStrLn "--------"
    stats <- fromMList $ fmap snd $ takeM numSteps $ fmapM printActions $ runWorld wmi world
-   when (not $ null stats) (putStrLn $ showStats $ last stats)
+   when (not $ null stats) (putStrLn $ showStats $ mconcat stats)
    putStrLn (replicate 40 '-')
    closeLogFileHandle
    return ()
@@ -66,4 +66,4 @@ worlds = map ("worlds" </>)
    ]
 
 main :: IO ()
-main = main' (worlds !! 4) 3 (w4_lowHealth . hotTemp)
+main = main' (worlds !! 4) 4 (w4_lowHealth . hotTemp)

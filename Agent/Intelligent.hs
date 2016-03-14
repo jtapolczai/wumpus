@@ -900,8 +900,8 @@ targetEmotionSatisfied :: Rational -- ^The strength of the emotion at the start 
                        -> M.Map EmotionName Rational -- ^Map of emotional changes since the start of planning.
                        -> Rational -- ^The degree to which the decrease limit was reached. In [0,1].
 targetEmotionSatisfied start n m = logFdm trace "[targetEmotionSatisfied]"
-   $ logFdm log ("   start = " ++ show start ++ "; cur = " ++ show cur ++ "; n = " ++ show n)
-   $ logFdm log ("   TES (decrease_percent = " ++ show decrease_percent ++ ", decrease = " ++ show decrease)
+   $ logFdm trace ("   start = " ++ show start ++ "; cur = " ++ show cur ++ "; n = " ++ show n)
+   $ logFdm trace ("   TES (decrease_percent = " ++ show decrease_percent ++ ", decrease = " ++ show decrease)
    $ decrease
    where
       cur = (m M.! n)
@@ -919,9 +919,9 @@ sumEmotionChanges :: MemoryIndex
                   -> [(MemoryIndex, EmotionName, Rational)]
                   -> M.Map EmotionName Rational
 sumEmotionChanges goalMI messages =
-      logFdm log ("[sumEmotionChanges] goalMI: " ++ show goalMI)
-      $ logFdm log ("[sumEmotionChanges] messages: " ++ concat (map (flip mappend "\n" . show . (_3 %~ showF3)) messages))
-      $ logFdm log ("[sumEmotionChanges] ret: " ++ (concat $ map (\(k,v) -> show k ++ ": " ++ showF3 v ++ "\n") $ M.toList $ ret))
+      logFdm trace ("[sumEmotionChanges] goalMI: " ++ show goalMI)
+      $ logFdm trace ("[sumEmotionChanges] messages: " ++ concat (map (flip mappend "\n" . show . (_3 %~ showF3)) messages))
+      $ logFdm trace ("[sumEmotionChanges] ret: " ++ (concat $ map (\(k,v) -> show k ++ ": " ++ showF3 v ++ "\n") $ M.toList $ ret))
       $ ret
    where 
       ret = LS.foldl' f (psbcEmotionMap 0) messages
