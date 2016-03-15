@@ -1,4 +1,4 @@
-module Wumpus where
+module Main where
 
 import Prelude hiding (log)
 
