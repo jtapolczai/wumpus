@@ -181,7 +181,7 @@ doAction i action world =
    where
       me = agentAt i world
       myName = me ^. name
-      targetName = agentAt j world ^. name
+      targetName = entityAt j world ^. name
       j = inDirection i $ actionDirection action
       iDid = did myName i
       iDidT a = didT myName i a targetName
@@ -373,8 +373,8 @@ attack :: (MonadReader WorldMetaInfo m, MonadWriter (WorldStats -> WorldStats) m
        -> World
        -> m World
 attack i j world = tell attackPerformed
-                   >> onCellM i  (die . msg other . fight me) world
-                   >>= onCellM j (die . msg me . fight other)
+                   >> onCellM i (die . msg other . fight other) world
+                   >>= onCellM j (die . msg me . fight me)
                    >$> removeDeadFromIndex [(me, i), (other, j)]
    where
       me = entityAt i world
@@ -399,10 +399,10 @@ removeDeadFromIndex :: [(Entity', CellInd)] -> World -> World
 removeDeadFromIndex = flip (foldl' rem)
    where
       rem w (e, i) =
-         if maybe True ((e ^. name) ==) (w ^. cellData . at i
+         if maybe True ((e ^. name) /=) (w ^. cellData . at i
                                          >>= view entity
                                          >$> view name)
-         then w & agents . at (e ^. name) .~ Nothing
+         then logF trace ("Removed a dead agent named " ++ view name e ++ "!") $ w & agents . at (e ^. name) .~ Nothing
          else w
 
 
@@ -411,7 +411,13 @@ removeDeadFromIndex = flip (foldl' rem)
 fight :: Entity' -- ^The attacking entity.
       -> CellData -- ^Cell with the target entity.
       -> CellData
-fight enemy = onEntity (health -~ (enemy ^. health))
+fight enemy c = logF trace ("[fight] myName=" ++ mn ++ "myHealth=" ++ mh ++ ", enemy health=" ++ eh ++ ", ret health= " ++ rh) $ ret
+   where
+      mn = show $ c ^. ju entity . name
+      mh = show $ c ^. ju entity . health
+      eh = show $ enemy ^. health
+      rh = show $ ret ^. ju entity . health
+      ret = onEntity (health -~ (enemy ^. health)) c
 
 -- |Let the entity on cell x die if its health is <= 0. Dying means removing
 --  the entity and dropping the contents of its inventory to
@@ -419,7 +425,7 @@ fight enemy = onEntity (health -~ (enemy ^. health))
 --  body of the agent/Wumpus).
 die :: (MonadReader WorldMetaInfo m, MonadWriter (WorldStats -> WorldStats) m) => CellData -> m CellData
 die x = let
-   x' = if x ^. ju entity . health <= 0 then x & entity .~ Nothing else x
+   x' = if x ^. ju entity . health <= 0 then logF detailedLog ("An entity named " ++ (x ^. ju entity . name) ++ " died.\n") $ x & entity .~ Nothing else x
    inv = x ^. entity . _Just . _Ag . inventory
    in
       when (x ^. ju entity . health <= 0) (entityDied $ view (ju entity) x)

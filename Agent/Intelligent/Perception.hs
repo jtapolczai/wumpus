@@ -26,7 +26,7 @@ perception :: EntityName -- ^The agent's name, for local perceptions.
            -> CellInd -- ^The agent's current position, for creating relative coordinates.
            -> Message
            -> [AgentMessage]
-perception _ pos (MsgVisualPerception iAbs d) = logF trace "[perception] MsgvisualPerception" $
+perception _ pos (MsgVisualPerception iAbs d) = logF trace ("[perception] MsgvisualPerception with index " ++ show iAbs) $
    [AMVisualGold i (d ^. gold),
     AMVisualMeat i (d ^. meat),
     AMVisualFruit i (d ^. fruit)]

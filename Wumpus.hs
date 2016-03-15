@@ -48,7 +48,11 @@ hotTemp = (worldData . time .~ 25)
           . (worldData . temperature .~ Hot)
 
 
-w4_lowHealth = cellData . ix (2,0) . entity . _Just . health .~ 0.1
+at_lowHealth :: CellInd -> World -> World
+at_lowHealth x = cellData . ix x . entity . _Just . health .~ 0.5
+-- agent in many worlds: 2,0
+-- wumpus in oneWumpus: 2,3
+
 
 -- Setup functions
 --------------------------------------------------------------------------------
@@ -66,4 +70,4 @@ worlds = map ("worlds" </>)
    ]
 
 main :: IO ()
-main = main' ("worlds" </> "oneWumpus") 4 (w4_lowHealth . hotTemp)
+main = main' ("worlds" </> "empty_plants") 4 (at_lowHealth (2,0) . hotTemp)

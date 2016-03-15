@@ -35,7 +35,7 @@ defaultLogLevel = DetailedLog
 
 logHandles :: M.Map LogLevel (String -> IO ())
 logHandles = M.fromList [
-   (Trace, hPutStrLn logFileHandle),
+   (Trace, hPutStrLn stderr),
    (DetailedLog, hPutStrLn stdout),
    (Log, hPutStrLn stdout),
    (Warning, hPutStrLn stderr),
@@ -45,16 +45,17 @@ logHandles = M.fromList [
 
 logLevels :: M.Map ModuleName LogLevel
 logLevels = M.fromList [
-   ("Agent.Intelligent", Log),
-   ("Agent.Intelligent.Affect.Fragments", Log),
-   ("Agent.Intelligent.BeliefGenerator", Log),
-   ("Agent.Intelligent.Filter", Log),
-   ("Agent.Intelligent.Memory", Log),
-   ("Agent.Intelligent.MessageHandling", Log),
-   ("Agent.Intelligent.Perception", Log),
-   ("Agent.Intelligent.PersistentMessages", Log),
-   ("World.Read", Log),
-   ("World.Utils", Log)
+   ("Agent.Intelligent", DetailedLog),
+   ("Agent.Intelligent.Affect.Fragments", DetailedLog),
+   ("Agent.Intelligent.BeliefGenerator", Trace),
+   ("Agent.Intelligent.DecisionMaker", DetailedLog),
+   ("Agent.Intelligent.Filter", DetailedLog),
+   ("Agent.Intelligent.Memory", DetailedLog),
+   ("Agent.Intelligent.MessageHandling", DetailedLog),
+   ("Agent.Intelligent.Perception", DetailedLog),
+   ("Agent.Intelligent.PersistentMessages", DetailedLog),
+   ("World.Read", DetailedLog),
+   ("World.Utils", DetailedLog)
    ]
 
 getLogLevel :: ModuleName -> LogLevel

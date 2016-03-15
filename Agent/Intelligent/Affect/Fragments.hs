@@ -113,7 +113,7 @@ genericAnger ss = runFilterM $ do
 
    let wCirc = circleAroundMeFilt (ss ^. wumpusIntensityVal) (ss ^. wumpusRadiusVal)
        aCirc = circleAroundMeFilt (ss ^. agentIntensityVal) (ss ^. agentRadiusVal)
-   (wumpuses, wumpusesOut) <- weakWumpusHere "aWeakWumpus" wCirc
+   (wumpuses, wumpusesOut) <- weakWumpusHere (ss ^. wumpusLimitVal) "aWeakWumpus" wCirc
    (agents, agentsOut) <- weakEnemyHere "aWeakEnemy" aCirc
 
    let singleFilt = [wumpusDied,
@@ -249,10 +249,10 @@ genericEnthusiasm ss = runFilterM $ do
    -- is necessary to activate the outer health-detectors.
    youAreHereT <- mapM (indG AMNHaveHealth)
                        [mkFN "eYouAreHere_HaveHealth0.8" (NodeLT _AMHaveHealth 0.8) (NT 2) (NE 1) (NS 0.1) [],
-                        mkFN "eYouAreHere_HaveHealth0.6" (NodeLT _AMHaveHealth 0.6) (NT 2) (NE 1) (NS 0.15) [],
-                        mkFN "eYouAreHere_HaveHealth0.4" (NodeLT _AMHaveHealth 0.4) (NT 2) (NE 1) (NS 0.2) [],
-                        mkFN "eYouAreHere_HaveHealth0.2" (NodeLT _AMHaveHealth 0.2) (NT 2) (NE 1) (NS 0.1) [],
-                        mkFN "eYouAreHere_HaveHealth0.1" (NodeLT _AMHaveHealth 0.1) (NT 2) (NE 1) (NS 0.2) []]
+                        mkFN "eYouAreHere_HaveHealth0.6" (NodeLT _AMHaveHealth 0.6) (NT 2) (NE 1) (NS 0.1) [],
+                        mkFN "eYouAreHere_HaveHealth0.4" (NodeLT _AMHaveHealth 0.4) (NT 2) (NE 1) (NS 0.15) [],
+                        mkFN "eYouAreHere_HaveHealth0.2" (NodeLT _AMHaveHealth 0.2) (NT 2) (NE 1) (NS 0.05) [],
+                        mkFN "eYouAreHere_HaveHealth0.1" (NodeLT _AMHaveHealth 0.1) (NT 2) (NE 1) (NS 0.1) []]
    let youAreHereOut = map fst youAreHereT ++ map fst singleFilt
    youAreHereS <- indG AMNYouAreHere $ mkFNs "eYouAreHereS" (NodeIs _AMYouAreHere) $ map (,1) youAreHereOut
    let youAreHere = uncurry HM.insert youAreHereS $ HM.fromList youAreHereT
@@ -415,6 +415,7 @@ strongAnger = genericAnger ss
            0.5
            10
            0.5
+           1 -- wumpus upper health limit
 
 weakAnger :: Filter
 weakAnger = genericAnger ss
@@ -434,6 +435,7 @@ weakAnger = genericAnger ss
            0.4
            7
            0.4
+           0.5 -- wumpus upper health limit
 
 -------------------------------------------------------------------------------
 
@@ -694,8 +696,8 @@ friendlySocial = genericSocial ss
 -------------------------------------------------------------------------------
 
 -- |See 'entityHereFilt'. Gets wumpuses with low health.
-weakWumpusHere :: NodeName -> AreaFilter
-weakWumpusHere name circ = entityHereFilt name circ [wumpus, lowHealth]
+weakWumpusHere :: Rational -> NodeName -> AreaFilter
+weakWumpusHere weakLimit name circ = entityHereFilt name circ [wumpus, lowHealth]
    where
       wumpus :: AreaFilterCheck
       wumpus = ("wumpus", _AMVisualWumpus . _1, AMNVisualWumpus, Nothing)
@@ -704,7 +706,7 @@ weakWumpusHere name circ = entityHereFilt name circ [wumpus, lowHealth]
       lowHealth = ("lowHealth",
                    _AMVisualEntityHealth . _1, 
                    AMNVisualEntityHealth,
-                   Just $ NodeLT (_AMVisualEntityHealth . _2) 0.5)
+                   Just $ NodeLT (_AMVisualEntityHealth . _2) weakLimit)
 
 -- |See 'entityHereFilt'. Gets hostile agents with low health.
 weakEnemyHere :: NodeName -> AreaFilter

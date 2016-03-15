@@ -104,12 +104,12 @@ getAction' initAs = do
           => [AgentComponent m]
           -> AgentState
           -> m AgentState
-      cc' comps as = do logFdm traceM $ "[cc'] initMsg:" ++ show (as ^. messageSpace)
+      cc' comps as = do logF traceM $ "[cc'] initMsg:" ++ show (as ^. messageSpace)
                         asAfterCC <- callComponents True comps as
-                        logFdm traceM $ "[cc'] callComponents done."
-                        logFdm traceM $ "[cc'] output msg:" ++ show (asAfterCC ^. messageSpace)
+                        logF traceM $ "[cc'] callComponents done."
+                        logF traceM $ "[cc'] output msg:" ++ show (asAfterCC ^. messageSpace)
                         asAfterPruning <- callComponents False [persistentMessagesComponent] asAfterCC
-                        logFdm traceM $ "[cc'| after pruning] output msg:" ++ show (asAfterPruning ^. messageSpace)
+                        logF traceM $ "[cc'| after pruning] output msg:" ++ show (asAfterPruning ^. messageSpace)
                         return $ asAfterPruning
 
       -- gets the first non-imaginary action, if it exists.
@@ -544,13 +544,18 @@ simulateConsequences action mi as simulateAction = do
        parentWorld :: Memory
        parentWorld = as ^. memory . memInd (parentMemIndex mi)
 
+       addDir w p = do
+         d <- w ^? cellData . at p . _Just . entity . _Just . _Ag . direction
+         return (p,d)
 
-       myPos = logFbg trace "[simulateConsequences.myPos]" $ fromMaybe
+
+       (myPos, myDir) =
+         logFbg trace "[simulateConsequences.myPos]" $ fromMaybe
           (logFbg trace ("[simulateConsequences].myPos: +++Agent not found in current world "
                   ++ show mi ++ ". Looking in parent world.") $ fromMaybe
              (error "[simulateConsequences].myPos: Nothing for pos. in parent world!")
-             (entityPosition myName parentWorld))
-          (entityPosition myName currentWorld)
+             (entityPosition myName parentWorld  >>= addDir parentWorld))
+          (entityPosition myName currentWorld >>= addDir currentWorld)
        isAlive = logFbg trace "[simulateConsequences.isAlive]" $ isPresent myName currentWorld
    logFbg traceM $ "[simulateConsequences] reconstructed world: " ++ show currentWorld
    nextWorld <- simulateAction currentWorld
@@ -562,16 +567,16 @@ simulateConsequences action mi as simulateAction = do
    --
    -- we also insert the death-messages in lieu of the perceptions if the
    -- IsAlive-field of the memory is false.
-   let deadMessages = [AMHealthDecreased 100, AMYouDied, AMPosition myPos]
+   let deadMessages = [AMHealthDecreased 100, AMYouDied, AMPosition myPos, AMDirection myDir]
        messages = fromMaybe deadMessages $ do
           logFbg traceM "[simulateConsequences] messages"
-          -- traceM $ "[simulateConsequences.messages] agents: " ++ show (nextWorld ^. agents)
+          logFbg traceM $ "[simulateConsequences.messages] agents: " ++ show (nextWorld ^. agents)
           logFbg traceM $ "[simulateConsequences.messages] my name: " ++ (as ^. name)
           newPos <- nextWorld ^. agents . at (as ^. name)
           logFbg traceM $ "[simulateConsequences.messages] newPos: " ++ show newPos
           logFbg traceM $ "[simulateConsequences.messages] world cells: " ++ show (nextWorld ^. cellData)
-          -- traceM $ "[simulateConsequences.messages] cell at my pos: " ++ show (nextWorld ^? cellData . at newPos . _Just)
-          -- traceM $ "[simulateConsequences.messages] entity at my pos present: " ++ show (isJust $ nextWorld ^? cellData . at newPos . _Just . entity)
+          logFbg traceM $ "[simulateConsequences.messages] cell at my pos: " ++ show (nextWorld ^? cellData . at newPos . _Just)
+          logFbg traceM $ "[simulateConsequences.messages] entity at my pos present: " ++ show (isJust $ nextWorld ^? cellData . at newPos . _Just . entity)
           logFbg traceM $ "[simulateConsequences.messages] agent at my pos present: " ++ show (isJust $ nextWorld ^? cellData . at newPos . _Just . entity . _Just . _Ag)
           me <- nextWorld ^? cellData . at newPos . _Just . entity . _Just . _Ag
           logFbg traceM $ "[simulateConsequences.messages] me: Just"
@@ -580,6 +585,8 @@ simulateConsequences action mi as simulateAction = do
    return (nextWorld, if isAlive
                       then logFbg trace ("[simulateConsequences] messages: " ++ show messages) messages
                       else logFbg trace "[simulateConsequences] agent dead (through isAlive-field)!"  deadMessages)
+
+
 
 -- |Recalls an existing memory and returns the perception-messages that correspond to it.
 --  Note that these resultant messages shouldn't be inserted directly into
@@ -685,7 +692,7 @@ decisionMakerComponent asInit = logF trace "[decisionMakerComponent]" $ logFdm t
    -- if there is one, continue/abandon/OK the plan
    else do
       logFdm traceM "has plan"
-      if targetEmotionSatisfied' mostRecentChanges >= 1 then do
+      if targetEmotionSatisfied' >= 1 then do
          logFdm traceM "finalize plan"
          let actions = map (view $ _2 . _1 . to showAction') plannedActions
          logFdm detailedLogM $ "Finalized a plan: " ++ LS.intercalate ", " actions
@@ -718,7 +725,7 @@ decisionMakerComponent asInit = logF trace "[decisionMakerComponent]" $ logFdm t
             return NoOp
          else do
             let (targetCell, targetCellIntensity) = head actionableCells
-            logFdm detailedLogM ("Target cell is " ++ show targetCell ++ " with emotion strength " ++ showF3 targetCellIntensity)
+            logFdm detailedLogM ("Target cell is " ++ show targetCell ++ " with emotion strength " ++ showF3 targetCellIntensity ++ ".\n")
             choose . getEmotionActions emotion $ targetCell
 
       -- Shorthand; gets the actions possible for a given emotion on a given cell.
@@ -733,14 +740,18 @@ decisionMakerComponent asInit = logF trace "[decisionMakerComponent]" $ logFdm t
       curWorld = cast $ as ^. memory . memInd (leftMemIndex as)
 
       myPos = fromMaybe (error "[decisionMakerComponent.myPos] Nothing!") $ myPosition $ as ^. messageSpace
-      myDir = fromMaybe (error "[decisionMakerComponent.myDir] Nothing!") $ myDirection $ as ^. messageSpace
+      myDir = fromMaybe (error $ "[decisionMakerComponent.myDir] Nothing!\n" ++ show (as ^. messageSpace)) $ myDirection $ as ^. messageSpace
 
       -- first, we reinsert all the planning-related messages
       as :: AgentState
       as = addMessages (reinsertablePlanMsg asInit) asInit
 
       planStartEmotion = planStartEmotions as M.! planEmotion
-      targetEmotionSatisfied' = logFdm trace "[decisionMakerComponent.targetEmotionSatisfied]" $ targetEmotionSatisfied planStartEmotion planEmotion
+      targetEmotionSatisfied' = logFdm trace "[decisionMakerComponent.targetEmotionSatisfied]"
+                                $ targetEmotionSatisfied
+                                     planStartEmotion
+                                     planEmotionLevel
+                                     (mostRecentChanges M.! planEmotion)
 
       -- the changes in emotional states since the beginning of the planning
       allChanges :: M.Map EmotionName Rational
@@ -771,6 +782,7 @@ decisionMakerComponent asInit = logF trace "[decisionMakerComponent]" $ logFdm t
       -- |The sorted list of planned actions, starting with the first
       plannedActions = LS.sortBy (comparing $ view (_2 . _2 . to (length . runMI))) $ as ^. messageSpace . to (msgWhere _AMPlannedAction)
       planEmotion = fromMaybe (error "[decisionMakerComponent.planEmotion]: Nothing") $ firstWhere _AMPlanEmotion $ as ^. messageSpace
+      planEmotionLevel = M.fromList currentEmotions M.! planEmotion
 
       -- |Returns whether an emotion is strong enough to lead to an immediate choice
       --  (instead of planning).
@@ -899,22 +911,34 @@ recordPlanEmotionChanges mi = map (True,,ephemeral) . M.foldrWithKey mkMsg [] . 
 --  we return 0. If it is at or below 'cAGENT_EMOTION_DECREASE_LIMIT', we return 1.
 --  The return value is interpolated linearly between the two extremes.
 targetEmotionSatisfied :: Rational -- ^The strength of the emotion at the start of planning.
-                       -> EmotionName
-                       -> M.Map EmotionName Rational -- ^Map of emotional changes since the start of planning.
+                       -> Rational -- ^The current strength of the emotion.
+                       -> Rational -- ^The most recent emotional change.
                        -> Rational -- ^The degree to which the decrease limit was reached. In [0,1].
-targetEmotionSatisfied start n m = logFdm trace "[targetEmotionSatisfied]"
-   $ logFdm trace ("   start = " ++ show start ++ "; cur = " ++ show cur ++ "; n = " ++ show n)
-   $ logFdm trace ("   TES (decrease_percent = " ++ show decrease_percent ++ ", decrease = " ++ show decrease)
+targetEmotionSatisfied start cur_strength last_change = logFdm trace "[targetEmotionSatisfied]"
+   $ logFdm warning ("   start = " ++ showF3 start ++ "; cur = " ++ showF3 cur_strength ++ "; last_change = " ++ showF3 last_change)
+   $ logFdm warning ("   TES (decrease_percent = " ++ showF3 decrease_percent ++ "\n" ++
+                   "        decrease_1 = " ++ showF3 decrease_1 ++ "\n" ++
+                   "        ratio = " ++ showF3 ratio ++ "\n" ++
+                   "        decrease_absolute = " ++ showF3 decrease_absolute ++ "\n" ++
+                   "        decrease_2 = " ++ showF3 decrease_2 ++ "\n" ++
+                   "        decrease = " ++ showF3 decrease ++ ")")
    $ decrease
    where
-      cur = (m M.! n)
-      --ratio = if start == 0 then 0 else cur / start
+      goal = 1 - cAGENT_EMOTION_DECREASE_LIMIT
 
-      decrease_max = 1 - cAGENT_EMOTION_DECREASE_LIMIT
-      --decrease_percent = max ((min ratio 1) - cAGENT_EMOTION_DECREASE_LIMIT) 0
-      decrease_percent = min (max (negate (m M.! n)) 0) decrease_max
-      --decrease = (decrease_max - decrease_percent) / decrease_max
-      decrease = decrease_percent / decrease_max
+      prev_strength = cur_strength - last_change
+      ratio = if prev_strength == 0 then 1 else cur_strength / prev_strength
+
+      decrease_percent = 1 - bound_in 0.7 1 ratio
+      decrease_1 = normalize decrease_percent
+
+      decrease_absolute = bound_in 0 goal (negate last_change)
+      decrease_2 = normalize decrease_absolute
+
+      decrease = max decrease_1 decrease_2
+
+      bound_in from to = min to . max from
+      normalize = (/ goal)
 
 
 -- |Returns the summed emotional changes along a path in a plan.

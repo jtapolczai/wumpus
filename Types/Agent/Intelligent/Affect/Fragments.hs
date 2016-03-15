@@ -34,7 +34,8 @@ data AngerSettings = AngerSettings {
    _angerSettingsStench2Val :: Rational,
    _angerSettingsAttackedVal :: Rational,
    _angerSettingsWumpusRadiusVal :: Rational,
-   _angerSettingsWumpusIntensityVal :: Rational,   
+   _angerSettingsWumpusIntensityVal :: Rational,
+   _angerSettingsWumpusLimitVal :: Rational,
    _angerSettingsAgentRadiusVal :: Rational,
    _angerSettingsAgentIntensityVal :: Rational
 } 

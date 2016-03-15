@@ -79,7 +79,7 @@ readWorld dir = do
    readBitmap (dir ++ "/items.bmp") >>= (return. show) >>= logF traceM
 
    logF traceM "entities"
-   readBitmap (dir ++ "/entities.bmp") >>= (return. show) >>= logF traceM
+   readBitmap (dir ++ "/entities.bmp") >>= (return. show) >>= logF logM
 
    logF traceM "--------------------------------------------------"
 
@@ -118,6 +118,8 @@ readWorld dir = do
                $ M.fromList $ fmap (show *** snd) $ M.toList agents
        -- the finished world in which we give minds to the Wumpuses
        world' = world & cellData .~ cd''
+
+   logF traceM (show world')
 
    logF traceM "intersected agent list:"
    logF traceM (show index)
