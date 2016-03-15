@@ -53,16 +53,15 @@ at_lowHealth x = cellData . ix x . entity . _Just . health .~ 0.5
 -- agent in many worlds: 2,0
 -- wumpus in oneWumpus: 2,3
 
+at_veryLowHealth :: CellInd -> World -> World
+at_veryLowHealth x = cellData . ix x . entity . _Just . health .~ 0.1
 
 -- Setup functions
 --------------------------------------------------------------------------------
 
 worlds :: [String]
 worlds = map ("worlds" </>)
-   ["world1",
-    "world2",
-    "world3",
-    "empty_itemPickup",
+   ["empty_itemPickup",
     "empty_plants",
     "oneWumpus",
     "friends",
@@ -70,4 +69,4 @@ worlds = map ("worlds" </>)
    ]
 
 main :: IO ()
-main = main' ("worlds" </> "empty_plants") 4 (at_lowHealth (2,0) . hotTemp)
+main = main' ("worlds" </> "empty_plants") 5 (at_lowHealth (2,0) . hotTemp)
