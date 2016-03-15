@@ -20,3 +20,5 @@ instance AgentMind OmniMind where
 
    clearMessageSpace o = o{_omniMindMessageSpace = []}
 
+   filterMessageSpace f o@OmniMind{_omniMindMessageSpace = ms} = o{_omniMindMessageSpace = filter f ms}
+

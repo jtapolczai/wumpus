@@ -16,7 +16,7 @@ build-type:          Simple
 cabal-version:       >=1.10
 
 library
-  exposed-modules:     Wumpus, Types, World, World.Read, World.Perception, World.Utils, World.Constants, Types.Castable, Types.World, Types.Agent.Intelligent, Types.Agent.Dummy, Types.Agent.Intelligent.Filter, Agent.Wumpus, Agent.Intelligent, Agent.Dummy, Agent.Intelligent.Memory, Agent.Intelligent.Perception, Agent.Intelligent.Utils, Agent.Intelligent.Affect, Agent.Intelligent.Filter, Agent.Intelligent.MessageHandling
+  exposed-modules:     Wumpus, Types, World, World.Statistics, World.Read, World.Perception, World.Utils, World.Constants, World.Rules, Types.Castable, Types.Arithmetic, Types.World, Types.World.Statistics, Types.Agent.Intelligent, Types.Agent.Omni, Types.Agent.Dummy, Types.Agent.Intelligent.Filter, Types.Agent.Intelligent.Affect.Fragments, Agent.Wumpus, Agent.Intelligent, Agent.Omni, Agent.Dummy, Agent.Intelligent.PersistentMessages, Agent.Intelligent.Memory, Agent.Intelligent.Perception, Agent.Intelligent.Utils, Agent.Intelligent.Affect, Agent.Intelligent.Filter, Agent.Intelligent.MessageHandling, Agent.Intelligent.Affect.Fragments, Data.MList, Data.Map.Utils, Debug.Trace.Wumpus, Control.Monad.Supply
   -- other-modules:       
   other-extensions:    MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances, FlexibleContexts, ExistentialQuantification, RankNTypes, ScopedTypeVariables, TupleSections, GADTs, TypeFamilies, LambdaCase, TemplateHaskell
   build-depends:       base >=4.8 && <4.9,
