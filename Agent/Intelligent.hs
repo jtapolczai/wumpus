@@ -915,8 +915,8 @@ targetEmotionSatisfied :: Rational -- ^The strength of the emotion at the start 
                        -> Rational -- ^The most recent emotional change.
                        -> Rational -- ^The degree to which the decrease limit was reached. In [0,1].
 targetEmotionSatisfied start cur_strength last_change = logFdm trace "[targetEmotionSatisfied]"
-   $ logFdm warning ("   start = " ++ showF3 start ++ "; cur = " ++ showF3 cur_strength ++ "; last_change = " ++ showF3 last_change)
-   $ logFdm warning ("   TES (decrease_percent = " ++ showF3 decrease_percent ++ "\n" ++
+   $ logFdm trace ("   start = " ++ showF3 start ++ "; cur = " ++ showF3 cur_strength ++ "; last_change = " ++ showF3 last_change)
+   $ logFdm trace ("   TES (decrease_percent = " ++ showF3 decrease_percent ++ "\n" ++
                    "        decrease_1 = " ++ showF3 decrease_1 ++ "\n" ++
                    "        ratio = " ++ showF3 ratio ++ "\n" ++
                    "        decrease_absolute = " ++ showF3 decrease_absolute ++ "\n" ++
