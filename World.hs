@@ -428,10 +428,12 @@ die x = let
    x' = if x ^. ju entity . health <= 0 then logF detailedLog ("An entity named " ++ (x ^. ju entity . name) ++ " died.\n") $ x & entity .~ Nothing else x
    inv = x ^. entity . _Just . _Ag . inventory
    in
-      when (x ^. ju entity . health <= 0) (entityDied $ view (ju entity) x)
-      >> return (x' & meat +~ (1 + inv ^. at Meat . to (fromMaybe 0))
-                    & fruit +~ (inv ^. at Fruit . to (fromMaybe 0))
-                    & gold +~ (inv ^. at Gold . to (fromMaybe 0)))
+      if (x ^. ju entity . health <= 0) then
+         do entityDied $ view (ju entity) x
+            return (x' & meat +~ (1 + inv ^. at Meat . to (fromMaybe 0))
+                       & fruit +~ (inv ^. at Fruit . to (fromMaybe 0))
+                       & gold +~ (inv ^. at Gold . to (fromMaybe 0)))
+      else return x'
 
 -- Natural processes that don't involve agent choice
 -------------------------------------------------------------------------------
