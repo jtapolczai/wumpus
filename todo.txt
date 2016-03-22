@@ -36,8 +36,6 @@ The problem: when the agent is extremely hungry, its attention goes towards itse
 
 * [x] likely related to the above: canBeEntered 
 
-* [ ] staminaIncreased 0 sent (likely via World.increaseStamina).
-
 * [x] rotate actions are not registered (:()
 
 * [x] memory is overriden, not merged (see Rotate South)-action
@@ -49,3 +47,11 @@ The problem: when the agent is extremely hungry, its attention goes towards itse
 * [y] erroneous "Move to South"-action generated in first step :(
 
 * [x] no possible actions if the agent turns south :(
+
+* [ ] staminaIncreased 0 sent (likely via World.increaseStamina).
+* [ ] memory is overriden, not merged (the issue persists!)
+      * this MIGHT be in the SG-instance, but more likely in resetMemory.
+* [ ] is the global stuff actualized?
+  * [ ] health decrease per round?
+  * [ ] stench/breeze maps?
+  * [ ] stamina increase per round?
