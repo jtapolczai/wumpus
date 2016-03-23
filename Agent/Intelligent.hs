@@ -428,8 +428,8 @@ getMyPerceptions en w = cd ^. ju entity . state . to readMessageSpace
 resetMemory :: AgentState -- ^The agent state. Has to have at least one memory.
             -> [AgentMessage']
             -> AgentState
-resetMemory as xs = logFmem log ("[resetMemory] output world: ")
-                    $ logFmem log (show $ ret ^. memory)
+resetMemory as xs = logFmem trace ("[resetMemory] output world: ")
+                    $ logFmem trace (show $ ret ^. memory)
                     $ ret
    where
       ret = as & memory %~ (\(T.Node mem _) -> T.Node (upd mem) [])
@@ -804,7 +804,7 @@ decisionMakerComponent asInit = logF trace "[decisionMakerComponent]" $ logFdm t
 
 -- |Returns the amount by which the strongest conflicting emotion is stronger
 --  than a given one. If no confliction emotion is stronger, 0 is returned. 
-strongestOverruling :: EmotionName -> M.Map EmotionName Rational -> Rational
+strongestOverruling :: EmotionName -> M.Map EmotionName Rational -> (EmotionName, Rational)
 strongestOverruling en m = logFdm trace ("[strongestOverruling] for emotion:" ++ show en) fromMaybe 0 $ do
    logFdm traceM $ "strongestOverruling] emotions: " ++ show m
    enVal <- m ^. at en
