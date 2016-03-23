@@ -9,6 +9,7 @@ cabal-dev
 *.dyn_o
 *.p_hi
 *.p_o
+*.prof
 .virtualenv
 .hsenv
 .cabal-sandbox/
