@@ -6,6 +6,7 @@
    LambdaCase,
    MultiParamTypeClasses,
    RankNTypes,
+   ScopedTypeVariables,
    TupleSections
    #-}
 
@@ -13,7 +14,7 @@ module Agent.Intelligent where
 
 import Prelude hiding (log)
 
-import Control.Arrow (first)
+import Control.Arrow (first, second)
 import Control.Lens
 import Control.Monad
 import Control.Monad.IO.Class
@@ -697,12 +698,12 @@ decisionMakerComponent asInit = logF trace "[decisionMakerComponent]" $ logFdm t
          let actions = map (view $ _2 . _1 . to showAction') plannedActions
          logFdm detailedLogM $ "Finalized a plan: " ++ LS.intercalate ", " actions
          return $ finalizeAction (MI [0]) as
-      else if strongestOverruling planEmotion allChanges > 0 then
+      else if strongestOverrulingValue > 0 then
          do logFdm traceM "retract step"
             logFdm traceM $ "leftMemIndex: " ++ (show (leftMemIndex as))
             numSteps <- randomRIO (1,length . runMI . leftMemIndex $ as)
             logFdm traceM ("num of retracted steps: " ++ show numSteps)
-            logFdm detailedLogM $ "Retracted " ++ show numSteps ++ " steps.\n"
+            logFdm detailedLogM $ "Retracted " ++ show numSteps ++ " steps because of " ++ show strongestOverrulingName ++ ".\n"
             return $ budgetRetractSteps numSteps
                    $ retractSteps numSteps as
       else do
@@ -784,6 +785,8 @@ decisionMakerComponent asInit = logF trace "[decisionMakerComponent]" $ logFdm t
       planEmotion = fromMaybe (error "[decisionMakerComponent.planEmotion]: Nothing") $ firstWhere _AMPlanEmotion $ as ^. messageSpace
       planEmotionLevel = M.fromList currentEmotions M.! planEmotion
 
+      (strongestOverrulingName, strongestOverrulingValue) = strongestOverruling planEmotion (M.fromList currentEmotions)
+
       -- |Returns whether an emotion is strong enough to lead to an immediate choice
       --  (instead of planning).
       strongEnough :: Rational -> Bool
@@ -805,15 +808,16 @@ decisionMakerComponent asInit = logF trace "[decisionMakerComponent]" $ logFdm t
 -- |Returns the amount by which the strongest conflicting emotion is stronger
 --  than a given one. If no confliction emotion is stronger, 0 is returned. 
 strongestOverruling :: EmotionName -> M.Map EmotionName Rational -> (EmotionName, Rational)
-strongestOverruling en m = logFdm trace ("[strongestOverruling] for emotion:" ++ show en) fromMaybe 0 $ do
+strongestOverruling en m = logFdm trace ("[strongestOverruling] for emotion:" ++ show en) fromMaybe (Anger, 0) $ do
    logFdm traceM $ "strongestOverruling] emotions: " ++ show m
    enVal <- m ^. at en
    logFdm traceM $ "[strongestOverruling] enVal: " ++ show enVal
-   confVals <- mapM (\e -> m ^. at e) (conflictingEmotions en)
+   (confVals :: [(EmotionName, Rational)]) <- mapM (\e -> (e,) <$> m ^. at e) (conflictingEmotions en)
    logFdm traceM $ "[strongestOverruling] confVals: " ++ show confVals
-   let ret = max 0 . maximum . map (subtract enVal) $ confVals
+   let (ret :: (EmotionName, Rational)) = (second $ max 0) . fromJust . LS.maximumBy (comparing snd) . map (second $ subtract enVal) $ confVals
    logFdm traceM $ "[strongestOverruling] ret: " ++ show ret
-   return ret
+   return (ret :: (EmotionName, Rational))
+
 
 -- |Deletes n steps from end of a given memory index.
 --
