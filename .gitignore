@@ -7,6 +7,8 @@ cabal-dev
 *.chs.h
 *.dyn_hi
 *.dyn_o
+*.p_hi
+*.p_o
 .virtualenv
 .hsenv
 .cabal-sandbox/
