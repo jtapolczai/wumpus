@@ -14,7 +14,7 @@ module Agent.Intelligent.Filter (
    runFilterValue,
    runFilter,
    activatedSum,
-   activateNodes,
+   activateNode,
    -- *Creating graphs
    -- |When creating graphs, we gave a @N@ source nodes and one target node.
    --  Each source node has a threshold @T_i@ and the target node has a threshold @T_target@.
@@ -179,7 +179,7 @@ exciteNode :: Int
 exciteNode inc n = (act, n')
    where
       n' = activateNode $ n & excitement . _Wrapped +~ inc
-      act = not (n ^. active) && n ^. active
+      act = not (n ^. active) && n' ^. active
 
 -- |Gets the excitement that a value would induce in a node. If the value
 --  fails the node's condition, this function returns 0.
@@ -261,10 +261,12 @@ runFilter ms limit fInit
 runFilterInitial :: [AgentMessage]
                  -> Filter
                  -> ([G.Vertex], Filter)
-runFilterInitial ms fInit = foldl' processMsg ([], fInit) ms
+runFilterInitial ms fInit = logF trace ("[runFilterInitial] activated nodes: " ++ show (fst ret)) $ ret
    where
+      ret = foldl' processMsg ([], fInit) ms
+
       processMsg acc m = foldl' (processNode m) acc (candidateNodes m fInit)
-      processNode m (hot, f) n = (if add then n : hot else hot, f') 
+      processNode m (hot, f) n = (if add then logF trace ("[ATTENTION] activated the node " ++ show n) $ n : hot else hot, f') 
          where
             (add, f') = f & graph . at n %%~ unsafeLift (\n -> exciteNode (condExcitement m n) n)
 
@@ -335,10 +337,6 @@ activatedSum filt = max (-1) $ min 1 $ F.foldl' add 0 $ HM.filterWithKey isOutpu
       isOutput k _ = filt ^. outputNodes . to (HS.member k)
       add acc n = if n ^. active then acc + (n ^. significance . fromNS) else acc
 
--- |Sets the 'activated' flag on nodes with sufficiently high excitement.
-activateNodes :: Filter -> Filter
-activateNodes = graph %~ fmap activateNode
-
 -- |Sets the 'activated' flag on a node if it has sufficiently high excitement.
 activateNode :: FilterNode s -> FilterNode s
 activateNode = cond' f (\n -> {- trace ("[activeNodes] " ++ n ^. name ++ " activated.") -} (n & active .~ True))
@@ -363,11 +361,11 @@ mkFilterIndex xs = nodeIndex .~ foldl' f HM.empty xs
 --  if none are found. Nodes that can respond are those which have the same RelInd
 --  as the given message, or which need no specific RelInd.
 candidateNodes :: AgentMessage -> Filter -> [G.Vertex]
-candidateNodes msg (FI _ _ i) = {- trace "[candidateNodes]" -}
-   maybe (logF trace "[candidateNodes] no nodes." [])
+candidateNodes msg (FI _ _ i) = 
+   maybe ({- logF trace ("[candidateNodes] no nodes for " ++ show msg) -} [])
            (\m1 -> let noCI = fromMaybe [] $ HM.lookup Nothing m1
                        hasCI = fromMaybe [] $ maybe Nothing (`HM.lookup` m1) (logF trace ("[candidateNodes] cell ind: " ++ show (msg ^. _agentMessageCellInd)) $ Just $ msg ^. _agentMessageCellInd)
-                   in logF trace ("[candidateNodes] " ++ show msg ++ " has " ++ show (length $ noCI ++ hasCI) ++ " candidate nodes.\n" ++ show (noCI ++ hasCI)) $ noCI ++ hasCI)
+                   in {- logF trace ("[candidateNodes] " ++ show msg ++ " has " ++ show (length $ noCI ++ hasCI) ++ " candidate nodes.\n" ++ show (noCI ++ hasCI)) $ -} noCI ++ hasCI)
            (HM.lookup (cast msg) i)
 
 unsafeLift :: (a -> (b,c)) -> Maybe a -> (b, Maybe c)
