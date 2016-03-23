@@ -16,7 +16,7 @@ build-type:          Simple
 cabal-version:       >=1.10
 
 library
-  exposed-modules:     Wumpus, Types, World, World.Statistics, World.Read, World.Perception, World.Utils, World.Constants, World.Rules, Types.Castable, Types.Arithmetic, Types.World, Types.World.Statistics, Types.Agent.Intelligent, Types.Agent.Omni, Types.Agent.Dummy, Types.Agent.Intelligent.Filter, Types.Agent.Intelligent.Affect.Fragments, Agent.Wumpus, Agent.Intelligent, Agent.Omni, Agent.Dummy, Agent.Intelligent.PersistentMessages, Agent.Intelligent.Memory, Agent.Intelligent.Perception, Agent.Intelligent.Utils, Agent.Intelligent.Affect, Agent.Intelligent.Filter, Agent.Intelligent.MessageHandling, Agent.Intelligent.Affect.Fragments, Data.MList, Data.Map.Utils, Debug.Trace.Wumpus, Control.Monad.Supply
+  exposed-modules:     Main, Types, World, World.Statistics, World.Read, World.Perception, World.Utils, World.Constants, World.Rules, Types.Castable, Types.Arithmetic, Types.World, Types.World.Statistics, Types.Agent.Intelligent, Types.Agent.Omni, Types.Agent.Dummy, Types.Agent.Intelligent.Filter, Types.Agent.Intelligent.Affect.Fragments, Agent.Wumpus, Agent.Intelligent, Agent.Omni, Agent.Dummy, Agent.Intelligent.PersistentMessages, Agent.Intelligent.Memory, Agent.Intelligent.Perception, Agent.Intelligent.Utils, Agent.Intelligent.Affect, Agent.Intelligent.Filter, Agent.Intelligent.MessageHandling, Agent.Intelligent.Affect.Fragments, Data.MList, Data.Map.Utils, Debug.Trace.Wumpus, Control.Monad.Supply
   -- other-modules:       
   other-extensions:    MultiParamTypeClasses, FunctionalDependencies, FlexibleInstances, FlexibleContexts, ExistentialQuantification, RankNTypes, ScopedTypeVariables, TupleSections, GADTs, TypeFamilies, LambdaCase, TemplateHaskell
   build-depends:       base >=4.8 && <4.9,
@@ -38,4 +38,34 @@ library
                        transformers >=0.4 && <0.5,
                        unordered-containers >=0.2 && <0.3
   -- hs-source-dirs:      
+  default-language:    Haskell2010
+
+executable wumpus-profiling
+  main-is:
+    Main.hs
+  ghc-options:
+    --enable-executable-profiling
+    --enable-library-profiling
+    -O2
+    -threaded
+    -fprof-auto
+    "-with-rtsopts=-N -p -s -h -i0.1"
+  build-depends:       base >=4.8 && <4.9,
+                       bmp >=1.2 && <1.3,
+                       bytestring >=0.10 && <0.13,
+                       containers >=0.5 && <0.6,
+                       data-default >=0.5 && <0.8,
+                       directory >=1.2 && <1.4,
+                       filepath >=1.4 && <1.7,
+                       functor-monadic >=0.1,
+                       grid >=7.8 && <8,
+                       hashable >=1 && <1.5,
+                       lens >=4.11 && <5,
+                       listsafe >=0.1 && <0.2,
+                       mtl >=2 && <3,
+                       random >=1.1 && < 2,
+                       semigroups >=0.18 && <0.20,
+                       split >0.2 && <0.5,
+                       transformers >=0.4 && <0.5,
+                       unordered-containers >=0.2 && <0.3
   default-language:    Haskell2010

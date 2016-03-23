@@ -55,6 +55,7 @@ import qualified Data.HashSet as HS
 import qualified Data.Map as M
 
 import Agent.Intelligent.Filter
+import Math.Utils
 import Types
 import World.Utils
 

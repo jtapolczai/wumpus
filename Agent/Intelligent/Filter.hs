@@ -1,6 +1,9 @@
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE LambdaCase #-}
-{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE
+   FlexibleContexts,
+   GADTs,
+   LambdaCase,
+   MultiParamTypeClasses
+   #-}
 
 module Agent.Intelligent.Filter (
    -- *Running filters
@@ -8,7 +11,7 @@ module Agent.Intelligent.Filter (
    exciteNode,
    exciteNeighbor,
    exciteNeighbors,
-   sendExcitementFrom,
+   runFilterValue,
    runFilter,
    activatedSum,
    activateNodes,
@@ -36,10 +39,12 @@ import Control.Lens
 import Data.Default
 import qualified Data.Foldable as F
 import qualified Data.Graph as G
-import Data.List (foldl', sortBy)
+import Data.List (foldl')
 import qualified Data.HashMap.Strict as HM
 import qualified Data.HashSet as HS
+import Data.List (sortBy)
 import Data.Maybe
+import Data.Monoid
 import Data.Ord (comparing)
 
 import Types
@@ -158,9 +163,8 @@ mkGraphSchema edgeStrength fs tv = (\s -> s & neighbors %~ ((tv, edgeStrength s)
 -- Running filters
 -------------------------------------------------------------------------------
 
-
 -- |Evaluates a condition against a value.
-runCondition :: Show s => NodeCondition s -> s -> Bool
+runCondition :: NodeCondition s -> s -> Bool
 runCondition (NodeEQ f x) y = maybe False (x==) (y ^? f)
 runCondition (NodeGT f x) y = maybe False (x<=) (y ^? f)
 runCondition (NodeLT f x) y = maybe False (x>=) (y ^? f)
@@ -168,20 +172,21 @@ runCondition (NodeIs f  ) y = maybe False (const True) (y ^? f)
 runCondition NodeTrue _ = True
 runCondition NodeFalse _ = False
 
--- |Excites a node based on an input.
-exciteNode :: (Show a) => Bool -> a -> FilterNode a -> FilterNode a
-exciteNode isOutputNode x n =
-   cond' (\fn -> runCondition (fn ^. condition) x) excite n
+-- |Excites a node by given value and eventually activates it.
+exciteNode :: Int
+           -> FilterNode a
+           -> (Bool, FilterNode a) -- ^The first part is True iff the node became active.
+exciteNode inc n = (act, n')
    where
-      excite fn =
-         let
-            fn' = fn & excitement . _Wrapped' +~ (fn ^. excitementInc . fromNE)
-         in
-           logF trace ("[exciteNode] node " ++ show (n ^. name) ++ " got excited by message " ++ show x ++ " NE=" ++ show (fn' ^. excitement) ++ " NT=" ++ show (fn' ^. threshold)) 
-           $
-           (if (fn' ^. excitement . fromNE >= fn' ^. threshold . fromNT) && isOutputNode
-            then logF trace ("[exciteNode] output node " ++ show (n ^. name) ++ " activated by " ++ show x)
-            else id) fn'
+      n' = activateNode $ n & excitement . _Wrapped +~ inc
+      act = not (n ^. active) && n ^. active
+
+-- |Gets the excitement that a value would induce in a node. If the value
+--  fails the node's condition, this function returns 0.
+condExcitement :: a -> FilterNode a -> Int
+condExcitement x n = if runCondition (n ^. condition) x
+                     then n ^. excitementInc . fromNE
+                     else 0
 
 -- |Sends excitation along one edge to a neighbor.
 exciteNeighbor :: String-- ^Source node (just for debugging; isn't used).
@@ -189,34 +194,26 @@ exciteNeighbor :: String-- ^Source node (just for debugging; isn't used).
                -> NodeExcitement -- ^Excitement of the source node.
                -> Rational -- ^Edge strength to target node.
                -> Filter
-               -> Filter
-exciteNeighbor s nk (NE srcEx) es f = f & graph . ix nk %~ exInc
+               -> (Bool, Filter) -- ^The first part is True iff the neighbor became active.
+exciteNeighbor _ nk (NE srcEx) es f = (act, f')
    where
-      exInc n = logF trace ("[exciteNeighbor] " ++ show (n ^. name) ++ " excited from neighbor " ++ s ++ ". Excitement: " ++ show from ++ " -> " ++ show to ++ " out of " ++ show thresh)
-                $ n & excitement . _Wrapped +~ round (fromIntegral srcEx * es)
-         where
-            n' = n & excitement . _Wrapped +~ round (fromIntegral srcEx * es)
-            from = n ^. excitement . fromNE
-            to = n' ^. excitement . fromNE
-            thresh = n ^. threshold . fromNT
+      (act, f') = f & graph . at nk %%~ unsafeLift (exciteNode exciteAmount)
+      exciteAmount = round (fromIntegral srcEx * es)
 
 -- send excitement to every neighbor of a node.
 exciteNeighbors :: G.Vertex -- ^Source node.
                 -> String -- ^Name of the source node (just for debugging; isn't used).
                 -> Filter
-                -> Filter
-exciteNeighbors k kname f = foldr excite f neighbors'
+                -> ([G.Vertex], Filter) -- |New filter, with the indices of the newly activated neighbors.
+exciteNeighbors k kname fInit = foldl' excite ([], fInit) neighbors'
    where
-      srcEx = f ^. graph . at k . to (fromMaybe $ error "[exciteNeighbors]: Nothing") . excitement
-      excite (nk, es) f' = exciteNeighbor (kname ++ " (" ++ show k ++ ")") nk srcEx es f'
-      neighbors' = f ^. graph . at k . to (fromMaybe $ error "[exciteNeighbors]: Nothing") . neighbors
+      excite (hot, f) (nk, es) = (if add then nk : hot else hot, f')
+         where (add, f') = exciteNeighbor (kname ++ " (" ++ show k ++ ")") nk srcEx es f
+      
+      neighbors' = fInit ^. graph . at k . to (fromMaybe $ error "[exciteNeighbors]: Nothing") . neighbors
+      srcEx = fInit ^. graph . at k . to (fromMaybe $ error "[exciteNeighbors]: Nothing") . excitement
 
--- |Takes a list of nodes (presumably those who are newly activated) and
---  sends excitement to all their neighbors via 'excitNeighbors'.
-sendExcitementFrom :: [(G.Vertex, String)] -- ^Source nodes with names (the names are just for debugging).
-                   -> Filter
-                   -> Filter
-sendExcitementFrom = flip (F.foldl' (\filt (k,kname) -> exciteNeighbors k kname filt))
+
 
 -- |Inputs a list of messages into filter and returns the sum of the
 --  signifcances of actived output nodes (how "strongly" the filter responds
@@ -224,11 +221,11 @@ sendExcitementFrom = flip (F.foldl' (\filt (k,kname) -> exciteNeighbors k kname 
 --
 --  This is like 'runFilter\'', but 'activatedSum' is already applied to the resultant filter
 --  to get the sums of the significances of the activated output nodes. 
-runFilter :: [AgentMessage]
-          -> Int
-          -> Filter
-          -> Rational
-runFilter ms limit filt =
+runFilterValue :: [AgentMessage]
+               -> Int
+               -> Filter
+               -> Rational
+runFilterValue ms limit filt =
    logF trace "[runFilter]"
    $ logF trace "---------------------"
    $ logF trace ("num output nodes: " ++ (show $ length $ HS.toList $ res ^. outputNodes))
@@ -237,7 +234,7 @@ runFilter ms limit filt =
    $ logF trace "vvvvvvvvvvvvvvvvvvvvv"
    $ activatedSum res
    where
-      res = runFilter' ms limit filt
+      res = runFilter ms limit filt
       atGr x = (res ^. graph) HM.! x
       outNodes = sortBy (comparing $ view _1)
                  $ filter (\x -> view _4 x >= view _5 x)
@@ -251,6 +248,43 @@ runFilter ms limit filt =
                        view (threshold . fromNT) $ atGr x,
                        view active $ atGr x)
 
+runFilter :: [AgentMessage]
+          -> Int
+          -> Filter
+          -> Filter
+runFilter ms limit fInit
+   | limit <= 0 = fInit
+   | otherwise  = runFilterRec (limit - 1) activated f 
+   where
+      (activated, f) = runFilterInitial ms fInit
+
+runFilterInitial :: [AgentMessage]
+                 -> Filter
+                 -> ([G.Vertex], Filter)
+runFilterInitial ms fInit = foldl' processMsg ([], fInit) ms
+   where
+      processMsg acc m = foldl' (processNode m) acc (candidateNodes m fInit)
+      processNode m (hot, f) n = (if add then n : hot else hot, f') 
+         where
+            (add, f') = f & graph . at n %%~ unsafeLift (\n -> exciteNode (condExcitement m n) n)
+
+runFilterRec :: Int
+             -> [G.Vertex]
+             -> Filter
+             -> Filter
+runFilterRec limit previouslyActivated fInit
+   | limit <= 0 = fInit
+   | otherwise = if null newlyActivated
+                 then f
+                 else runFilterRec (limit - 1) newlyActivated f
+      where
+         (newlyActivated, f) = foldl' processNode ([],fInit) previouslyActivated
+
+         processNode (hot, f) n =
+            let (hot', f') = exciteNeighbors n "" f
+            in (hot' <> hot, f')
+
+{-
 -- |Inputs a list of messages into filter and returns the sum of the
 --  signifcances of actived output nodes (how "strongly" the filter responds
 --  to the messages).
@@ -268,7 +302,7 @@ runFilter' ms limit filt = -- trace ("runFilter (step case, limit = " ++ show li
                            else runFilter' [] (limit - 1) filt''
    where
       processMsg f m = foldl' (\f' n -> f' & graph . at n %~ fmap (exciteNode (isOut f' n) m)) f $ candidateNodes m f
-      filt' = activateNodes $ foldl' processMsg filt ms
+      filt' = foldl' processMsg filt ms
 
       isOut f n = HS.member n (f ^. outputNodes)
 
@@ -290,7 +324,7 @@ runFilter' ms limit filt = -- trace ("runFilter (step case, limit = " ++ show li
       newlyActivatedNodes' = map (\(k,v) -> (k, v ^. name)) $ HM.toList newlyActivatedNodes
 
       -- lastly, send out excitement from the newly activated nodes
-      filt'' = sendExcitementFrom newlyActivatedNodes' filt'
+      filt'' = sendExcitementFrom newlyActivatedNodes' filt' -}
 
 
 -- |Returns the sum of the significances of all activated output nodes,
@@ -303,10 +337,12 @@ activatedSum filt = max (-1) $ min 1 $ F.foldl' add 0 $ HM.filterWithKey isOutpu
 
 -- |Sets the 'activated' flag on nodes with sufficiently high excitement.
 activateNodes :: Filter -> Filter
-activateNodes = graph %~ fmap activate
-   where
-      activate = cond' f (\n -> {- trace ("[activeNodes] " ++ n ^. name ++ " activated.") -} (n & active .~ True))
+activateNodes = graph %~ fmap activateNode
 
+-- |Sets the 'activated' flag on a node if it has sufficiently high excitement.
+activateNode :: FilterNode s -> FilterNode s
+activateNode = cond' f (\n -> {- trace ("[activeNodes] " ++ n ^. name ++ " activated.") -} (n & active .~ True))
+   where
       f n = n ^. excitement . fromNE >= n ^. threshold . fromNT
 
 -- |Overwrites a filter's filterIndex, creating a new one based on a list of index entries.
@@ -333,3 +369,8 @@ candidateNodes msg (FI _ _ i) = {- trace "[candidateNodes]" -}
                        hasCI = fromMaybe [] $ maybe Nothing (`HM.lookup` m1) (logF trace ("[candidateNodes] cell ind: " ++ show (msg ^. _agentMessageCellInd)) $ Just $ msg ^. _agentMessageCellInd)
                    in logF trace ("[candidateNodes] " ++ show msg ++ " has " ++ show (length $ noCI ++ hasCI) ++ " candidate nodes.\n" ++ show (noCI ++ hasCI)) $ noCI ++ hasCI)
            (HM.lookup (cast msg) i)
+
+unsafeLift :: (a -> (b,c)) -> Maybe a -> (b, Maybe c)
+unsafeLift f (Just a) = (b, Just c)
+   where (b, c) = f a
+unsafeLift _ Nothing = error "Nothing in unsafeLift!"

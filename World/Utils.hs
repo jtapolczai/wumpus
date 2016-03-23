@@ -21,20 +21,13 @@ module World.Utils (
    coordDist,
    lineDistance,
    angle,
-   angleDiff,
-   linearFunc,
    angleToDirection,
    getCircle,
    rotateCW,
    rotateCCW,
-   changeMod,
-   succMod,
-   prevMod,
-   pos,
    angleOf,
    coneOf,
    inCone,
-   avg,
    onAgent,
    getEntityType,
    onEntity,
@@ -62,11 +55,11 @@ import Control.Monad (guard)
 import Data.Functor.Monadic ((>=$>))
 import qualified Data.Map as M
 import Data.Maybe
-import Data.Ratio
 import qualified Data.Semigroup as SG
 import Math.Geometry.Grid hiding (null)
 import Math.Geometry.Grid.Square
 import Math.Geometry.Grid.SquareInternal (SquareDirection(..))
+import Math.Utils
 
 import Types
 import Debug.Trace.Wumpus
@@ -190,24 +183,6 @@ angle (x1,y1) (x2,y2) = if rawVal < 0 then (2*pi) + rawVal else rawVal
       dy = fromIntegral $ y2 - y1
       rawVal = atan2 dy dx
 
--- |Returns the absolute difference between two angles, in radians.
---  This value will always be positive.
-angleDiff :: Float -> Float -> Float
-angleDiff a b = min (large - small) (small - large + 2*pi)
-   where
-      small = min a b
-      large = max a b
-
--- |Creates a function that goes linearly between to points.
-linearFunc :: (Rational, Rational) -- Point 1 (x,y)
-           -> (Rational, Rational) -- Point 2 (x,y)
-           -> (Rational -> Rational)
-linearFunc (x1,y1) (x2,y2) x = y1 + (x - x1) * (dy / dx)
-   where
-      dx = x1 - x2
-      dy = y1 - y2
-
-
 -- |Returns the SquareDirection that corresponds most closely to an angle.
 angleToDirection :: Float -- ^he angle in radians.
                  -> SquareDirection
@@ -232,28 +207,6 @@ rotateCW = succMod
 rotateCCW :: SquareDirection -> SquareDirection
 rotateCCW = prevMod
 
--- |Applies a function to the Int-value of an Enum. The result
---  is returned mod (maxBound+1).
-changeMod :: forall a.(Enum a, Bounded a) => (Int -> Int) -> a -> a
-changeMod f = toEnum
-              . (`mod` (fromEnum (maxBound :: a) + 1))
-              . f
-              . fromEnum
-
--- |Gets the next value of an Enum, returning the first value
---  if the last was given.
-succMod :: (Enum a, Bounded a) => a -> a
-succMod = changeMod (+1)
-
--- |Gets the previous value of an Enum, returning the last value
---  if the first was given.
-prevMod :: (Enum a, Bounded a) => a -> a
-prevMod = changeMod (subtract 1)
-
--- |Synonym for @max 0@, i.e. constrains a value to be at least 0.
-pos :: (Ord a, Num a) => a -> a
-pos = max 0
-
 -- |Gets the angle associated with a square direction by drawing an infinite
 --  line from a point into the given direction. Noth is pi/4, i.e. up.
 angleOf :: SquareDirection -> Float
@@ -275,12 +228,6 @@ inCone :: (Float, Float) -> Float -> Bool
 inCone (l,r) a =
    if l <= r then l <= a && a <= r
              else l <= a || a <= r
-
--- |Computes the average of a list of values (sum xs / length xs).
-avg :: [Rational] -> Rational
-avg = res . foldr (\x (s,a) -> (s+x,a+1)) (0,0)
-   where
-      res (s,a) = s * (1 % a)
 
 -- |Applies a function on an agent. Non-agent entities are left unchanged.
 onAgent :: (Agent SomeMind -> Agent SomeMind) -> CellData -> CellData

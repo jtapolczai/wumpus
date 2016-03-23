@@ -31,14 +31,12 @@ import System.Random (randomRIO)
 
 import Agent.Dummy
 import Agent.Intelligent.Affect
---import Agent.Intelligent.BeliefGenerator
--- import Agent.Intelligent.DecisionMaker
---import Agent.Intelligent.Memory
 import Agent.Intelligent.MessageHandling
 import Agent.Intelligent.Perception
 import Agent.Intelligent.PersistentMessages
 import Agent.Intelligent.Utils
 import Agent.Wumpus
+import Math.Utils
 import Types
 import World
 import World.Constants
@@ -430,7 +428,9 @@ getMyPerceptions en w = cd ^. ju entity . state . to readMessageSpace
 resetMemory :: AgentState -- ^The agent state. Has to have at least one memory.
             -> [AgentMessage']
             -> AgentState
-resetMemory as xs = logFmem trace ("[resetMemory] output world: ") $ logFmem trace (show $ ret ^. memory) $ ret
+resetMemory as xs = logFmem log ("[resetMemory] output world: ")
+                    $ logFmem log (show $ ret ^. memory)
+                    $ ret
    where
       ret = as & memory %~ (\(T.Node mem _) -> T.Node (upd mem) [])
       upd m = constructMemory xs (Just m)
@@ -929,15 +929,14 @@ targetEmotionSatisfied start cur_strength last_change = logFdm trace "[targetEmo
       prev_strength = cur_strength - last_change
       ratio = if prev_strength == 0 then 1 else cur_strength / prev_strength
 
-      decrease_percent = 1 - bound_in 0.7 1 ratio
+      decrease_percent = 1 - bound 0.7 1 ratio
       decrease_1 = normalize decrease_percent
 
-      decrease_absolute = bound_in 0 goal (negate last_change)
+      decrease_absolute = bound 0 goal (negate last_change)
       decrease_2 = normalize decrease_absolute
 
       decrease = max decrease_1 decrease_2
 
-      bound_in from to = min to . max from
       normalize = (/ goal)
 
 

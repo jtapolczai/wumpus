@@ -48,7 +48,7 @@ logLevels = M.fromList [
    ("Agent.Intelligent", DetailedLog),
    ("Agent.Intelligent.Affect.Fragments", DetailedLog),
    ("Agent.Intelligent.BeliefGenerator", Trace),
-   ("Agent.Intelligent.DecisionMaker", DetailedLog),
+   ("Agent.Intelligent.DecisionMaker", Trace),
    ("Agent.Intelligent.Filter", DetailedLog),
    ("Agent.Intelligent.Memory", DetailedLog),
    ("Agent.Intelligent.MessageHandling", DetailedLog),

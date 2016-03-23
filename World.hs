@@ -51,6 +51,7 @@ import Data.Ratio
 import Math.Geometry.Grid hiding (null)
 import Math.Geometry.Grid.Square
 
+import Math.Utils
 import Types
 import World.Constants
 import World.Statistics
@@ -115,12 +116,6 @@ simulateStepReader world = logF trace "simulateStepReader" $ logF trace (replica
       -- perform local changes to agents/plants
       advanceLocalData = increaseStamina . increaseHunger . regrowPlants
 
--- This is done in World.Perception now.
-{- sendBodyMessage :: World -> CellInd -> World
-sendBodyMessage w i = onCell i (onAgent $ \a -> sendMsg (msg a) a) w
-   where
-      msg a = MsgBody (a ^. health) (a ^. stamina) (a ^. inventory) -}
-
 -- |Gives an entity its perceptions based on the current world, and updates
 --  the world accordingly.
 giveEntityPerceptions :: World
@@ -145,7 +140,6 @@ worldAgents world = map fst
                     $ partition (^. to snd . to isWumpus)
                     $ mapMaybe (\(i,c) -> (c ^. entity) >$> (i,))
                     $ world ^. cellData . to M.assocs
-
 
 -- |Gets the actopm am entity wishes to perform and does it in the world.
 --  This function can be used in a fold and will not perform any action if
@@ -463,9 +457,14 @@ wumpusStench world = newStench $ clearStench world
 regrowPlants :: CellData -> CellData
 regrowPlants = plant %~ fmap (min cPLANT_MAX . (cPLANT_REGROWTH+))
 
--- |Increases the hungar of an agent (reduces health by 0.01)
+-- |Increases the hunger of an agent (reduces health by 0.01)
 increaseHunger :: CellData -> CellData
-increaseHunger = onAgent (health -~ cHUNGER_RATE)
+increaseHunger = onAgent hunger
+   where
+      hunger a = sendMsg (MsgHealthChanged dH) $ (a & health .~ newH)
+         where
+            newH = max 0 $ (a ^. health) - cHUNGER_RATE
+            dH = changeInPercent (a ^. health) newH
 
 -- |Increases the agent's stamina by the default amount and sends an
 --  appropriate message.
@@ -475,8 +474,7 @@ increaseStamina = onAgent rest
       rest a = sendMsg (MsgStaminaChanged dS) (a & stamina .~ newS)
          where
             newS = min cMAX_AGENT_STAMINA $ (a ^. stamina) + cSTAMINA_RESTORE
-            dS = ((a ^. stamina) / newS) - 1
-
+            dS = changeInPercent (a ^. stamina) newS
 
 -- Intensity maps
 -------------------------------------------------------------------------------
@@ -517,7 +515,7 @@ getIntensity v = foldl' addCell M.empty $ neighbourhood v
       neighbourhood = neighbours' >=> neighbours' >=> neighbours'
 
       intensity :: CellInd -> CellInd -> Rational
-      intensity v w = pos $ (1 - (pos $ dist v w - 1)) / 3
+      intensity v w = max 0 $ (1 - (max 0 $ dist v w - 1)) / 3
 
 
 -- |Uniformly reduces the intensity of a sensation (stench) in the whole world
@@ -527,7 +525,7 @@ reduceIntensity :: Lens' CellData  Rational
                 -> World
 reduceIntensity lens = cellData %~ fmap (& lens %~ reduce)
    where
-      reduce = pos . subtract (1%3)
+      reduce = max 0 . subtract (1%3)
 
 -- Statistical stuff
 -------------------------------------------------------------------------------

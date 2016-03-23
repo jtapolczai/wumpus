@@ -119,7 +119,7 @@ readWorld dir = do
        -- the finished world in which we give minds to the Wumpuses
        world' = world & cellData .~ cd''
 
-   logF traceM (show world')
+   logF logM (show world')
 
    logF traceM "intersected agent list:"
    logF traceM (show index)

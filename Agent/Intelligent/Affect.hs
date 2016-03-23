@@ -36,9 +36,9 @@ import Data.Maybe
 import Agent.Intelligent.Filter
 import Agent.Intelligent.MessageHandling
 import Agent.Intelligent.Utils
+import Math.Utils
 import Types
 import World.Constants
-import World.Utils
 
 import Debug.Trace.Wumpus
 
@@ -159,9 +159,7 @@ psbcEmotion ms emo as = logF trace ("[psbcEmotion: " ++ show emo ++ "] new_lvl: 
 emotionValue :: [AgentMessage]
              -> Filter
              -> Rational -- ^The strength of the emotional response (-1 to 1).
-emotionValue ms filt = res
-   where
-      res = runFilter ms cAGENT_FILTER_ROUNDS filt
+emotionValue ms filt = runFilterValue ms cAGENT_FILTER_ROUNDS filt
 
 -- |Returns whether the second emotion is stronger, provided that the two
 --  conflict along the approach/avoidance, axis. If they don't conflict, the returns False.

@@ -8,6 +8,7 @@ import Math.Geometry.Grid.SquareInternal(SquareDirection(..))
 import qualified Data.Map as M
 import Data.Ratio
 
+import Math.Utils
 import Types
 import World.Utils
 
