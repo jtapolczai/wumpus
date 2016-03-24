@@ -44,14 +44,15 @@ The problem: when the agent is extremely hungry, its attention goes towards itse
 * [x] harvest-action is not registered in the statistics
   * [x] moveEntity (probably) sends an entityDied-message to the statistics
 
-* [y] erroneous "Move to South"-action generated in first step :(
+* [x] erroneous "Move to South"-action generated in first step :(
 
 * [x] no possible actions if the agent turns south :(
 
-* [ ] staminaIncreased 0 sent (likely via World.increaseStamina).
+* [x] staminaIncreased 0 sent (likely via World.increaseStamina).
 * [x] memory is overriden, not merged (the issue persists!)
       this MIGHT be in the SG-instance, but more likely in resetMemory.
 * [ ] is the global stuff actualized?
-  * [ ] health decrease per round?
+  * [x] health decrease per round?
+  * [x] health increase after eating?
   * [ ] stench/breeze maps?
-  * [ ] stamina increase per roun
+  * [x] stamina increase per round
