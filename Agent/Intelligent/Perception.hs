@@ -29,7 +29,7 @@ perception :: EntityName -- ^The agent's name, for local perceptions.
            -> Message
            -> [AgentMessage]
 perception _ pos (MsgVisualPerception iAbs d) = logF trace ("[perception] MsgvisualPerception with index " ++ show iAbs) $
-   (if (d ^. entity . is isWumpus) then logF warning ("Cell " ++ show iAbs ++ " has a Wumpus.") else id) $
+   (if (d ^. entity . is isWumpus) then logF trace ("Cell " ++ show iAbs ++ " has a Wumpus.") else id) $
    [AMVisualGold i (d ^. gold),
     AMVisualMeat i (d ^. meat),
     AMVisualFruit i (d ^. fruit)]
@@ -51,7 +51,7 @@ perception _ pos (MsgEdgePerception (iAbs, dir) d) = {- logF trace "[perception]
     where
       i = makeRel pos iAbs
 
-perception n _ (MsgLocalPerception d) = logF log ("[perception] MsgLocalPerception: " ++ show d) $
+perception n _ (MsgLocalPerception d) = logF trace ("[perception] MsgLocalPerception: " ++ show d) $
    [AMVisualGold (RI (0,0)) (d ^. gold),
     AMVisualMeat (RI (0,0)) (d ^. meat),
     AMVisualFruit (RI (0,0)) (d ^. fruit),
@@ -70,10 +70,10 @@ perception _ _ (MsgDirectionPerception i) = logF trace "[perception] MsgDirectio
 
 perception _ _ (MsgGesture n g) = logF trace "[perception] MsgGesture" $ [AMGesture n g]
 
-perception _ _ (MsgHealthChanged p) = logF log ("[perception] MsgHealthChanged:" ++ show p) $ 
+perception _ _ (MsgHealthChanged p) = logF trace ("[perception] MsgHealthChanged:" ++ show p) $ 
    [(if p < 0 then AMHealthDecreased else AMHealthIncreased) p]
 
-perception _ _ (MsgStaminaChanged p) = logF log ("[perception] MsgStaminaChanged:" ++ show p) $ 
+perception _ _ (MsgStaminaChanged p) = logF trace ("[perception] MsgStaminaChanged:" ++ show p) $ 
    [(if p < 0 then AMStaminaDecreased else AMStaminaIncreased) p]
 
 perception _ _ (MsgAttackedBy n d) = logF trace "[perception] MsgAttackedBy" $  [AMAttackedBy n, AMAttackedFrom d]
@@ -97,7 +97,7 @@ perception _ _ (MsgDied n t) = logF trace "[perception] MsgDied" $
 
 perception _ _ (MsgAttacked n) = logF trace "[perception] MsgAttacked" $ [AMAttacked n]
 
-perception _ _ x@(MsgBody h s inv) = logF log ("[perception] MsgBody: " ++ show x) $ 
+perception _ _ x@(MsgBody h s inv) = logF trace ("[perception] MsgBody: " ++ show x) $ 
    [AMHaveHealth h,
     AMHaveStamina s,
     AMHaveMeat (inv ^. at' Meat),

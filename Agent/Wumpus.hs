@@ -54,9 +54,9 @@ instance AgentMind WumpusMind where
    --  attack if there's an adjacent agents, move towards one if one's near,
    --  wander around randomly otherwise.
    getAction s@(WumpusMind world i@(x,y)) =
-      logF warning ("[WumpusMind] proximity': " ++ show proximity') $
-      logF warning ("[WumpusMind] light': " ++ show light') $
-      logF warning ("[WumpusMind] proximity'': " ++ show proximity'') $
+      logF trace ("[WumpusMind] proximity': " ++ show proximity') $
+      logF trace ("[WumpusMind] light': " ++ show light') $
+      logF trace ("[WumpusMind] proximity'': " ++ show proximity'') $
       if      not $ null adjacentPlayer then logF trace ("[WumpusMind.getAction] attack: " ++ show attack) $ return (attack, s)
       else if not $ null withinRange    then logF trace ("[WumpusMind.getAction] move: " ++ show move) $ return (move, s)
       else    randomMove

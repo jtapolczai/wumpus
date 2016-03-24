@@ -108,9 +108,10 @@ simulateStepReader world = logF trace "simulateStepReader" $ logF trace (replica
       -- "updating an agent" means giving it its perceptions and performing
       -- its action. We also update the wumpus stench to have accurate stench
       -- information.
-      updateAgent world i = logF trace "[updateAgent]" $ wumpusStench <$> doEntityAction world' (i, ent)
-         where world' = giveEntityPerceptions world i
-               ent = entityAt i world'
+      updateAgent world i = wumpusStench <$> doEntityAction world' (i, ent)
+         where
+            world' = giveEntityPerceptions world i
+            ent = entityAt i world'
 
 
       -- perform local changes to agents/plants
@@ -150,14 +151,13 @@ doEntityAction :: (MonadReader WorldMetaInfo m, MonadWriter (WorldStats -> World
 doEntityAction world (i, ag) = if not $ cellEntity i world
    then return world
    else case ag of
-      Ag agent -> do logF traceM "[doEntityAction]"
-                     logF traceM (show $ agent ^. name)
-                     logF traceM (show $ prnNames world)
+      Ag agent -> do logF traceM "[doEntityAction] with agent"
                      (action, ag') <- liftIO $ getAction (agent ^. state)
                      let agent' = Ag (agent & state .~ ag')
                          world' = world & cellData . ix i . entity ?~ agent'
                      doAction i action world'
-      Wu wumpus -> do (action, ag') <- liftIO $ getAction (wumpus ^. state)
+      Wu wumpus -> do logF traceM "[doEntityAction] with wumpus"
+                      (action, ag') <- liftIO $ getAction (wumpus ^. state)
                       let wumpus' = Wu (wumpus & state .~ ag')
                           world' = world & cellData . ix i . entity ?~ wumpus'
                       doAction i action world'
@@ -173,7 +173,7 @@ doAction i action world =
       then go action
       else return world
    where
-      me = agentAt i world
+      me = entityAt i world
       myName = me ^. name
       targetName = entityAt j world ^. name
       j = inDirection i $ actionDirection action
@@ -276,7 +276,8 @@ isActionResultMessage = go
 isActionPossible :: CellInd -> Action -> World -> Bool
 isActionPossible i action world = if isJust meMaybe then go action else False
    where
-      meMaybe = world ^? cellData . at i . _Just . entity . _Just . _Ag
+      meMaybe :: Maybe Entity'
+      meMaybe = world ^? cellData . at i . _Just . entity . _Just
       me = fromMaybe (error "isActionPossible.meMaybe: Nothing") meMaybe
       j = inDirection i $ actionDirection action
 
@@ -285,14 +286,7 @@ isActionPossible i action world = if isJust meMaybe then go action else False
 
       go NoOp = True
       go (Rotate _) = True
-      go (Move dir) = {- debugShowCell x
-                        $ logF trace "World cells: "
-                        $ logF trace (replicate 80 '_')
-                        $ logF traceList worldCells
-                        $ logF trace "World edge data"
-                        $ logF trace (replicate 80 '_')
-                        $ logF traceList (world ^. edgeData . to M.toList)
-                        $ -} cellHas canBeEntered j world && hasStamina (i,dir) world
+      go (Move dir) = logF trace ("move from " ++ show i ++ "canBeEntered: " ++ show (cellHas canBeEntered j world) ++ " hasStamina: " ++ show (hasStamina (i,dir) world)) $ cellHas canBeEntered j world && hasStamina (i,dir) world
       go (Attack _) = cellAgent j world || cellWumpus j world
       go (Give _ name) = cellAgent j world && numItems me name > 0
       go Gather = {- debugShowCell x $ -} cellHas canBeGathered i world
@@ -342,7 +336,7 @@ moveEntity i j world = do
 
       -- |Puts the entity onto its new cell and sends it a "stamina changed" message.
       putEnt :: CellData -> CellData
-      putEnt c = if not (c ^. pit) then logF warning ("decreased the stamina by " ++ show dS) $ onAgent (sendMsg $ MsgStaminaChanged dS) (c & entity ?~ ent')
+      putEnt c = if not (c ^. pit) then logF trace ("decreased the stamina by " ++ show dS) $ onAgent (sendMsg $ MsgStaminaChanged dS) (c & entity ?~ ent')
                  else c
 
       move m = m & ix i %~ (entity .~ Nothing)
@@ -461,7 +455,7 @@ regrowPlants = plant %~ fmap (min cPLANT_MAX . (cPLANT_REGROWTH+))
 increaseHunger :: CellData -> CellData
 increaseHunger = onAgent hunger
    where
-      hunger a = logF warning ("increased the hunger by " ++ show dH) $ sendMsg (MsgHealthChanged dH) $ (a & health .~ newH)
+      hunger a = logF trace ("increased the hunger by " ++ show dH) $ sendMsg (MsgHealthChanged dH) $ (a & health .~ newH)
          where
             newH = max 0 $ (a ^. health) - cHUNGER_RATE
             dH = changeInPercent (a ^. health) newH
@@ -471,7 +465,7 @@ increaseHunger = onAgent hunger
 increaseStamina :: CellData -> CellData
 increaseStamina = onAgent rest
    where
-      rest a = logF warning ("increased the hunger by " ++ show dS) $ sendMsg (MsgStaminaChanged dS) (a & stamina .~ newS)
+      rest a = logF trace ("increased the hunger by " ++ show dS) $ sendMsg (MsgStaminaChanged dS) (a & stamina .~ newS)
          where
             newS = min cMAX_AGENT_STAMINA $ (a ^. stamina) + cSTAMINA_RESTORE
             dS = changeInPercent (a ^. stamina) newS

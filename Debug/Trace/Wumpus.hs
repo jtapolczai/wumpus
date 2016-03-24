@@ -55,7 +55,7 @@ logLevels = M.fromList [
    ("Agent.Intelligent.MessageHandling", DetailedLog),
    ("Agent.Intelligent.Perception", DetailedLog),
    ("Agent.Intelligent.PersistentMessages", DetailedLog),
-   ("Agent.Wumpus", Trace),
+   ("Agent.Wumpus", DetailedLog),
    ("World.Read", DetailedLog),
    ("World.Utils", DetailedLog)
    ]

@@ -109,8 +109,10 @@ light' :: Int -> Temperature
 light' = toEnum . light
 
 -- |Returns the number of items of a given type in the agent's inventory.
-numItems :: Agent s -> Item -> Int
-numItems a item = view (inventory . at item . to (fromMaybe 0)) a
+numItems :: Entity (Agent s) t -> Item -> Int
+numItems e item = case e of
+   Ag a -> fromMaybe 0 $ a ^. inventory . at item
+   Wu _ -> 0
 
 -- Helpers
 -------------------------------------------------------------------------------
@@ -298,7 +300,7 @@ makeEntityIndex :: (HasEntity c (Maybe (Entity s t)),
                 => M.Map CellInd c
                 -> M.Map EntityName CellInd
 makeEntityIndex = logF trace "[makeEntityIndex]" $ M.foldrWithKey
-   (\k cd -> if maybe False isAgent (cd ^. entity)
+   (\k cd -> if isJust (cd ^. entity)
              then logF trace ("[makeEntityIndex] -> inserting entity at " ++ show k) $ M.insert (cd ^. entity . to (maybe (error $ show k ++ "MEI nothing!!!") id) . name) k
              else logF trace ("[makeEntityIndex] no entity at " ++ show k) id) M.empty
 
