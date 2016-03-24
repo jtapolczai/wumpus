@@ -8,6 +8,8 @@ module Agent.Intelligent.Perception (
    perception,
    ) where
 
+import Prelude hiding (log)
+
 import Control.Lens
 import Data.Maybe
 
@@ -48,7 +50,7 @@ perception _ pos (MsgEdgePerception (iAbs, dir) d) = {- logF trace "[perception]
     where
       i = makeRel pos iAbs
 
-perception n _ (MsgLocalPerception d) = logF trace "[perception] MsgLocalPerception" $
+perception n _ (MsgLocalPerception d) = logF log ("[perception] MsgLocalPerception: " ++ show d) $
    [AMVisualGold (RI (0,0)) (d ^. gold),
     AMVisualMeat (RI (0,0)) (d ^. meat),
     AMVisualFruit (RI (0,0)) (d ^. fruit),
@@ -67,10 +69,10 @@ perception _ _ (MsgDirectionPerception i) = logF trace "[perception] MsgDirectio
 
 perception _ _ (MsgGesture n g) = logF trace "[perception] MsgGesture" $ [AMGesture n g]
 
-perception _ _ (MsgHealthChanged p) = logF trace "[perception] MsgHealthChanged" $ 
+perception _ _ (MsgHealthChanged p) = logF log ("[perception] MsgHealthChanged:" ++ show p) $ 
    [(if p < 0 then AMHealthDecreased else AMHealthIncreased) p]
 
-perception _ _ (MsgStaminaChanged p) = logF trace "[perception] MsgStaminaChanged" $ 
+perception _ _ (MsgStaminaChanged p) = logF log ("[perception] MsgStaminaChanged:" ++ show p) $ 
    [(if p < 0 then AMStaminaDecreased else AMStaminaIncreased) p]
 
 perception _ _ (MsgAttackedBy n d) = logF trace "[perception] MsgAttackedBy" $  [AMAttackedBy n, AMAttackedFrom d]

@@ -755,10 +755,10 @@ decisionMakerComponent asInit = logF trace "[decisionMakerComponent]" $ logFdm t
                                      (mostRecentChanges M.! planEmotion)
 
       -- the changes in emotional states since the beginning of the planning
-      allChanges :: M.Map EmotionName Rational
-      allChanges = logFdm trace "[decisionMakerComponent.allChanges]"
-                   $ logFdm trace ("[decisionMakerComponent.allChanges] emotionChanges: " ++ show (emotionChanges as))
-                   $ sumEmotionChanges (leftMemIndex as) (emotionChanges as)
+      -- allChanges :: M.Map EmotionName Rational
+      -- allChanges = logFdm trace "[decisionMakerComponent.allChanges]"
+      --             $ logFdm trace ("[decisionMakerComponent.allChanges] emotionChanges: " ++ show (emotionChanges as))
+      --             $ sumEmotionChanges (leftMemIndex as) (emotionChanges as)
 
       -- |The most recent changes
       mostRecentChanges :: M.Map EmotionName Rational

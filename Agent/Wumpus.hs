@@ -4,7 +4,9 @@
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE TypeFamilies #-}
 
-module Agent.Wumpus where
+module Agent.Wumpus (
+   WumpusMind(..),
+   ) where
 
 import Control.Lens
 import Data.Maybe
@@ -18,15 +20,15 @@ import Agent.Dummy
 import Types
 import World.Utils
 
+import Debug.Trace.Wumpus
+
+-- Module-specific logging function.
+logF :: (String -> a) -> a
+logF f = f "Agent.Wumpus"
+
 -- |A mind for a Wumpus. It just contains the entire world and no further
 --  internal state, since Wumpuses always behave in the same way.
 data WumpusMind = WumpusMind World CellInd
-
--- |Deletes the minds of the agents, but gives 'WumpusMind's to the Wumpuses.
---  The information that these wumpuses will have depends on the given world.
-deleteAgentMinds :: World -> CellInd -> Entity (Agent s) (Wumpus t) -> Entity'
-deleteAgentMinds _ _ (Ag a) = deleteAllMinds (Ag a)
-deleteAgentMinds w i (Wu a) = Wu (a & _wumpusStateLens .~ SM (WumpusMind w i))
 
 -- |Deletes the minds of all agents and Wumpuses.
 deleteAllMinds :: Entity (Agent s) (Wumpus t) -> Entity'
@@ -52,8 +54,8 @@ instance AgentMind WumpusMind where
    --  attack if there's an adjacent agents, move towards one if one's near,
    --  wander around randomly otherwise.
    getAction s@(WumpusMind world i@(x,y)) =
-      if      not $ null adjacentPlayer then return (attack, s)
-      else if not $ null withinRange    then return (move, s)
+      if      not $ null adjacentPlayer then logF trace ("[WumpusMind.getAction] attack: " ++ show attack) $ return (attack, s)
+      else if not $ null withinRange    then logF trace ("[WumpusMind.getAction] move: " ++ show move) $ return (move, s)
       else    randomMove
 
       where
@@ -87,8 +89,8 @@ instance AgentMind WumpusMind where
                          rand <- randomRIO (0.0,1.0) :: IO Float
                          if not (null okDirs) && rand <= chance then
                             do dir <- randomInd okDirs
-                               return (Move dir, s)
-                         else return (NoOp, s)
+                               logF trace ("[WumpusMind.getAction] randomMove:" ++ show (Move dir)) $ return (Move dir, s)
+                         else logF trace ("[WumpusMind.getAction] randomMove/NoOp.") $ return (NoOp, s)
 
    clearMessageSpace = id
 
