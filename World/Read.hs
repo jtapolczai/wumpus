@@ -46,6 +46,7 @@ logF f = f "World.Read"
 type Pixel = (Word8,Word8,Word8)
 
 white = (255,255,255)
+black = (0,0,0)
 
 -- |Takes a world bitmap with bitmaps and reads a world.
 --
@@ -69,7 +70,7 @@ readWorld :: String -> IO (World, WorldMetaInfo)
 readWorld dir = do
    topography <- M.fromList . map (second def) . filter ((==) white.snd) <$> readBitmap (dir ++ "/topography.bmp")
    items <- M.fromList <$> readBitmap (dir ++ "/items.bmp")
-   entities <- M.fromList <$> readBitmap (dir ++ "/entities.bmp")
+   entities <- M.fromList . filter ((/=) black.snd) <$> readBitmap (dir ++ "/entities.bmp")
    agents <- readAgents dir
 
    logF traceM "topography"

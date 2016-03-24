@@ -68,5 +68,8 @@ worlds = map ("worlds" </>)
     "enemiesWithWumpus"
    ]
 
+mainR :: Int -> IO ()
+mainR numRounds = main' ("worlds" </> "oneWumpus") numRounds (at_lowHealth (2,3) . hotTemp)
+
 main :: IO ()
-main = main' ("worlds" </> "oneWumpus") 4 (at_lowHealth (2,3) . hotTemp)
+main = mainR 10
