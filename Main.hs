@@ -69,4 +69,4 @@ worlds = map ("worlds" </>)
    ]
 
 main :: IO ()
-main = main' ("worlds" </> "empty_plants") 4 (at_lowHealth (2,0) . hotTemp)
+main = main' ("worlds" </> "oneWumpus") 4 (at_lowHealth (2,3) . hotTemp)

@@ -29,6 +29,7 @@ perception :: EntityName -- ^The agent's name, for local perceptions.
            -> Message
            -> [AgentMessage]
 perception _ pos (MsgVisualPerception iAbs d) = logF trace ("[perception] MsgvisualPerception with index " ++ show iAbs) $
+   (if (d ^. entity . is isWumpus) then logF warning ("Cell " ++ show iAbs ++ " has a Wumpus.") else id) $
    [AMVisualGold i (d ^. gold),
     AMVisualMeat i (d ^. meat),
     AMVisualFruit i (d ^. fruit)]
@@ -96,7 +97,7 @@ perception _ _ (MsgDied n t) = logF trace "[perception] MsgDied" $
 
 perception _ _ (MsgAttacked n) = logF trace "[perception] MsgAttacked" $ [AMAttacked n]
 
-perception _ _ (MsgBody h s inv) = logF trace "[perception] MsgBody" $ 
+perception _ _ x@(MsgBody h s inv) = logF log ("[perception] MsgBody: " ++ show x) $ 
    [AMHaveHealth h,
     AMHaveStamina s,
     AMHaveMeat (inv ^. at' Meat),

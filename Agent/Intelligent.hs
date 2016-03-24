@@ -726,7 +726,7 @@ decisionMakerComponent asInit = logF trace "[decisionMakerComponent]" $ logFdm t
             return NoOp
          else do
             let (targetCell, targetCellIntensity) = head actionableCells
-            logFdm detailedLogM ("Target cell is " ++ show targetCell ++ " with emotion strength " ++ showF3 targetCellIntensity ++ ".\n")
+            logFdm detailedLogM ("Target cell is " ++ show (runRelInd targetCell) ++ " with emotion strength " ++ showF3 targetCellIntensity ++ ".\n")
             choose . getEmotionActions emotion $ targetCell
 
       -- Shorthand; gets the actions possible for a given emotion on a given cell.

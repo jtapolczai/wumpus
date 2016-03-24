@@ -54,6 +54,9 @@ instance AgentMind WumpusMind where
    --  attack if there's an adjacent agents, move towards one if one's near,
    --  wander around randomly otherwise.
    getAction s@(WumpusMind world i@(x,y)) =
+      logF warning ("[WumpusMind] proximity': " ++ show proximity') $
+      logF warning ("[WumpusMind] light': " ++ show light') $
+      logF warning ("[WumpusMind] proximity'': " ++ show proximity'') $
       if      not $ null adjacentPlayer then logF trace ("[WumpusMind.getAction] attack: " ++ show attack) $ return (attack, s)
       else if not $ null withinRange    then logF trace ("[WumpusMind.getAction] move: " ++ show move) $ return (move, s)
       else    randomMove
@@ -72,12 +75,14 @@ instance AgentMind WumpusMind where
          withinRange = sortBy (comparing length)
                        $ concat
                        $ filter (not . null)
-                       $ map (searchPaths world (const . const . (1+)) (<= light') i)
+                       $ map (searchPaths world (\x _ _ -> x+1) (<= light') i)
                        $ filter (flip cellAgent world) proximity
 
          -- the neighbourhood in which we look for agents to pursue
          proximity = [(x,y) | x <- [x-4 .. x+4],
                               y <- [y-4 .. y+4]]
+         proximity' = filter (flip cellAgent world) proximity
+         proximity'' = map (searchPaths world (\x _ _ -> x+1) (<= light') i) proximity'
 
          move = Move $ head $ getDirections i $ head $ tail $ head withinRange
 
