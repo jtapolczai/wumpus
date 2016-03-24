@@ -338,11 +338,11 @@ moveEntity i j world = do
       ent' = ent & stamina -~ cEDGE_FATIGUE * edgeFat
 
       -- the agent's change in stamina in percent
-      dS = ((ent ^. stamina) / (ent ^. stamina)) - 1
+      dS = changeInPercent (ent ^. stamina) (ent' ^. stamina)
 
       -- |Puts the entity onto its new cell and sends it a "stamina changed" message.
       putEnt :: CellData -> CellData
-      putEnt c = if not (c ^. pit) then onAgent (sendMsg $ MsgStaminaChanged dS) (c & entity ?~ ent')
+      putEnt c = if not (c ^. pit) then logF warning ("decreased the stamina by " ++ show dS) $ onAgent (sendMsg $ MsgStaminaChanged dS) (c & entity ?~ ent')
                  else c
 
       move m = m & ix i %~ (entity .~ Nothing)
@@ -461,7 +461,7 @@ regrowPlants = plant %~ fmap (min cPLANT_MAX . (cPLANT_REGROWTH+))
 increaseHunger :: CellData -> CellData
 increaseHunger = onAgent hunger
    where
-      hunger a = sendMsg (MsgHealthChanged dH) $ (a & health .~ newH)
+      hunger a = logF warning ("increased the hunger by " ++ show dH) $ sendMsg (MsgHealthChanged dH) $ (a & health .~ newH)
          where
             newH = max 0 $ (a ^. health) - cHUNGER_RATE
             dH = changeInPercent (a ^. health) newH
@@ -471,7 +471,7 @@ increaseHunger = onAgent hunger
 increaseStamina :: CellData -> CellData
 increaseStamina = onAgent rest
    where
-      rest a = sendMsg (MsgStaminaChanged dS) (a & stamina .~ newS)
+      rest a = logF warning ("increased the hunger by " ++ show dS) $ sendMsg (MsgStaminaChanged dS) (a & stamina .~ newS)
          where
             newS = min cMAX_AGENT_STAMINA $ (a ^. stamina) + cSTAMINA_RESTORE
             dS = changeInPercent (a ^. stamina) newS
