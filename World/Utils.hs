@@ -131,7 +131,7 @@ shortestPaths world cur t =
 -- |Searches all paths between i and j depending on a cost function. This is a
 --  DFS in which the caller has to define the cost of node expansion. The initial
 --  cost is 'mempty'.
-searchPaths :: (Show a, Monoid a)
+searchPaths :: Monoid a
             => World
             -> (a -> CellInd -> CellData -> a) -- ^Cost function
             -> (a -> Bool) -- ^Cost predicate. If a cell fails, it is not expanded.
