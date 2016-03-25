@@ -6,6 +6,7 @@ import Control.Lens
 import Control.Monad
 import qualified Data.Foldable as F
 import Data.MList
+import Math.Geometry.Grid.SquareInternal (SquareDirection(..))
 import System.FilePath
 
 import Types
@@ -23,8 +24,6 @@ main' :: String -> Int -> (World -> World) -> IO ()
 main' w numSteps setupFunc = do
    (worldInit, wmi) <- readWorld w
    let world = setupFunc worldInit
-
-   logF traceM $ show $ world ^. cellData . at (2,0)
    --world `seq` putStrLn "WumpusWorld!"
    --print $ M.size $ world ^. cellData
    print wmi
@@ -53,6 +52,12 @@ at_lowHealth x = cellData . ix x . entity . _Just . health .~ 0.5
 -- agent in many worlds: 2,0
 -- wumpus in oneWumpus: 2,3
 
+at_turn :: SquareDirection -> CellInd -> World -> World
+at_turn dir x = cellData . ix x . entity . _Just . _Ag . direction .~ dir
+
+at_give :: Item -> Int -> CellInd -> World -> World
+at_give it n x = cellData . ix x . entity . _Just . _Ag . inventory . ix it +~ n
+
 at_veryLowHealth :: CellInd -> World -> World
 at_veryLowHealth x = cellData . ix x . entity . _Just . health .~ 0.1
 
@@ -64,12 +69,19 @@ worlds = map ("worlds" </>)
    ["empty_itemPickup",
     "empty_plants",
     "oneWumpus",
-    "friends",
-    "enemiesWithWumpus"
+    "twoFriends",
+    "fightOrFlight", -- todo
+    "searchingForFood", -- todo
+    "resting" -- todo
    ]
 
 mainR :: Int -> IO ()
-mainR numRounds = main' ("worlds" </> "oneWumpus") numRounds (at_lowHealth (2,3) . hotTemp)
+mainR numRounds = main' ("worlds" </> "twoFriends") numRounds setup
+   where setup = at_turn South (2,4)
+                 . at_lowHealth (2,0)
+                 . at_lowHealth (2,4)
+                 . at_give Fruit 3 (2,0)
+                 . hotTemp
 
 main :: IO ()
 main = mainR 10

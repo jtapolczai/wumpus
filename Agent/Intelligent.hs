@@ -83,8 +83,11 @@ instance AgentMind AgentState where
 
    filterMessageSpace _ = id
 
+   getFilters = map (show . fst) . M.toList . view psbc
+
 getAction' :: AgentState -> IO (Action, AgentState)
 getAction' initAs = do
+   logFdm detailedLogM $ (initAs ^. name) ++ " is thinking..."
    logFdm traceM $ "[getAction] my name: " ++ (initAs ^. name)
    logFdm traceM $ "[getAction] my message space: " ++ (show $ initAs ^. messageSpace)
    -- create an initial memory and 
@@ -131,20 +134,7 @@ instance Castable VisualAgent (Agent SomeMind) where
                   (a ^. health)
                   (a ^. stamina)
                   (fromMaybe emptyInventory $ a ^. inventory)
-                  (SM $ AS (a ^. name)
-                           M.empty
-                           (M.empty, M.empty)
-                           (T.Node emptyWorld [])
-                           []
-                           []
-                           M.empty)
-      where
-         emptyWorld = BaseWorld
-            (WD 0 Freezing)
-            UnboundedSquareGrid
-            M.empty
-            M.empty
-            M.empty
+                  (SM dummyMind)
 
 -- The memory and the BG have to be included here because they depend on the Castable-instance,
 -- and getAction depends on them.

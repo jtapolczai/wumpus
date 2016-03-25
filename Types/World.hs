@@ -350,6 +350,9 @@ class AgentMind a where
    -- it should not occur in the resul of 'readMessageSpace'.
    filterMessageSpace :: (Message -> Bool) -> a -> a
 
+   getFilters :: a -> [String]
+   getFilters = undefined
+
 -- |Existentially quantifier mind.
 data SomeMind = forall m.AgentMind m => SM m
 
@@ -361,4 +364,6 @@ instance AgentMind SomeMind where
    readMessageSpace (SM m) = readMessageSpace m
    clearMessageSpace (SM m) = SM (clearMessageSpace m)
    filterMessageSpace f (SM m) = SM (filterMessageSpace f m)
+
+   getFilters (SM m) = getFilters m
 

@@ -51,7 +51,7 @@ perception _ pos (MsgEdgePerception (iAbs, dir) d) = {- logF trace "[perception]
     where
       i = makeRel pos iAbs
 
-perception n _ (MsgLocalPerception d) = logF log ("[perception] MsgLocalPerception: " ++ show d) $
+perception n _ (MsgLocalPerception d) = logF trace ("[perception] MsgLocalPerception: " ++ show d) $
    [AMVisualGold (RI (0,0)) (d ^. gold),
     AMVisualMeat (RI (0,0)) (d ^. meat),
     AMVisualFruit (RI (0,0)) (d ^. fruit),

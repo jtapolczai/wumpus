@@ -12,8 +12,10 @@ module World.Read (
    generateAgentsFile,
    ) where
 
+import Prelude hiding (log)
+
 import Codec.BMP
-import Control.Arrow (second, (***))
+import Control.Arrow (first, second, (***))
 import Control.Lens
 import Control.Monad
 import qualified Data.ByteString as BS
@@ -22,6 +24,7 @@ import Data.Default
 import Data.List (intercalate)
 import Data.List.Split (splitOn)
 import qualified Data.Map as M
+import Data.Maybe (mapMaybe)
 import Data.Functor.Monadic
 import qualified Data.Tree as T
 import Data.Word
@@ -125,6 +128,15 @@ readWorld dir = do
    logF traceM "intersected agent list:"
    logF traceM (show index)
 
+   let wt = map (getFilters . view state)
+            . mapMaybe (preview _Ag)
+            . mapMaybe (view entity . snd)
+            . M.toList
+            . view cellData
+            $ world'
+
+   logF logM (show wt)
+
    return (world', WMI index)
 
    where
@@ -137,7 +149,7 @@ readWorld dir = do
       addEntity :: M.Map Word8 (Agent SomeMind, a) -> Int -> CellInd -> Pixel -> CellData -> CellData
       addEntity _ n i (255,0,0) c = c & entity ?~ Wu (Wumpus (SM $ WumpusMind (error "tried to access undefined wumpusMind!") i) ("w" ++ show n) cDEFAULT_WUMPUS_HEALTH cMAX_AGENT_STAMINA)
       addEntity _ _ _ (0,255,0) c = c & plant .~ Just cPLANT_MAX
-      addEntity a _ _ (0,0,v) c| v > 0 = c & entity ?~ Ag (fst (a M.! v))
+      addEntity a _ _ (0,0,v) c | v > 0 = c & entity ?~ Ag (fst (a M.! v))
       addEntity _ _ _ _ c = c
 
 
