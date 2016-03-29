@@ -29,6 +29,7 @@ import qualified Data.Tree as T
 import Math.Geometry.Grid.Square
 import Math.Geometry.Grid.SquareInternal (SquareDirection)
 import System.Random (randomRIO)
+import System.Random.Utils
 
 import Agent.Dummy
 import Agent.Intelligent.Affect

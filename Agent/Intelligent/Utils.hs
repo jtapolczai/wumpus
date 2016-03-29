@@ -26,10 +26,8 @@ module Agent.Intelligent.Utils (
    myDirection,
    addMemNode,
    hasMemNode,
-   choose,
    mkMap,
    subIndex,
-   hamming,
    showF3,
    leftMemIndex,
    parentMemIndex,
@@ -47,7 +45,6 @@ import Data.Monoid (First)
 import qualified Data.Tree as T
 import Math.Geometry.Grid.SquareInternal (SquareDirection)
 import Numeric (showFFloat)
-import System.Random (randomRIO)
 
 import Types
 
@@ -218,13 +215,6 @@ hasMemNode (MI (x:xs)) (T.Node _ ts)
   | otherwise     = False
 
 
--- |Randomly and uniformly chooses an element from a list.
-choose :: [a] -> IO a
-choose [] = error "choose: empty list given!"
-choose xs = randomRIO (0, length xs - 1) >$> ind
-   where
-      ind x = fromMaybe (error $ "choose: index (" ++ show x ++ ") too large!") $ lIndex xs x
-
 -- |Creates a map from a list of keys and a value generating function.
 mkMap :: Ord k => (k -> v) -> [k] -> M.Map k v
 mkMap f = M.fromList . map (\k -> (k,f k))
@@ -238,11 +228,6 @@ subIndex (MI i) (MI j) = go i j
     go [] _ = True
     go _ _ = False
 
-
--- |Hamming distance between two strings. undefined if the
---  length of the strings doesn't match.
-hamming :: String -> String -> Int
-hamming xs = sum . zipWith (\x y -> if x == y then 0 else 1) xs
 
 -- Prints a Rational as a float with 3 digits of precision.
 showF3 :: Rational -> String

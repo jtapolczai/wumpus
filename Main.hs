@@ -10,9 +10,10 @@ import Math.Geometry.Grid.SquareInternal (SquareDirection(..))
 import System.FilePath
 
 import Types
+import World
+import World.Make
 import World.Read
 import World.Statistics
-import World
 
 import Debug.Trace.Wumpus
 
