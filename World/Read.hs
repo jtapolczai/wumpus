@@ -202,7 +202,7 @@ readBitmap :: String -> IO [((Int,Int),Pixel)]
 readBitmap = readBMP >=> (return.toArr.fromRight)
    where
       fromRight (Right r) = r
-      fromRight _ = error "readBitmap.fromRight called with Left!"
+      fromRight (Left err) = error $ "readBitmap.fromRight called with Left: " ++ show err
 
       toArr b = pixels 0 (w*h) (unpackBMPToRGBA32 b)
          where

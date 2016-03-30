@@ -80,13 +80,13 @@ generateAgentsFile n fn = generateAgents n >>= writeFile fn . unlines
 allPersonalities :: [String]
 allPersonalities = map (intercalate ";") pers
    where
-      psbcFrag = ["w","s"]
+      psbcFrag = ["weak","strong"]
 
       pers = [[a,f,e,c,h,"love","hate"] | a <- psbcFrag,
                                           f <- psbcFrag,
                                           e <- psbcFrag,
                                           c <- psbcFrag,
-                                          h <- ["f", "h"]]
+                                          h <- ["friendly", "hostile"]]
 
 
 -- |Creates populations where each personality occurs N times.

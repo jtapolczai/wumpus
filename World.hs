@@ -46,6 +46,7 @@ import Control.Monad.Writer
 import Data.Functor.Monadic
 import Data.List (foldl', partition, intercalate)
 import qualified Data.Map as M
+import Data.Map.Utils
 import Data.Maybe
 import Data.Ratio
 import Math.Geometry.Grid hiding (null)
@@ -77,13 +78,13 @@ runWorld :: WorldMetaInfo -> World -> MList IO (World, WorldStats)
 runWorld wmi w = MList $ return $ Just ((w, mkStats wmi w), rest w)
    where
       rest w' = MList $ do
-         (newW, _, stats) <- RWS.runRWST (simulateStepReader w') wmi ()
+         (newW, _, stats) <- RWS.runRWST (simulateStepReader [] w') wmi ()
          return $ Just $ ((newW, stats mempty), rest newW)
 
 -- |Advances the world state by one time step. The actors perform their actions,
 --  the plants regrow, the stench is updated.
-simulateStep :: World -> IO World
-simulateStep = rwsBracket . simulateStepReader
+simulateStep :: [EntityName] -> World -> IO World
+simulateStep fm = rwsBracket . simulateStepReader fm
    where
       rwsBracket f = fmap (view _1) (RWS.runRWST f (WMI M.empty) ())
 
@@ -92,14 +93,21 @@ simulateStep = rwsBracket . simulateStepReader
 --
 --  In addition, statistical data is written out.
 simulateStepReader :: (MonadReader WorldMetaInfo m, MonadWriter (WorldStats -> WorldStats) m, MonadIO m)
-                   => World -> m World
-simulateStepReader world = logF trace "simulateStepReader" $ logF trace (replicate 80 '=')
-                           $ logF trace ("[simulateStepReader] old world: " ++ show world)
-                           $ do nw <- newWorld
-                                logF traceM ("[simulateStepReader] new world: " ++ show (newWorld' nw))
-                                return (newWorld' nw)
+                   => [EntityName] -- ^List of entities that already moved.
+                                   -- These won't be asked for an action and won't
+                                   -- receive perceptions.
+                   -> World
+                   -> m World
+simulateStepReader alreadyMoved world =
+   logF trace "simulateStepReader" $ logF trace (replicate 80 '=')
+   $ logF trace ("[simulateStepReader] old world: " ++ show world)
+   $ do nw <- newWorld
+        logF traceM ("[simulateStepReader] new world: " ++ show (newWorld' nw))
+        return (newWorld' nw)
    where
-      newWorld = foldM updateAgent world (worldAgents world)
+      entityList = removeKeys alreadyMoved . view agents $ world
+
+      newWorld = foldM updateAgent world entityList
       newWorld' = (worldData %~ advanceGlobalData) . (cellData %~ fmap advanceLocalData)
 
       --sendBodyMessages :: World -> World
@@ -171,7 +179,7 @@ doAction :: (MonadReader WorldMetaInfo m, MonadWriter (WorldStats -> WorldStats)
 doAction i action world =
    if isActionPossible i action world
       then go action
-      else return world
+      else logF warning ("Tried to do the impossible action at " ++ show i ++ ": " ++ show action) $ return world
    where
       me = entityAt i world
       myName = me ^. name
@@ -286,7 +294,7 @@ isActionPossible i action world = if isJust meMaybe then go action else False
 
       go NoOp = True
       go (Rotate _) = True
-      go (Move dir) = logF trace ("move from " ++ show i ++ "canBeEntered: " ++ show (cellHas canBeEntered j world) ++ " hasStamina: " ++ show (hasStamina (i,dir) world)) $ cellHas canBeEntered j world && hasStamina (i,dir) world
+      go (Move dir) = logF log ("move from " ++ show i ++ "canBeEntered: " ++ show (cellHas canBeEntered j world) ++ " hasStamina: " ++ show (hasStamina (i,dir) world)) $ cellHas canBeEntered j world && hasStamina (i,dir) world
       go (Attack _) = cellAgent j world || cellWumpus j world
       go (Give _ name) = cellAgent j world && numItems me name > 0
       go Gather = {- debugShowCell x $ -} cellHas canBeGathered i world

@@ -48,19 +48,23 @@ hotTemp = (worldData . time .~ 25)
           . (worldData . temperature .~ Hot)
 
 
+
+at_health :: Rational -> CellInd -> World -> World
+at_health h x = cellData . ix x . entity . _Just . health .~ h
+
 at_lowHealth :: CellInd -> World -> World
-at_lowHealth x = cellData . ix x . entity . _Just . health .~ 0.5
+at_lowHealth = at_health 0.5
 -- agent in many worlds: 2,0
 -- wumpus in oneWumpus: 2,3
+
+at_veryLowHealth :: CellInd -> World -> World
+at_veryLowHealth = at_health 0.1
 
 at_turn :: SquareDirection -> CellInd -> World -> World
 at_turn dir x = cellData . ix x . entity . _Just . _Ag . direction .~ dir
 
 at_give :: Item -> Int -> CellInd -> World -> World
 at_give it n x = cellData . ix x . entity . _Just . _Ag . inventory . ix it +~ n
-
-at_veryLowHealth :: CellInd -> World -> World
-at_veryLowHealth x = cellData . ix x . entity . _Just . health .~ 0.1
 
 -- Setup functions
 --------------------------------------------------------------------------------
@@ -71,18 +75,15 @@ worlds = map ("worlds" </>)
     "empty_plants",
     "oneWumpus",
     "twoFriends",
-    "fightOrFlight", -- todo
-    "searchingForFood", -- todo
-    "resting" -- todo
+    "fightOrFlight", -- wumpuses: (2,3), (2,8)
+    "searchingForFood"
    ]
 
 mainR :: Int -> IO ()
-mainR numRounds = main' ("worlds" </> "twoFriends") numRounds setup
-   where setup = at_turn South (2,4)
-                 . at_lowHealth (2,0)
-                 . at_lowHealth (2,4)
-                 . at_give Fruit 3 (2,0)
+mainR numRounds = main' ("worlds" </> "fightOrFlight") numRounds setup
+   where setup = at_health 0.6 (2,3)
+                 . at_health 0.6 (2,7)
                  . hotTemp
 
 main :: IO ()
-main = mainR 10
+main = mainR 2

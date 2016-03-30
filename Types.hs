@@ -341,3 +341,4 @@ instance Castable AgentMessage AgentMessageName where
       AMYouAreHere{} -> AMNYouAreHere
       AMPlanLocalBudget{} -> AMNPlanLocalBudget
       AMPlanGlobalBudget{} -> AMNPlanGlobalBudget
+      AMAlreadyMoved{} -> AMNAlreadyMoved

@@ -60,7 +60,7 @@ logFdm :: (String -> a) -> a
 logFdm f = f "Agent.Intelligent.DecisionMaker"
 
 logFbg :: (String -> a) -> a
-logFbg f = f "Agent.Intelligent.BeliefGeneratorf"
+logFbg f = f "Agent.Intelligent.BeliefGenerator"
 
 instance AgentMind AgentState where
    pullMessages w i = logF trace "[pullMessages]" $
@@ -606,8 +606,12 @@ generateBelief act mi as = liftIO $ do
                    %@~ (\i -> entity . _Just . _Ag . state
                               %~ pullMessages w i
                                  . filterMessageSpace isActionResultMessage)
+       alreadyMoved = if leftMemIndex as == mempty then fromMaybe [] $ firstWhere _AMAlreadyMoved $ view messageSpace as
+                      else []
 
-   ({- nextWorld -} _, msg) <- simulateConsequences act mi as (simulateStep >=> return . getPerc)
+   logF traceM $ "[generateBelief] alreadyMoved = " ++ show alreadyMoved
+
+   ({- nextWorld -} _, msg) <- simulateConsequences act mi as (simulateStep alreadyMoved >=> return . getPerc)
    logFbg traceM "[generateBelief] simulateConsequences done."
    let msg' = map (True,,ttl 1) msg
        as' = addMessages msg' $ {- $ addMessage (True, AMFutureBelief (cast nextWorld), ephemeral) $ -} as
@@ -871,13 +875,14 @@ reinsertablePlanMsg = map incttl . filter (f . view _2) . view messageSpace
       incttl :: AgentMessage' -> AgentMessage'
       incttl = over _3 (+1)
 
-      f = (\x y z u v w -> x || y || z || u || v || w)
+      f = (\a b c d e f g -> a || b || c || d || e || f || g)
           <$> (\case{(AMPlannedAction _ _ True) -> True; _ -> False})
           <*> isP _AMPlanEmotion
           <*> isP _AMPlanEmotionChanged
           <*> isP _AMPlanLocalBudget
           <*> isP _AMPlanGlobalBudget
           <*> isP _AMPlanInitialEmotion
+          <*> isP _AMAlreadyMoved
       
 -- |Getters for the four PSBC-emotions.
 psbcPrisms = [_AMEmotionAnger . to (Anger,),

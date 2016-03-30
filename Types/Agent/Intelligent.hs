@@ -156,6 +156,8 @@ data AgentMessage =
    | AMPlanLocalBudget Int
    -- |Indicates how many actions the agent may still plan altogether.
    | AMPlanGlobalBudget Int
+   -- |List of already moved entities.
+   | AMAlreadyMoved [EntityName]
    deriving (Show)
 
 data AgentMessageName =
@@ -226,6 +228,7 @@ data AgentMessageName =
    | AMNYouAreHere
    | AMNPlanLocalBudget
    | AMNPlanGlobalBudget
+   | AMNAlreadyMoved
    deriving (Show, Eq, Ord, Enum, Bounded, Generic)
 
 instance Hashable AgentMessageName

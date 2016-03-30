@@ -269,6 +269,8 @@ data Message =
    | MsgBody Rational Rational (M.Map Item Int)
    -- |Plant harvested
    | MsgPlantHarvested
+   -- |List of entities that already moved in this round.
+   | MsgAlreadyMoved [EntityName]
 
 instance Show Message
    where show = \case MsgVisualPerception e d -> "MsgVisualPerception " ++ intercalate " " [show e,show d]
@@ -287,6 +289,7 @@ instance Show Message
                       MsgAttacked e -> "MsgAttacked " ++ show e
                       MsgBody h s i -> "MsgBody " ++ intercalate " " [show h, show s, show i]
                       MsgPlantHarvested -> "MsgPlantHarvested"
+                      MsgAlreadyMoved es -> "MsgAlreadyMoved " ++ show es
 
 -- |The class of agents.
 --  An agent is a object that can receive messages (percepts) from its
