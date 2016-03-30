@@ -405,12 +405,6 @@ mkWorldData = ($ def) . LS.foldl' (\f c -> go c . f) id . map (view _2)
       go (AMTime t) = time .~ t
       go _ = id
 
--- |Takes the perceptions given to a specific entity.
-getMyPerceptions :: EntityName -> World -> [Message]
-getMyPerceptions en w = cd ^. ju entity . state . to readMessageSpace
-  where
-    (_, cd) = getEntity en $ giveEntityPerceptions w (fst $ getEntity en w)
-
 -- |Reads out relevant messages from a message space and writes information
 --  about the world into the agent state. This resets the agent's memory tree
 --  to a single node.

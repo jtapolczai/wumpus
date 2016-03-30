@@ -105,3 +105,5 @@ perception _ _ x@(MsgBody h s inv) = logF trace ("[perception] MsgBody: " ++ sho
     AMHaveGold (inv ^. at' Gold)]
 
 perception _ _ MsgPlantHarvested = logF trace "[perception] MsgPlantHarvested" $ [AMPlantHarvested]
+
+perception _ _ (MsgAlreadyMoved as) = logF trace ("[perception] MsgAlreadyMoved " ++ show as) $ [AMAlreadyMoved as]

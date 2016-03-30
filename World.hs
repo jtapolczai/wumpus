@@ -107,7 +107,7 @@ simulateStepReader alreadyMoved world =
    where
       entityList = removeKeys alreadyMoved . view agents $ world
 
-      newWorld = foldM updateAgent world entityList
+      newWorld = fst <$> foldM updateAgent (world,[]) entityList
       newWorld' = (worldData %~ advanceGlobalData) . (cellData %~ fmap advanceLocalData)
 
       --sendBodyMessages :: World -> World
@@ -116,10 +116,12 @@ simulateStepReader alreadyMoved world =
       -- "updating an agent" means giving it its perceptions and performing
       -- its action. We also update the wumpus stench to have accurate stench
       -- information.
-      updateAgent world i = wumpusStench <$> doEntityAction world' (i, ent)
+      updateAgent (world, alreadyMoved) i = (,moved') . wumpusStench <$> doEntityAction world' (i, ent)
          where
-            world' = giveEntityPerceptions world i
+            world' = giveEntityPerceptions alreadyMoved world i
             ent = entityAt i world'
+
+            moved' = (ent ^. name) : alreadyMoved
 
 
       -- perform local changes to agents/plants
@@ -127,15 +129,16 @@ simulateStepReader alreadyMoved world =
 
 -- |Gives an entity its perceptions based on the current world, and updates
 --  the world accordingly.
-giveEntityPerceptions :: World
+giveEntityPerceptions :: [EntityName] -- ^Names of the entities that already moved.
+                      -> World
                       -> CellInd
                       -> World
-giveEntityPerceptions world i =
+giveEntityPerceptions am world i =
    logF trace "[World.giveEntityPerceptions]" $
       -- trace ("   agent name: " ++ (world ^. cellData . at' i . ju entity . name)) $
       -- trace ("cellData names: " ++ show (str world)) $
       -- trace ("ixed named: " ++ show str') $
-   world & cellData . ix i . entity . _Just . state %~ (pullMessages world i)
+   world & cellData . ix i . entity . _Just . state %~ (receiveMessage (MsgAlreadyMoved am) . pullMessages world i)
 
 
 prnNames :: World -> [(CellInd, String)]
@@ -294,7 +297,7 @@ isActionPossible i action world = if isJust meMaybe then go action else False
 
       go NoOp = True
       go (Rotate _) = True
-      go (Move dir) = logF log ("move from " ++ show i ++ "canBeEntered: " ++ show (cellHas canBeEntered j world) ++ " hasStamina: " ++ show (hasStamina (i,dir) world)) $ cellHas canBeEntered j world && hasStamina (i,dir) world
+      go (Move dir) = {- logF log ("move from " ++ show i ++ "canBeEntered: " ++ show (cellHas canBeEntered j world) ++ " hasStamina: " ++ show (hasStamina (i,dir) world)) $ -} cellHas canBeEntered j world && hasStamina (i,dir) world
       go (Attack _) = cellAgent j world || cellWumpus j world
       go (Give _ name) = cellAgent j world && numItems me name > 0
       go Gather = {- debugShowCell x $ -} cellHas canBeGathered i world
