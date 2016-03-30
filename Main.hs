@@ -44,10 +44,9 @@ printActions (w, ws) = do
 
 -- Setup functions
 --------------------------------------------------------------------------------
+hotTemp :: World -> World
 hotTemp = (worldData . time .~ 25)
           . (worldData . temperature .~ Hot)
-
-
 
 at_health :: Rational -> CellInd -> World -> World
 at_health h x = cellData . ix x . entity . _Just . health .~ h
@@ -81,9 +80,7 @@ worlds = map ("worlds" </>)
 
 mainR :: Int -> IO ()
 mainR numRounds = main' ("worlds" </> "searchingForFood") numRounds setup
-   where setup = at_health 0.6 (2,3)
-                 . at_health 0.6 (2,7)
-                 . hotTemp
+   where setup = at_health 0.6 (3,0)
 
 main :: IO ()
 main = mainR 20

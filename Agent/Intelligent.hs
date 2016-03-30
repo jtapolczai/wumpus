@@ -97,6 +97,9 @@ getAction' initAs = do
                                temporalizePerceptionsComponent] initAs
    action <- loop action (cc' components) as'
    logFdm traceM $ "[getAction] action: " ++ show action
+
+   printCells as'
+
    return (action, as' & messageSpace .~ [])
 
    where
@@ -118,6 +121,8 @@ getAction' initAs = do
       -- gets the first non-imaginary action, if it exists.
       action :: AgentState -> Maybe Action
       action = fmap (view (_2._1)) . LS.head . filter (not . view _1) . msgWhere _AMPlannedAction . view messageSpace
+
+      printCells = logF warningM . concat . map ((++ "\n") . show) . view messageSpace
 
       components = [psbcComponent,
                     sjsComponent, 
