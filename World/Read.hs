@@ -210,7 +210,7 @@ readBitmap = readBMP >=> (return.toArr.fromRight)
 
             -- converts an index to an (x,y) coordinate
             toCoord :: Int -> (Int, Int)
-            toCoord i = (i `mod` w, i `div` h)
+            toCoord i = (i `mod` w, i `div` w)
 
             (!) = BS.index
 
