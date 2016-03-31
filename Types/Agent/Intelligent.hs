@@ -158,7 +158,7 @@ data AgentMessage =
    | AMPlanGlobalBudget Int
    -- |List of already moved entities.
    | AMAlreadyMoved [EntityName]
-   deriving (Show)
+   deriving (Show, Eq)
 
 data AgentMessageName =
    AMNTemperature

@@ -93,8 +93,8 @@ getAction' initAs = do
    logFdm traceM $ "[getAction] my message space: " ++ (show $ initAs ^. messageSpace)
    -- create an initial memory and 
    as' <- callComponents False [initialMemoryComponent,
-                               initialDecisionMakerComponent,
-                               temporalizePerceptionsComponent] initAs
+                                initialDecisionMakerComponent,
+                                temporalizePerceptionsComponent] initAs
    action <- loop action (cc' components) as'
    logFdm traceM $ "[getAction] action: " ++ show action
 
@@ -155,12 +155,22 @@ instance Castable VisualAgent (Agent SomeMind) where
 -- |Resets the agent's memory to a root node, based on the agent's perceptions.
 --  This should only be called when the agent begins its thought process.
 --  After that, memoryComponent should be called for planning.
-initialMemoryComponent :: Monad m => AgentComponent m
-initialMemoryComponent as = logFmem trace "[initialMemoryComponent]" $ logFmem trace (replicate 80 '+')
-   -- logFmem trace "[initialMemoryComponent] messages: " $
-   -- logFmem trace (show $ as ^. messageSpace) $
-   -- logFmem trace (replicate 80 '~') $
-   return $ resetMemory as (as ^. messageSpace) 
+--
+--  Also recalls the agent's root memory and inserts the messages corresponding to
+--  it. The result is a union between the agent's actual perceptions and its
+--  perceptions from memory.
+initialMemoryComponent :: AgentComponent IO
+initialMemoryComponent as = do
+   logFmem traceM "[initialMemoryComponent]"
+   logFmem traceM (replicate 80 '+')
+   logFmem traceM "[initialMemoryComponent] messages: "
+   logFmem traceM (show $ as ^. messageSpace)
+   logFmem traceM (replicate 80 '~')
+   let as' = resetMemory as (as ^. messageSpace)
+   memMsg <- map (False, ,eternal) <$> recallMemory mempty as'
+   let as'' = as' & messageSpace %~ (LS.nub . (memMsg ++))
+   logFmem traceM (show $ as'' ^. messageSpace)
+   return as''
 
 memoryComponent :: Monad m => AgentComponent m
 memoryComponent as = logFmem trace "[memoryComponent]" $ logFmem trace (replicate 80 '+') $ do
