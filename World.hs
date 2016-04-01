@@ -194,7 +194,8 @@ doAction i action world =
       -- Do nothing
       go NoOp = tell (iDid NoOp) >> return world
       -- Rotate into a direction.
-      go (Rotate dir) = return $ onCell i (onAgent (direction .~ dir)) world
+      go (Rotate dir) = do tell $ iDid (Rotate dir)
+                           return $ onCell i (onAgent (direction .~ dir)) world
       -- Move into a direction.
       go (Move dir) = do tell $ iDid (Move dir)
                          moveEntity i j world
