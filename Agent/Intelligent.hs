@@ -168,7 +168,10 @@ initialMemoryComponent as = do
    logFmem traceM (replicate 80 '~')
    let as' = resetMemory as (as ^. messageSpace)
    memMsg <- map (False, ,eternal) <$> recallMemory mempty as'
+   logFmem traceM "[initialMemoryComponent] recalled messages:"
+   logFmem traceM $ concatMap ((++"\n") . show) memMsg
    let as'' = as' & messageSpace %~ (LS.nub . (memMsg ++))
+   logFmem traceM "[initialMemoryComponent] merged messages: "
    logFmem traceM (show $ as'' ^. messageSpace)
    return as''
 
@@ -744,12 +747,13 @@ decisionMakerComponent asInit = logF trace "[decisionMakerComponent]" $ logFdm t
       -- The current memory world.
       curWorld = cast $ as ^. memory . memInd (leftMemIndex as)
 
-      myPos = fromMaybe (error "[decisionMakerComponent.myPos] Nothing!") $ myPosition $ as ^. messageSpace
-      myDir = fromMaybe (error $ "[decisionMakerComponent.myDir] Nothing!\n" ++ show (as ^. messageSpace)) $ myDirection $ as ^. messageSpace
+      myPos = fromMaybe (error "[decisionMakerComponent.myPos] Nothing!") $ myPosition $ myMsg
+      myDir = fromMaybe (error $ "[decisionMakerComponent.myDir] Nothing!\n" ++ show myMsg) $ myDirection $ myMsg
 
       -- first, we reinsert all the planning-related messages
       as :: AgentState
       as = addMessages (reinsertablePlanMsg asInit) asInit
+      myMsg = as ^. messageSpace
 
       planStartEmotion = planStartEmotions as M.! planEmotion
       targetEmotionSatisfied' = logFdm trace "[decisionMakerComponent.targetEmotionSatisfied]"
@@ -772,21 +776,28 @@ decisionMakerComponent asInit = logF trace "[decisionMakerComponent]" $ logFdm t
          $ msgWhere _AMEmotionChanged
          $ as ^. messageSpace
 
-      -- |Gets the strongest current emotion, as indicated by the AMEmotion* messages.
+      -- |Gets the dominant emotion.
+      --  If there are no planned actions, the dominant emotion is the strongest
+      --  one, as indicated by the AMEmotion* messages.
+      --  If there are planned actions, the dominant emotion is the plan's emotion
+      --  and its current value, as indicated by the AMEmotion* messages.
       dominantEmotion :: EmotionName
       dominantEmotionLevel :: Rational
       (dominantEmotion, dominantEmotionLevel) =
-         head
-         $ LS.sortBy (flip $ comparing snd)
-         $ currentEmotions
+         if null plannedActions then 
+            head
+            $ LS.sortBy (flip $ comparing snd)
+            $ currentEmotions
+         else (planEmotion, planEmotionLevel)
+
 
       -- |The current emotions, as indicated by the AMEmotion*-messages.
       currentEmotions :: [(EmotionName, Rational)]
-      currentEmotions = map (view _2) . msgWhereAny psbcPrisms . view messageSpace $ as
+      currentEmotions = map (view _2) . msgWhereAny psbcPrisms $ myMsg
 
       -- |The sorted list of planned actions, starting with the first
-      plannedActions = LS.sortBy (comparing $ view (_2 . _2 . to (length . runMI))) $ as ^. messageSpace . to (msgWhere _AMPlannedAction)
-      planEmotion = fromMaybe (error "[decisionMakerComponent.planEmotion]: Nothing") $ firstWhere _AMPlanEmotion $ as ^. messageSpace
+      plannedActions = LS.sortBy (comparing $ view (_2 . _2 . to (length . runMI))) $ msgWhere _AMPlannedAction myMsg
+      planEmotion = fromMaybe (error "[decisionMakerComponent.planEmotion]: Nothing") $ firstWhere _AMPlanEmotion myMsg
       planEmotionLevel = M.fromList currentEmotions M.! planEmotion
 
       (strongestOverrulingName, strongestOverrulingValue) = strongestOverruling planEmotion (M.fromList currentEmotions)
@@ -796,8 +807,8 @@ decisionMakerComponent asInit = logF trace "[decisionMakerComponent]" $ logFdm t
       strongEnough :: Rational -> Bool
       strongEnough = (>= cAGENT_EMOTION_IMMEDIATE)
 
-      localBudget = fromMaybe (error "[decisionMakerComponent.localBudget]: Nothing") $ firstWhere _AMPlanLocalBudget $ as ^. messageSpace
-      globalBudget = fromMaybe (error "[decisionMakerComponent.globalBudget]: Nothing") $ firstWhere _AMPlanGlobalBudget $ as ^. messageSpace
+      localBudget = fromMaybe (error "[decisionMakerComponent.localBudget]: Nothing") $ firstWhere _AMPlanLocalBudget myMsg
+      globalBudget = fromMaybe (error "[decisionMakerComponent.globalBudget]: Nothing") $ firstWhere _AMPlanGlobalBudget myMsg
 
       -- Reduces the local and global budgets in the newMessages container.
       budgetAddStep = newMessages %~ fmap ((_2 . _AMPlanLocalBudget -~ 1) .
