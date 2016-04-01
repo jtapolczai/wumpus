@@ -30,7 +30,7 @@ main' w numSteps setupFunc = do
    print wmi
    putStrLn $ showStats $ mkStats wmi world
    putStrLn "--------"
-   stats <- fromMList $ fmap snd $ takeM numSteps $ fmapM printActions $ runWorld wmi world
+   stats <- fromMList $ fmap snd $ takeM (numSteps+1) $ fmapM printActions $ runWorld wmi world
    when (not $ null stats) (putStrLn $ showStats $ mconcat stats)
    putStrLn (replicate 40 '-')
    closeLogFileHandle
@@ -83,4 +83,4 @@ mainR numRounds = main' ("worlds" </> "searchingForFood") numRounds setup
    where setup = at_health 0.6 (3,0)
 
 main :: IO ()
-main = mainR 20
+main = mainR 2
