@@ -14,7 +14,7 @@ module Agent.Intelligent where
 
 import Prelude hiding (log)
 
-import Control.Arrow (first, second)
+import Control.Arrow (first, second, (***))
 import Control.Lens
 import Control.Monad
 import Control.Monad.IO.Class
@@ -25,6 +25,7 @@ import qualified Data.Map as M
 import Data.Maybe
 import Data.Ord
 import qualified Data.Semigroup as SG
+import qualified Data.Set as S
 import qualified Data.Tree as T
 import Math.Geometry.Grid.Square
 import Math.Geometry.Grid.SquareInternal (SquareDirection)
@@ -167,12 +168,23 @@ initialMemoryComponent as = do
    logFmem traceM (show $ as ^. messageSpace)
    logFmem traceM (replicate 80 '~')
    let as' = resetMemory as (as ^. messageSpace)
-   memMsg <- map (False, ,eternal) <$> recallMemory mempty as'
+       --we get all the cells which don't perceive directly from our memory
+       (perceivedCells, perceivedEdges) = (M.keysSet *** M.keysSet) . sortByInd . view messageSpace $ as'
+       -- isNotPerceived m == True iff the message has a cell ind which doesn't
+       -- appear in any of our perceived messages. Analogous for the message's
+       -- edge index.
+       isNotPerceived m = case m ^. _agentMessageCellInd of
+         Just i -> not (S.member i perceivedCells)
+         Nothing -> case m ^. _agentMessageEdgeInd of
+            Just e -> not (S.member e perceivedEdges)
+            Nothing -> False
+   memMsg <- map (False, ,eternal) . filter isNotPerceived <$> recallMemory mempty as'
+   logFmem traceM $ "[initialMemoryComponent] perceived cells:" ++ show perceivedCells
    logFmem traceM "[initialMemoryComponent] recalled messages:"
    logFmem traceM $ concatMap ((++"\n") . show) memMsg
-   let as'' = as' & messageSpace %~ (LS.nub . (memMsg ++))
-   logFmem traceM "[initialMemoryComponent] merged messages: "
-   logFmem traceM (show $ as'' ^. messageSpace)
+   let as'' = addMessages memMsg as'
+   logFmem traceM "[initialMemoryComponent] added messages: "
+   logFmem traceM (show $ as'' ^. newMessages)
    return as''
 
 memoryComponent :: Monad m => AgentComponent m
