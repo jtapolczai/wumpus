@@ -68,19 +68,19 @@ black = (0,0,0)
 --                 are the friendly and hostile gesture.
 readWorld :: String -> IO (World, WorldMetaInfo)
 readWorld dir = do
-   topography <- M.fromList . map (second def) . filter ((==) white.snd) <$> readBitmap (dir ++ "/topography.bmp")
-   items <- M.fromList <$> readBitmap (dir ++ "/items.bmp")
-   entities <- M.fromList . filter ((/=) black.snd) <$> readBitmap (dir ++ "/entities.bmp")
+   topography <- M.fromList . map (second def) . filter ((==) white.snd) <$> readBitmap' (dir ++ "/topography.bmp")
+   items <- M.fromList <$> readBitmap' (dir ++ "/items.bmp")
+   entities <- M.fromList . filter ((/=) black.snd) <$> readBitmap' (dir ++ "/entities.bmp")
    agents <- readAgents dir
 
    logF traceM "topography"
-   readBitmap (dir ++ "/topography.bmp") >>= (return. show) >>= logF traceM
+   readBitmap' (dir ++ "/topography.bmp") >>= (return. show) >>= logF traceM
 
    logF traceM "items"
-   readBitmap (dir ++ "/items.bmp") >>= (return. show) >>= logF traceM
+   readBitmap' (dir ++ "/items.bmp") >>= (return. show) >>= logF traceM
 
    logF traceM "entities"
-   readBitmap (dir ++ "/entities.bmp") >>= (return. show) >>= logF traceM
+   readBitmap' (dir ++ "/entities.bmp") >>= (return. show) >>= logF traceM
 
    logF traceM "--------------------------------------------------"
 
@@ -199,7 +199,8 @@ trim = takeWhile (not.isSpace) . dropWhile isSpace
 defaultAgent :: AgentState -> Agent SomeMind
 defaultAgent as = Agent (as ^. name) North 1 1 (M.fromList [(Fruit,0), (Meat,0), (Gold,0)]) (SM as)
 
--- |Reads a bitmap from file. The array's coordinates will be x,y.
+-- |Reads a bitmap from file. The array's coordinates will be (y,x),
+--  increasing diagonally upward.
 readBitmap :: String -> IO [((Int,Int),Pixel)]
 readBitmap = readBMP >=> (return.toArr.fromRight)
    where
@@ -212,10 +213,17 @@ readBitmap = readBMP >=> (return.toArr.fromRight)
 
             -- converts an index to an (x,y) coordinate
             toCoord :: Int -> (Int, Int)
-            toCoord i = (i `mod` w, i `div` w)
+            toCoord i = (i `div` w, i `mod` w)
 
             (!) = BS.index
 
             pixels _ 0 _ = []
             pixels i n xs = (toCoord i, (xs ! 0, xs ! 1, xs ! 2))
                             : pixels (i+1) (n-1) (BS.drop 4 xs)
+
+-- |Reads a bitmap from file. The array's coordinates will be (x,y),
+--  increasing diagonally upward.
+readBitmap' fp = transposeBitmap <$> readBitmap fp
+
+transposeBitmap :: Functor f => f ((Int, Int), a) -> f ((Int, Int),a)
+transposeBitmap = fmap (\((y,x), v) -> ((x,y),v))
