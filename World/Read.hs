@@ -3,6 +3,8 @@
 {-# LANGUAGE GADTs #-}
 
 module World.Read (
+   white,
+   black,
    readWorld,
    readAgents,
    defaultAgent,

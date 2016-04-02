@@ -14,20 +14,26 @@ module World.Make (
    distributeElems,
    placeElems,
    populateRandomWorld,
+   makeRandomWorld,
+   makeEvalWorld,
    ) where
 
 import Prelude hiding (log)
 
 import Codec.BMP
 import qualified Data.ByteString as BS
+import Data.Char (isDigit)
 import qualified Data.Foldable as F
 import Data.List (intercalate, sortBy)
 import qualified Data.Map as M
 import Data.Map.Utils (removeKeys)
 import Data.Ord (comparing)
 import Data.Word
+import System.FilePath
 import qualified System.Random as R
 import System.Random.Utils
+
+import World.Read
 
 import Debug.Trace.Wumpus
 
@@ -130,7 +136,49 @@ placeElems appF prob = mapM f
    where
       f x = do
          (r :: Float) <- R.randomRIO (0,1)
-         return $ if r < prob then appF x else x   
+         return $ if r < prob then appF x else x 
+
+-- |Takes a topography.bmp and a population size and creates entities.bmp,
+--  items.bmp and agents.txt in the same directory. The generated files are also
+--  returned.
+makeRandomWorld
+   :: FilePath
+   -> Int -- ^Size of each subpopulation.
+   -> Int -- ^Number of Wumpuses.
+   -> Int -- ^Number of pits.
+   -> Float -- ^Probability of placing gold on a cell; 0 to 1.
+   -> Float -- ^Probability to placing a plant on a cell; 0 to 1.
+   -> IO (M.Map (Int, Int) Pixel, M.Map (Int, Int) Pixel, [String])
+makeRandomWorld fp popSize numWumpuses numPits goldProb plantProb = do
+   top <- filter ((white==) . snd) <$> readBitmap fp
+   let dir = takeDirectory fp
+       fromRight (Right r) = r
+       fromRight (Left err) = error $ "makeRandomWorld.fromRight called with Left: " ++ show err
+   (w,h) <- bmpDimensions . fromRight <$> readBMP fp
+   agents <- makePopulations popSize
+   let (agentNames :: [Int]) = map (read . takeWhile isDigit) agents
+   (ents, items) <- populateRandomWorld
+                       (M.fromList top)
+                       agentNames
+                       numWumpuses
+                       numPits
+                       goldProb
+                       plantProb
+   let ents' = makeBitmap ents (0,0,0) (w,h)
+       items' = makeBitmap items (0,0,0) (w,h)
+   writeBMP (dir </> "entities.bmp") ents'
+   writeBMP (dir </> "items.bmp") items' 
+   return (ents, items, agents)
+
+-- |A wrapper for 'makeRandomWorld', with parameters set:
+--  
+--  1. size of each subpopulation = 7.
+--  2. number of Wumpuses = 74.
+--  3. number of pits = 70
+--  4. probability of gold = 0.01
+--  5. probability of plant = 0.05
+makeEvalWorld :: FilePath -> IO (M.Map (Int, Int) Pixel, M.Map (Int, Int) Pixel, [String])
+makeEvalWorld fp = makeRandomWorld fp 7 74 70 0.01 0.05
 
 -- |Takes a list of cells and populates the corresponding empty world with
 --  agents, Wumpuses, plants, pits, and gold.
