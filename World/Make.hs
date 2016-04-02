@@ -39,7 +39,7 @@ import Debug.Trace.Wumpus
 
 -- Module-specific logging function.
 logF :: (String -> a) -> a
-logF f = f "World.Read"
+logF f = f "World.Make"
 
 -- |An RGB pixel.
 type Pixel = (Word8,Word8,Word8)
@@ -49,13 +49,29 @@ type Pixel = (Word8,Word8,Word8)
 
 -- |Creates a BMP given pixels and a default color.
 makeBitmap :: M.Map (Int, Int) Pixel -> Pixel -> (Int, Int) -> BMP
-makeBitmap foreground defColor (w,h) = packRGBA32ToBMP24 w h stream
+makeBitmap foreground defColor (w,h) =
+   logF trace ("[makeBitmap] dimensions=" ++ show (w,h))
+   $ logF trace ("[makeBitmap] expected number of pixels=" ++ show (w*h))
+   $ logF trace ("[makeBitmap] number of bytes in stream=" ++ show (BS.length stream))
+   $ logF trace ("[makeBitmap] number of bytes in stream=" ++ show (BS.length stream))
+   $ logF trace ("[makeBitmap] effective number of pixels=" ++ show (BS.length stream `div` 4))
+   $ logF trace ("[makeBitmap] actual number of pixels=" ++ show (M.size pixels))
+   $ logF trace ("[makeBitmap] actual number of foreground pixels=" ++ show (M.size foreground))
+   $ logF trace ("[makeBitmap] min X=" ++ show minX ++ ", min Y=" ++ show minY)
+   $ logF trace ("[makeBitmap] max X=" ++ show maxX ++ ", max Y=" ++ show maxY)
+   $ packRGBA32ToBMP24 w h stream
    where
-      background = M.fromList [((x,y), defColor) | y <- [0..h], x <- [0..w]]
+      background = M.fromList [((x,y), defColor) | y <- [0..(h-1)], x <- [0..(w-1)]]
       pixels = M.union foreground background
 
       pixelToWord8 :: Pixel -> [Word8]
       pixelToWord8 (r,g,b) = [r,g,b,0]
+
+      maxX = fst $ head $ reverse $ sortBy (comparing fst) $ map fst $ M.toList $ pixels
+      maxY = snd $ head $ reverse $ sortBy (comparing snd) $ map fst $ M.toList $ pixels
+
+      minX = fst $ head $ sortBy (comparing fst) $ map fst $ M.toList $ pixels
+      minY = snd $ head $ sortBy (comparing snd) $ map fst $ M.toList $ pixels
 
       stream :: BS.ByteString
       stream = BS.concat
@@ -151,12 +167,16 @@ makeRandomWorld
    -> IO (M.Map (Int, Int) Pixel, M.Map (Int, Int) Pixel, [String])
 makeRandomWorld fp popSize numWumpuses numPits goldProb plantProb = do
    top <- filter ((white==) . snd) <$> readBitmap fp
+   logF traceM "[makeRandomWorld] bitmap read."
    let dir = takeDirectory fp
        fromRight (Right r) = r
        fromRight (Left err) = error $ "makeRandomWorld.fromRight called with Left: " ++ show err
    (w,h) <- bmpDimensions . fromRight <$> readBMP fp
+   logF traceM $ "[makeRandomWorld] bitmap dimensions: " ++ show (w,h)
    agents <- makePopulations popSize
+   logF traceM "[makeRandomWorld] populations made."
    let (agentNames :: [Int]) = map (read . takeWhile isDigit) agents
+   logF traceM $ "[makeRandomWorld] agent names: " ++ show agentNames
    (ents, items) <- populateRandomWorld
                        (M.fromList top)
                        agentNames
@@ -164,10 +184,14 @@ makeRandomWorld fp popSize numWumpuses numPits goldProb plantProb = do
                        numPits
                        goldProb
                        plantProb
+   logF traceM "[makeRandomWorld] populateRandomWorld done."
    let ents' = makeBitmap ents (0,0,0) (w,h)
        items' = makeBitmap items (0,0,0) (w,h)
+   logF traceM "[makeRandomWorld] writing BMPs..."
    writeBMP (dir </> "entities.bmp") ents'
-   writeBMP (dir </> "items.bmp") items' 
+   logF traceM "[makeRandomWorld] entities.bmp written."
+   writeBMP (dir </> "items.bmp") items'
+   logF traceM "[makeRandomWorld] items.bmp written."
    return (ents, items, agents)
 
 -- |A wrapper for 'makeRandomWorld', with parameters set:
