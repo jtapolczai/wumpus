@@ -192,6 +192,7 @@ makeRandomWorld fp popSize numWumpuses numPits goldProb plantProb = do
    logF traceM "[makeRandomWorld] entities.bmp written."
    writeBMP (dir </> "items.bmp") items'
    logF traceM "[makeRandomWorld] items.bmp written."
+   writeFile (dir </> "agents.txt") $ concatMap (++"\n") agents
    return (ents, items, agents)
 
 -- |A wrapper for 'makeRandomWorld', with parameters set:
