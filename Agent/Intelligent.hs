@@ -123,7 +123,7 @@ getAction' initAs = do
       action :: AgentState -> Maybe Action
       action = fmap (view (_2._1)) . LS.head . filter (not . view _1) . msgWhere _AMPlannedAction . view messageSpace
 
-      printCells = logF warningM . concat . map ((++ "\n") . show) . view messageSpace
+      printCells = logF traceM . concat . map ((++ "\n") . show) . view messageSpace
 
       components = [psbcComponent,
                     sjsComponent, 
@@ -178,7 +178,7 @@ initialMemoryComponent as = do
          Nothing -> case m ^. _agentMessageEdgeInd of
             Just e -> not (S.member e perceivedEdges)
             Nothing -> False
-   memMsg <- map (False, ,eternal) . filter isNotPerceived <$> recallMemory mempty as'
+   memMsg <- map (False, ,ephemeral) . filter isNotPerceived <$> recallMemory mempty as'
    logFmem traceM $ "[initialMemoryComponent] perceived cells:" ++ show perceivedCells
    logFmem traceM "[initialMemoryComponent] recalled messages:"
    logFmem traceM $ concatMap ((++"\n") . show) memMsg
