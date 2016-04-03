@@ -28,7 +28,6 @@ module Agent.Intelligent.Utils (
    hasMemNode,
    mkMap,
    subIndex,
-   showF3,
    leftMemIndex,
    parentMemIndex,
    deleteMemory,
@@ -44,7 +43,6 @@ import Data.Maybe
 import Data.Monoid (First)
 import qualified Data.Tree as T
 import Math.Geometry.Grid.SquareInternal (SquareDirection)
-import Numeric (showFFloat)
 
 import Types
 
@@ -227,11 +225,6 @@ subIndex (MI i) (MI j) = go i j
     go (x:xs) (y:ys) = x == y && go xs ys
     go [] _ = True
     go _ _ = False
-
-
--- Prints a Rational as a float with 3 digits of precision.
-showF3 :: Rational -> String
-showF3 = flip (showFFloat (Just 3)) "" . (fromRational :: Rational -> Double)
 
 -- Memory utils
 -------------------------------------------------------------------------------

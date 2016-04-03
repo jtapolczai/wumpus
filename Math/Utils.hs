@@ -15,9 +15,11 @@ module Math.Utils (
    linearFunc,
    prevMod,
    succMod,
+   showF3,
 ) where
 
 import Data.Ratio
+import Numeric (showFFloat)
 
 -- |Returns the absolute difference between two angles, in radians.
 --  This value will always be positive.
@@ -71,3 +73,7 @@ prevMod = changeMod (subtract 1)
 --  if the last was given.
 succMod :: (Enum a, Bounded a) => a -> a
 succMod = changeMod (+1)
+
+-- Prints a Rational as a float with 3 digits of precision.
+showF3 :: Rational -> String
+showF3 = flip (showFFloat (Just 3)) "" . (fromRational :: Rational -> Double)

@@ -741,7 +741,7 @@ decisionMakerComponent asInit = logF trace "[decisionMakerComponent]" $ logFdm t
          let actionableCells = dropWhile (null . getEmotionActions emotion . fst) prospectiveCells
          logFdm traceM $ "[getNextAction.actionableCells] " ++ (LS.intercalate "\n" $ map (show . (\x -> (x, getEmotionActions emotion (fst x)))) actionableCells)
          if null actionableCells then do
-            logFdm warningM "[decicionMakerComponent.getNextAction] No possible actions!"
+            logFdm traceM "[decicionMakerComponent.getNextAction] No possible actions!"
             return NoOp
          else do
             let (targetCell, targetCellIntensity) = head actionableCells

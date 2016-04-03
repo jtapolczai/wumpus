@@ -10,6 +10,7 @@ import Data.List (intercalate)
 import qualified Data.Map as M
 import Data.Maybe
 import qualified Data.Sequence as S
+import Numeric (showFFloat)
 
 import Types
 import World.Utils
@@ -61,9 +62,9 @@ mkStats wmi w = M.foldr recordEntity mempty $ w ^. cellData
       recordEntity CD{_cellDataEntity=Just (Ag a)} w = w & numAgents . ix ind +~ 1
          where ind = wmi ^. agentPersonalities . at' (a ^. name)
 
-showStats :: WorldStats -> String
-showStats ws =
-      "agents:   " ++ show (F.sum $ ws ^. numAgents) ++ "\n"
+showStats :: Int -> WorldStats -> String
+showStats initialNumAgents ws =
+      "agents:   " ++ show curAgents ++ " (" ++ percAgents ++ "%)\n"
    ++ concat (printAgents $ ws ^. numAgents)
    ++ "wumpuses: " ++ show (ws ^. numWumpuses) ++ "\n"
    ++ "harvests: " ++ show (ws ^. numHarvests) ++ "\n"
@@ -81,6 +82,11 @@ showStats ws =
 
       showST Friendly = "f"
       showST Hostile = "h"
+
+      curAgents = F.sum $ ws ^. numAgents
+      percAgents :: String
+      percAgents = flip (showFFloat (Just 3)) ""
+                   $ (((fromIntegral curAgents / fromIntegral initialNumAgents) :: Float) * 100)
 
       showInd :: AgentIndex -> String
       showInd (a,f,e,c,s) = "(" ++ intercalate "," (map showFT [a,f,e,c]) ++ ";" ++ showST s ++ ")"

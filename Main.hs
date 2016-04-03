@@ -5,6 +5,7 @@ import Prelude hiding (log)
 import Control.Lens
 import Control.Monad
 import qualified Data.Foldable as F
+import qualified Data.Map as M
 import Data.MList
 import Math.Geometry.Grid.SquareInternal (SquareDirection(..))
 import System.FilePath
@@ -21,26 +22,26 @@ import Debug.Trace.Wumpus
 logF :: (String -> a) -> a
 logF f = f "Wumpus"
 
-main' :: String -> Int -> (World -> World) -> IO ()
+main' :: String -> Int -> (World -> World) -> IO [WorldStats]
 main' w numSteps setupFunc = do
    (worldInit, wmi) <- readWorld w
    let world = setupFunc worldInit
-   --world `seq` putStrLn "WumpusWorld!"
-   --print $ M.size $ world ^. cellData
+       numAgents = world ^. agents . to M.size
    print wmi
-   putStrLn $ showStats $ mkStats wmi world
+   putStrLn $ showStats numAgents $ mkStats wmi world
    putStrLn "--------"
    stats <- fromMList $ fmap snd $ takeM (numSteps+1) $ fmapM printActions $ runWorld wmi world
-   when (not $ null stats) (putStrLn $ showStats $ mconcat stats)
+   when (not $ null stats) (putStrLn $ showStats numAgents $ mconcat stats)
    putStrLn (replicate 40 '-')
    closeLogFileHandle
-   return ()
+   return stats
 
 printActions (w, ws) = do
    logF logM $ (show $ length $ view actions ws) ++ " actions in this round:"
    mapM_ (logF logM . showAction) . F.toList . view actions $ ws
    logF logM (replicate 80 '_')
    return (w,ws)
+
 
 -- Setup functions
 --------------------------------------------------------------------------------
@@ -78,11 +79,15 @@ worlds = map ("worlds" </>)
     "searchingForFood"
    ]
 
-mainR :: Int -> IO ()
-mainR numRounds = main' ("worlds" </> "oneWumpus") numRounds setup
+mainR :: Int -> IO [WorldStats]
+mainR numRounds = main' ("worlds" </> "twoFriends") numRounds setup
    where setup = at_health 0.6 (2,3)
                  . at_health 0.02 (2,0)
                  . hotTemp
 
 main :: IO ()
-main = mainR 2
+main = void $ mainR 2
+
+-- |For a list @x1,x2,...@, returns @mconcat [x1], mconcat [x1,x2],...@.
+accumulateStats :: Monoid m => [m] -> [m]
+accumulateStats ss = map mconcat $ zipWith (\i _ -> take i ss) [1..] ss
