@@ -82,7 +82,7 @@ worlds = map ("worlds" </>)
 mainR :: Int -> IO [WorldStats]
 mainR numRounds = main' ("worlds" </> "twoFriends") numRounds setup
    where setup = at_health 0.6 (2,3)
-                 . at_health 0.02 (2,0)
+                 . at_health 0.6 (2,0)
                  . hotTemp
 
 main :: IO ()
@@ -91,3 +91,51 @@ main = void $ mainR 2
 -- |For a list @x1,x2,...@, returns @mconcat [x1], mconcat [x1,x2],...@.
 accumulateStats :: Monoid m => [m] -> [m]
 accumulateStats ss = map mconcat $ zipWith (\i _ -> take i ss) [1..] ss
+
+
+-- |Applies a function to a series of statistics and writes the results out
+--  into a file, line by line.
+writeStats :: FilePath -> [a] -> (a -> String) -> IO ()
+writeStats fp ss getter = writeFile fp output
+   where output = concat $ fmap ((++"\n") . getter) ss
+
+-- |Applies 'writeStats' multiple times to the same dataset.
+writeManyStats :: [(FilePath, a -> String)] -> [a] -> IO ()
+writeManyStats getters ss = mapM_ (\(fp, g) -> writeStats fp ss g) getters
+
+
+-- Getters for statistics, for use with 'writeStats'/'writeManyStats'.
+numAgentsG :: (FilePath, WorldStats -> String)
+numAgentsG = ("numAgents.txt", show . sum . map snd . M.toList . view numAgents)
+numHarvestsG :: (FilePath, WorldStats -> String)
+numHarvestsG = ("numHarvests.txt", show . view numHarvests)
+numItemsGivenG :: (FilePath, WorldStats -> String)
+numItemsGivenG = ("numItemsGiven.txt", show . sum . map snd . M.toList . view numItemsGiven)
+numMeatGivenG :: (FilePath, WorldStats -> String)
+numMeatGivenG = ("numMeatGiven.txt", show . (M.! Meat) . view numItemsGiven)
+numFruitGivenG :: (FilePath, WorldStats -> String)
+numFruitGivenG = ("numFruitGiven.txt", show . (M.! Fruit) . view numItemsGiven)
+numGoldGivenG :: (FilePath, WorldStats -> String)
+numGoldGivenG = ("numGoldGiven.txt", show . (M.! Gold) . view numItemsGiven)
+numGesturesSentG :: (FilePath, WorldStats -> String)
+numGesturesSentG = ("numGesturesSent.txt", show . view numGesturesSent)
+numAttacksPerformedG :: (FilePath, WorldStats -> String)
+numAttacksPerformedG = ("numAttacksPerformed.txt", show . view numAttacksPerformed)
+
+persG :: (Int, AgentIndex) -> (FilePath, WorldStats -> String)
+persG (i,p) = ("numPers_" ++ show i ++ ".txt", show . (M.! p) . view numAgents)
+
+allAgentIndices :: [(Int, AgentIndex)]
+allAgentIndices = zip [1..] . M.keys . view numAgents $ (mempty :: WorldStats)
+
+allStatsG :: [(FilePath, WorldStats -> String)]
+allStatsG = [
+   numAgentsG,
+   numHarvestsG,
+   numItemsGivenG,
+   numMeatGivenG,
+   numFruitGivenG,
+   numGoldGivenG,
+   numGesturesSentG,
+   numAttacksPerformedG]
+   ++ map persG allAgentIndices
