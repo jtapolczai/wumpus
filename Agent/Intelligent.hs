@@ -68,7 +68,7 @@ instance AgentMind AgentState where
                       logF trace (show msg) $ receiveMessages msg
       where
          msg = getLocalPerceptions w i dir
-         me = w ^. cellData . ju (at i) . ju entity
+         me = w ^. cellData . juM "Agent.Intelligent.AgentMind.me" (at i) . juM "Agent.Intelligent.AgentMind.me.entity" entity
          dir = fromMaybe (error "[AgentState.pullMessages.dir]: Nothing") (me ^? _Ag . direction)
 
    receiveMessage msg as = logF trace ("[receiveMessage] " ++ show msg)
@@ -201,7 +201,7 @@ memoryComponent as = logFmem trace "[memoryComponent]" $ logFmem trace (replicat
        currentMsg = filter ((&&) <$> view _1 <*> (0<) . view _3) $ as ^. messageSpace
 
        mi :: MemoryIndex
-       mi = MI . init . runMI . head . map (view _2) $ pendingActions
+       mi = MI . initM "memoryComponent.mi" . runMI . head . map (view _2) $ pendingActions
 
    logFmem traceM ("[memoryComponent] allPlannedActions: " ++ show allPlannedActions)
    logFmem traceM ("[memoryComponent] keepActions: " ++ show keepActions)
@@ -558,7 +558,7 @@ simulateConsequences action mi as simulateAction = do
        currentWorld :: World
        currentWorld = setAgentMinds myMind . setWumpusMinds . cast $ as ^. memory . memInd mi
        parentWorld :: Memory
-       parentWorld = as ^. memory . memInd (parentMemIndex mi)
+       parentWorld = as ^. memory . memInd (parentMemIndex "simulateConsequences.parentWorld" mi)
 
        addDir w p = do
          d <- w ^? cellData . at p . _Just . entity . _Just . _Ag . direction

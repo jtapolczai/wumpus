@@ -79,8 +79,10 @@ worlds = map ("worlds" </>)
    ]
 
 mainR :: Int -> IO ()
-mainR numRounds = main' ("worlds" </> "searchingForFood") numRounds setup
-   where setup = at_health 0.6 (3,0)
+mainR numRounds = main' ("worlds" </> "oneWumpus") numRounds setup
+   where setup = at_health 0.6 (2,3)
+                 . at_health 0.02 (2,0)
+                 . hotTemp
 
 main :: IO ()
 main = mainR 2

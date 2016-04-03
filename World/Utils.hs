@@ -257,13 +257,13 @@ sendMsg = over state . receiveMessage
 
 -- |Gets the entity on a given cell. Fails if the cell does not exist or has
 --  has no entity.
-entityAt :: CellInd -> World -> Entity'
-entityAt i world = world ^. cellData . at' i . ju entity
+entityAt :: String -> CellInd -> World -> Entity'
+entityAt err i world = world ^. cellData . at' i . juM ("World.Utils.entityAt/" ++ err) entity
 
 -- |Gets the agent on a given cell. Fails of the cell does not exist or has
 --  not agent.
-agentAt :: CellInd -> World -> Agent SomeMind
-agentAt i = fromAgent . entityAt i
+agentAt :: String -> CellInd -> World -> Agent SomeMind
+agentAt err i = fromAgent . entityAt ("agentAt/" ++ err) i
 
 -- |Gets the cell with a given index. Fails if the cell does not exist.
 cellAt :: CellInd -> World -> CellData

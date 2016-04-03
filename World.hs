@@ -110,22 +110,37 @@ simulateStepReader alreadyMoved world =
       newWorld = fst <$> foldM updateAgent (world,[]) entityList
       newWorld' = (worldData %~ advanceGlobalData) . (cellData %~ fmap advanceLocalData)
 
-      --sendBodyMessages :: World -> World
-      --sendBodyMessages w = foldl' sendBodyMessage w (worldAgents w)
+      -- perform other local changes (currently just the regrowing of plants)
+      advanceLocalData = regrowPlants
 
       -- "updating an agent" means giving it its perceptions and performing
       -- its action. We also update the wumpus stench to have accurate stench
       -- information.
-      updateAgent (world, alreadyMoved) i = (,moved') . wumpusStench <$> doEntityAction world' (i, ent)
-         where
-            world' = giveEntityPerceptions alreadyMoved world i
-            ent = entityAt i world'
+      updateAgent (world, alreadyMoved) i = do
+         case world ^. cellData . at' i . entity of
+            Nothing -> do
+               logF logM $ "Called updateAgent on cell " ++ show i ++ ", but the entity isn't present (already dead)?"
+               return (world, alreadyMoved)
+            Just _ -> do
+               let world' = giveEntityPerceptions alreadyMoved world i
+                   ent= entityAt "updateAgent" i world'
+                   moved' = view name ent : alreadyMoved
+               afterActionWorld <- wumpusStench <$> doEntityAction world' (i, ent)
+               case afterActionWorld ^. agents . at (ent ^. name) of
+                  Nothing -> return (afterActionWorld, moved')
+                  Just i' -> do
+                     (c', deadName) <- increaseHunger . increaseStamina $ afterActionWorld ^. cellData . at' i'
 
-            moved' = (ent ^. name) : alreadyMoved
+                     logF warningM $ "[updatedAgent] c=" ++ show (afterActionWorld ^. cellData . at' i')
+                     logF warningM $ "[updatedAgent] c'=" ++ show c'
+                     logF warningM $ "[updatedAgent] deadName=" ++ show deadName
+                     logF warningM $ "[updatedAgent] agent list=" ++ show (afterActionWorld ^. agents)
 
-
-      -- perform local changes to agents/plants
-      advanceLocalData = increaseStamina . increaseHunger . regrowPlants
+                     let afterHungerWorld = afterActionWorld & cellData . ix i' .~ c'
+                         retWorld = case deadName of
+                                       Just n -> afterHungerWorld & agents . at n .~ Nothing
+                                       Nothing -> afterHungerWorld
+                     return (retWorld, moved')
 
 -- |Gives an entity its perceptions based on the current world, and updates
 --  the world accordingly.
@@ -135,9 +150,7 @@ giveEntityPerceptions :: [EntityName] -- ^Names of the entities that already mov
                       -> World
 giveEntityPerceptions am world i =
    logF trace "[World.giveEntityPerceptions]" $
-      -- trace ("   agent name: " ++ (world ^. cellData . at' i . ju entity . name)) $
-      -- trace ("cellData names: " ++ show (str world)) $
-      -- trace ("ixed named: " ++ show str') $
+   logF trace ("   agent name: " ++ (world ^. cellData . at' i . juM "giveEntityPerceptions" entity . name)) $
    world & cellData . ix i . entity . _Just . state %~ (receiveMessage (MsgAlreadyMoved am) . pullMessages world i)
 
 
@@ -184,9 +197,9 @@ doAction i action world =
       then go action
       else logF warning ("Tried to do the impossible action at " ++ show i ++ ": " ++ show action) $ return world
    where
-      me = entityAt i world
+      me = entityAt "doAction.me" i world
       myName = me ^. name
-      targetName = entityAt j world ^. name
+      targetName = entityAt "doAction.targetName" j world ^. name
       j = inDirection i $ actionDirection action
       iDid = did myName i
       iDidT a = didT myName i a targetName
@@ -249,7 +262,7 @@ doAction i action world =
                                  . (inventory . ix item -~ 1)
                                  . (health .~ newH)) c
                where
-                  curH = c ^. ju entity . health
+                  curH = c ^. juM "doAction/Eat" entity . health
                   newH = min cMAX_AGENT_HEALTH (cHEAL_FOOD + curH)
 
                   -- |Change in health in percent.
@@ -316,7 +329,7 @@ hasStamina (i,dir) world = case (me, ef) of
    _                    -> logF trace ("[hasStamina] otherwise-case with edge " ++ show i ++ " " ++ show dir) False
    where
       me :: Maybe Rational
-      me = world ^. cellData . at i . to (fmap $ view $ ju entity . stamina)
+      me = world ^. cellData . at i . to (fmap $ view $ juM "hastStamina" entity . stamina)
       ef :: Maybe Rational
       ef = world ^. edgeData . at (i,dir) . to (fmap $ view fatigue)
 
@@ -340,7 +353,7 @@ moveEntity i j world = do
    where
       edgeFat = world ^. edgeData . at (i,head $ getDirections i j) . to (maybe 0 $ view fatigue)
 
-      ent = world ^. cellData . at' i . ju entity
+      ent = world ^. cellData . at' i . juM "moveEntity/ent" entity
       ent' = ent & stamina -~ cEDGE_FATIGUE * edgeFat
 
       -- the agent's change in stamina in percent
@@ -356,7 +369,7 @@ moveEntity i j world = do
 
       updateIndex :: M.Map EntityName CellInd -> M.Map EntityName CellInd
       updateIndex = if isJust $ join (world' ^? cellData . at j . _Just . entity)
-                    then ix (world ^. cellData . at' i . ju entity . name) .~ j
+                    then ix (world ^. cellData . at' i . juM "moveEntity.updateIndex" entity . name) .~ j
                     else id
 
       -- the updated worlds
@@ -377,8 +390,8 @@ attack i j world = tell attackPerformed
                    >>= onCellM j (die . msg me . fight me)
                    >$> removeDeadFromIndex [(me, i), (other, j)]
    where
-      me = entityAt i world
-      other = entityAt j world
+      me = entityAt "attack.me" i world
+      other = entityAt "attack.other" j world
       attackSource = head $ getDirections j i
 
       healthLoss = min (me ^. health) (other ^. health)
@@ -405,7 +418,6 @@ removeDeadFromIndex = flip (foldl' rem)
          then logF trace ("Removed a dead agent named " ++ view name e ++ "!") $ w & agents . at (e ^. name) .~ Nothing
          else w
 
-
 -- |Damages the entity on the target cell by the amount of health
 --  the first entity has.
 fight :: Entity' -- ^The attacking entity.
@@ -413,10 +425,10 @@ fight :: Entity' -- ^The attacking entity.
       -> CellData
 fight enemy c = logF trace ("[fight] myName=" ++ mn ++ "myHealth=" ++ mh ++ ", enemy health=" ++ eh ++ ", ret health= " ++ rh) $ ret
    where
-      mn = show $ c ^. ju entity . name
-      mh = show $ c ^. ju entity . health
+      mn = show $ c ^. juM "fight.mn" entity . name
+      mh = show $ c ^. juM "fight.mh" entity . health
       eh = show $ enemy ^. health
-      rh = show $ ret ^. ju entity . health
+      rh = show $ ret ^. juM "fight.rh" entity . health
       ret = onEntity (health -~ (enemy ^. health)) c
 
 -- |Let the entity on cell x die if its health is <= 0. Dying means removing
@@ -425,11 +437,11 @@ fight enemy c = logF trace ("[fight] myName=" ++ mn ++ "myHealth=" ++ mh ++ ", e
 --  body of the agent/Wumpus).
 die :: (MonadReader WorldMetaInfo m, MonadWriter (WorldStats -> WorldStats) m) => CellData -> m CellData
 die x = let
-   x' = if x ^. ju entity . health <= 0 then logF detailedLog ("An entity named " ++ (x ^. ju entity . name) ++ " died.\n") $ x & entity .~ Nothing else x
+   x' = if x ^. juM "die.x'" entity . health <= 0 then logF detailedLog ("An entity named " ++ (x ^. juM "die.x'.trace" entity . name) ++ " died.\n") $ x & entity .~ Nothing else x
    inv = x ^. entity . _Just . _Ag . inventory
    in
-      if (x ^. ju entity . health <= 0) then
-         do entityDied $ view (ju entity) x
+      if (x ^. juM "die.x in the if" entity . health <= 0) then
+         do entityDied $ view (juM "die.entityDied" entity) x
             return (x' & meat +~ (1 + inv ^. at Meat . to (fromMaybe 0))
                        & fruit +~ (inv ^. at Fruit . to (fromMaybe 0))
                        & gold +~ (inv ^. at Gold . to (fromMaybe 0)))
@@ -464,12 +476,24 @@ regrowPlants :: CellData -> CellData
 regrowPlants = plant %~ fmap (min cPLANT_MAX . (cPLANT_REGROWTH+))
 
 -- |Increases the hunger of an agent (reduces health by 0.01)
-increaseHunger :: CellData -> CellData
-increaseHunger = onAgent hunger
+--
+--  If the agent dies as a result of the hunger increase, the second
+--  part of the return tuple will contain its name.
+increaseHunger :: (MonadReader WorldMetaInfo m, MonadWriter (WorldStats -> WorldStats) m)
+               => CellData
+               -> m (CellData, Maybe EntityName)
+increaseHunger cell = do
+   ret_cell <- die $ onAgent hunger cell
+   case (getEntityName cell, getEntityName ret_cell) of
+      (Just n, Nothing) -> return (ret_cell, Just n)
+      _ -> return (ret_cell, Nothing)
    where
+      getEntityName :: CellData -> Maybe EntityName
+      getEntityName = fmap (view name) . view entity
+
       hunger a = logF trace ("increased the hunger by " ++ show dH) $ sendMsg (MsgHealthChanged dH) $ (a & health .~ newH)
          where
-            newH = max 0 $ (a ^. health) - cHUNGER_RATE
+            newH = view health a - cHUNGER_RATE
             dH = changeInPercent (a ^. health) newH
 
 -- |Increases the agent's stamina by the default amount and sends an

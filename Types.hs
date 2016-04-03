@@ -52,6 +52,15 @@ ju l = l . to (fromMaybe err)
    where
       err = error "Nothing in lens 'ju'!"
 
+-- |Applies 'fromJust' to a Getter that delivers a Maybe.
+juM :: (Contravariant f, Profunctor p)
+   => String -> (p (Maybe a) (f (Maybe a)) -> c) -> p a (f a) -> c
+juM err l = l . to (fromMaybe $ error $ "Nothing in lens 'ju': " ++ err)
+
+initM :: String -> [a] -> [a]
+initM err [] = error $ "initM: " ++ err
+initM _ xs = init xs
+
 -- |Returns the given element if the first argument is True and
 --  the monoid's neutral element otherwise.
 cond :: (Monoid a) => Bool -> a -> a

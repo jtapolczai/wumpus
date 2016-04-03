@@ -49,15 +49,15 @@ logLevels = M.fromList [
    ("Agent.Intelligent.Affect", DetailedLog),
    ("Agent.Intelligent.Affect.Fragments", DetailedLog),
    ("Agent.Intelligent.BeliefGenerator", DetailedLog),
-   ("Agent.Intelligent.DecisionMaker", Trace),
+   ("Agent.Intelligent.DecisionMaker", DetailedLog),
    ("Agent.Intelligent.Filter", DetailedLog),
    ("Agent.Intelligent.Memory", DetailedLog),
    ("Agent.Intelligent.MessageHandling", DetailedLog),
    ("Agent.Intelligent.Perception", DetailedLog),
    ("Agent.Intelligent.PersistentMessages", DetailedLog),
    ("Agent.Wumpus", DetailedLog),
-   ("World.Make", Trace),
-   ("World.Read", Trace),
+   ("World.Make", DetailedLog),
+   ("World.Read", DetailedLog),
    ("World.Utils", DetailedLog)
    ]
 
