@@ -131,10 +131,10 @@ simulateStepReader alreadyMoved world =
                   Just i' -> do
                      (c', deadName) <- increaseHunger . increaseStamina $ afterActionWorld ^. cellData . at' i'
 
-                     logF warningM $ "[updatedAgent] c=" ++ show (afterActionWorld ^. cellData . at' i')
-                     logF warningM $ "[updatedAgent] c'=" ++ show c'
-                     logF warningM $ "[updatedAgent] deadName=" ++ show deadName
-                     logF warningM $ "[updatedAgent] agent list=" ++ show (afterActionWorld ^. agents)
+                     logF traceM $ "[updatedAgent] c=" ++ show (afterActionWorld ^. cellData . at' i')
+                     logF traceM $ "[updatedAgent] c'=" ++ show c'
+                     logF traceM $ "[updatedAgent] deadName=" ++ show deadName
+                     logF traceM $ "[updatedAgent] agent list=" ++ show (afterActionWorld ^. agents)
 
                      let afterHungerWorld = afterActionWorld & cellData . ix i' .~ c'
                          retWorld = case deadName of
