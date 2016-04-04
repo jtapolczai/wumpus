@@ -6,13 +6,14 @@ import Control.Lens
 import Control.Monad
 import qualified Data.Foldable as F
 import qualified Data.Map as M
+import Data.Monoid
 import Data.MList
 import Math.Geometry.Grid.SquareInternal (SquareDirection(..))
 import System.FilePath
 
 import Types
 import World
-import World.Make
+--import World.Make
 import World.Read
 import World.Statistics
 
@@ -27,21 +28,42 @@ main' w numSteps setupFunc = do
    (worldInit, wmi) <- readWorld w
    let world = setupFunc worldInit
        numAgents = world ^. agents . to M.size
+       simulation = runWorld wmi world
    print wmi
-   putStrLn $ showStats numAgents $ mkStats wmi world
    putStrLn "--------"
-   stats <- fromMList $ fmap snd $ takeM (numSteps+1) $ fmapM printActions $ runWorld wmi world
-   when (not $ null stats) (putStrLn $ showStats numAgents $ mconcat stats)
+   writeManyStats allStatsG [mkStats wmi world]
+   allStats <- takeIncrementally (numSteps+1) writeIncrementalStats mempty simulation
+   mapM_ (putStrLn . showStats numAgents) allStats
    putStrLn (replicate 40 '-')
    closeLogFileHandle
-   return stats
+   return allStats
 
-printActions (w, ws) = do
+writeIncrementalStats :: WorldStats -> WorldStats -> IO WorldStats
+writeIncrementalStats prevWs newWs = do
+   printActions newWs
+   writeManyStats allStatsG [retWs]
+   return retWs
+   where
+      retWs = prevWs <> newWs
+
+
+printActions ws = do
    logF logM $ (show $ length $ view actions ws) ++ " actions in this round:"
    mapM_ (logF logM . showAction) . F.toList . view actions $ ws
    logF logM (replicate 80 '_')
-   return (w,ws)
+   return ()
 
+takeIncrementally :: Int
+                  -> (WorldStats -> WorldStats -> IO WorldStats)
+                  -> WorldStats
+                  -> MList IO (World, WorldStats)
+                  -> IO [WorldStats]
+takeIncrementally n _ _ _ | n <= 0 = return []
+takeIncrementally n combF seed ms = do
+   ((_,ws), t) <- unconsM ms
+   newWs <- seed `combF` ws
+   rest <- takeIncrementally (n-1) combF newWs t
+   return $! newWs : rest
 
 -- Setup functions
 --------------------------------------------------------------------------------
@@ -81,8 +103,10 @@ worlds = map ("worlds" </>)
 
 mainR :: Int -> IO [WorldStats]
 mainR numRounds = main' ("worlds" </> "twoFriends") numRounds setup
-   where setup = at_health 0.6 (2,3)
+   where setup = at_health 0.6 (2,4)
                  . at_health 0.6 (2,0)
+                 . at_turn South (2,4)
+                 . at_give Meat 3 (2,0)
                  . hotTemp
 
 main :: IO ()
@@ -96,13 +120,12 @@ accumulateStats ss = map mconcat $ zipWith (\i _ -> take i ss) [1..] ss
 -- |Applies a function to a series of statistics and writes the results out
 --  into a file, line by line.
 writeStats :: FilePath -> [a] -> (a -> String) -> IO ()
-writeStats fp ss getter = writeFile fp output
+writeStats fp ss getter = appendFile fp output
    where output = concat $ fmap ((++"\n") . getter) ss
 
 -- |Applies 'writeStats' multiple times to the same dataset.
 writeManyStats :: [(FilePath, a -> String)] -> [a] -> IO ()
 writeManyStats getters ss = mapM_ (\(fp, g) -> writeStats fp ss g) getters
-
 
 -- Getters for statistics, for use with 'writeStats'/'writeManyStats'.
 numAgentsG :: (FilePath, WorldStats -> String)

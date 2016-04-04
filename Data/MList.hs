@@ -12,6 +12,13 @@ takeM :: Applicative m => Int -> MList m a -> MList m a
 takeM 0 _ = MList $ pure Nothing
 takeM n (MList as) = MList $ fmap (fmap $ second $ takeM (n-1)) as
 
+-- |Consumes the head and returns it, plus the list's tail.
+--  Partial; fails with error for empty lists.
+unconsM :: Monad m => MList m a -> m (a, MList m a)
+unconsM (MList m) = do
+   Just (h, t) <- m
+   return (h, t)
+
 fromMList :: Monad m => MList m a -> m [a]
 fromMList (MList as) = do
    as' <- as
