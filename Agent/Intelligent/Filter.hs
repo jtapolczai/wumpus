@@ -266,7 +266,7 @@ runFilterInitial ms fInit = logF trace ("[runFilterInitial] activated nodes: " +
       ret = foldl' processMsg ([], fInit) ms
 
       processMsg acc m = foldl' (processNode m) acc (candidateNodes m fInit)
-      processNode m (hot, f) n = (if add then logF trace ("[ATTENTION] activated the node " ++ show n) $ n : hot else hot, f') 
+      processNode m (hot, f) n = (if add then {-logF trace ("[ATTENTION] activated the node " ++ show n) $ -} n : hot else hot, f') 
          where
             (add, f') = f & graph . at n %%~ unsafeLift (\n -> exciteNode (condExcitement m n) n)
 
@@ -285,49 +285,6 @@ runFilterRec limit previouslyActivated fInit
          processNode (hot, f) n =
             let (hot', f') = exciteNeighbors n "" f
             in (hot' <> hot, f')
-
-{-
--- |Inputs a list of messages into filter and returns the sum of the
---  signifcances of actived output nodes (how "strongly" the filter responds
---  to the messages).
-runFilter' :: [AgentMessage]
-           -> Int -- ^The upper limit on the number of rounds. 0 means that nothing is done.
-           -> Filter
-           -> Filter -- ^Resultant filter with activated output nodes.
-runFilter' _ 0 f = {- trace "[runFilter (base case)]" $ -} activateNodes f
--- Messages are only given to the nodes once. If no activations are caused,
--- we can just abort the process. Otherwise, we repeat it and see whether the
--- excitement sent out before causes new nodes to become active.
-runFilter' ms limit filt = -- trace ("runFilter (step case, limit = " ++ show limit ++ ")]") $
-                           -- trace ("___activatedNodes: " ++ show (newlyActivatedNodes)) $
-                           if null newlyActivatedNodes then filt
-                           else runFilter' [] (limit - 1) filt''
-   where
-      processMsg f m = foldl' (\f' n -> f' & graph . at n %~ fmap (exciteNode (isOut f' n) m)) f $ candidateNodes m f
-      filt' = foldl' processMsg filt ms
-
-      isOut f n = HS.member n (f ^. outputNodes)
-
-      -- sends all the given messages to a node
-      -- (s is the strength to add to the excitement value in case of a match).
-      -- sendMessages n = foldr exciteNode n ms
-
-      -- send messages to all nodes and update excitement levels.
-      -- each node gets all the messages in sequence.
-      -- filt' = activateNodes (filt & graph %~ fmap sendMessages)
-
-      curActiveNodes = HM.filter (^. active) (filt' ^. graph)
-      oldActiveNodes = HM.filter (^. active) (filt ^. graph)
-
-      -- newly activated nodes send excitement along their outgoing edges.
-      newlyActivatedNodes = {- HM.keys $ -} HM.difference curActiveNodes oldActiveNodes
-
-      -- we add the node names so that sendExcitementFrom can display them for debugging.
-      newlyActivatedNodes' = map (\(k,v) -> (k, v ^. name)) $ HM.toList newlyActivatedNodes
-
-      -- lastly, send out excitement from the newly activated nodes
-      filt'' = sendExcitementFrom newlyActivatedNodes' filt' -}
-
 
 -- |Returns the sum of the significances of all activated output nodes,
 --  capped to -1/1.
