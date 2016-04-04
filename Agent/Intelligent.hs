@@ -28,7 +28,7 @@ import qualified Data.Semigroup as SG
 import qualified Data.Set as S
 import qualified Data.Tree as T
 import Math.Geometry.Grid.Square
-import Math.Geometry.Grid.SquareInternal (SquareDirection)
+import Math.Geometry.Grid.SquareInternal (SquareDirection(..))
 import System.Random (randomRIO)
 import System.Random.Utils
 
@@ -125,8 +125,8 @@ getAction' initAs = do
 
       printCells = logF traceM . concat . map ((++ "\n") . show) . view messageSpace
 
-      components = [psbcComponent,
-                    sjsComponent, 
+      components = [sjsComponent,
+                    psbcComponent,
                     recordPlanEmotionChangesComponent,
                     decisionMakerComponent,
                     beliefGeneratorComponent,
@@ -742,7 +742,8 @@ decisionMakerComponent asInit = logF trace "[decisionMakerComponent]" $ logFdm t
          logFdm traceM $ "[getNextAction.actionableCells] " ++ (LS.intercalate "\n" $ map (show . (\x -> (x, getEmotionActions emotion (fst x)))) actionableCells)
          if null actionableCells then do
             logFdm traceM "[decicionMakerComponent.getNextAction] No possible actions!"
-            return NoOp
+            randAct <- choose [Rotate North, Rotate South, Rotate West, Rotate East, NoOp]
+            return randAct
          else do
             let (targetCell, targetCellIntensity) = head actionableCells
             logFdm detailedLogM ("Target cell is " ++ show (runRelInd targetCell) ++ " with emotion strength " ++ showF3 targetCellIntensity ++ ".\n")
