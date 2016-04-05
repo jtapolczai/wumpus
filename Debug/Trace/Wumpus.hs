@@ -45,7 +45,7 @@ logHandles = M.fromList [
 
 logLevels :: M.Map ModuleName LogLevel
 logLevels = M.fromList [
-{-   ("Agent.Intelligent", DetailedLog),
+   ("Agent.Intelligent", DetailedLog),
    ("Agent.Intelligent.Affect", DetailedLog),
    ("Agent.Intelligent.Affect.Fragments", DetailedLog),
    ("Agent.Intelligent.BeliefGenerator", DetailedLog),
@@ -58,7 +58,7 @@ logLevels = M.fromList [
    ("Agent.Wumpus", DetailedLog),
    ("World.Make", DetailedLog),
    ("World.Read", DetailedLog),
-   ("World.Utils", DetailedLog) -}
+   ("World.Utils", DetailedLog)
    ]
 
 getLogLevel :: ModuleName -> LogLevel

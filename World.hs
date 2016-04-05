@@ -51,6 +51,7 @@ import Data.Maybe
 import Data.Ratio
 import Math.Geometry.Grid hiding (null)
 import Math.Geometry.Grid.Square
+import Math.Geometry.Grid.SquareInternal (SquareDirection(..))
 
 import Math.Utils
 import Types
@@ -117,19 +118,35 @@ simulateStepReader alreadyMoved world =
       -- its action. We also update the wumpus stench to have accurate stench
       -- information.
       updateAgent (world, alreadyMoved) entityName = do
-         let i = world ^. agents . at' entityName
-         case world ^. cellData . at' i . entity of
+         logF logM $ "Getting the action of " ++ entityName
+         logF logM $ "Current agent index: "
+         logF logM $ concat $ map (\(k,v) -> k ++ ": " ++ show v ++ "\n") $ M.toList $ world ^. agents
+         logF logM $ "---> " ++ entityName ++ ": " ++ show (world ^. agents. at entityName)
+         logF logM $ replicate 40 '~'
+
+         case world ^. agents . at entityName of
             Nothing -> do
-               logF logM $ "Called updateAgent on cell " ++ show i ++ ", but the entity isn't present (already dead)?"
+               logF logM $ "Called updateAgent on " ++ entityName ++ ", but the entity isn't present (already dead)?"
                return (world, alreadyMoved)
-            Just _ -> do
+            Just i -> do
+               logF logM $ "UpdatedAgent on existing entity"
                let world' = giveEntityPerceptions alreadyMoved world i
-                   ent= entityAt "updateAgent" i world'
+                   ent = entityAt "updateAgent" i world'
                    moved' = view name ent : alreadyMoved
                afterActionWorld <- wumpusStench <$> doEntityAction world' (i, ent)
-               case afterActionWorld ^. agents . at (ent ^. name) of
+               case afterActionWorld ^. agents . at entityName of
                   Nothing -> return (afterActionWorld, moved')
                   Just i' -> do
+                     logF logM $ "[updateAgent] afterActionWorld; entity present at " ++ show i'
+                     logF logM $ "[updateAgent] afterActionWorld.entityIndex:\n" ++ (concat $ map (\(k,v) -> k ++ ": " ++ show v ++ "\n") $ M.toList $ afterActionWorld ^. agents)
+                     logF logM $ "[updateAgent] afterActionWorld.i'=" ++ show i'
+                     logF logM $ "[updateAgent] afterActionWorld.entity at i'=" ++ show (afterActionWorld ^. cellData . at i')
+                     logF logM $ "[updateAgent] afterActionWorld.entity at i', North=" ++ show (afterActionWorld ^. cellData . at (inDirection i' North))
+                     logF logM $ "[updateAgent] afterActionWorld.entity at i', South=" ++ show (afterActionWorld ^. cellData . at (inDirection i' South))
+                     logF logM $ "[updateAgent] afterActionWorld.entity at i', West=" ++ show (afterActionWorld ^. cellData . at (inDirection i' West))
+                     logF logM $ "[updateAgent] afterActionWorld.entity at i', East=" ++ show (afterActionWorld ^. cellData . at (inDirection i' East))
+
+
                      (c', deadName) <- increaseHunger . increaseStamina $ afterActionWorld ^. cellData . at' i'
 
                      logF traceM $ "[updatedAgent] c=" ++ show (afterActionWorld ^. cellData . at' i')
@@ -348,6 +365,7 @@ moveEntity :: (MonadReader WorldMetaInfo m, MonadWriter (WorldStats -> WorldStat
            -> World
            -> m World
 moveEntity i j world = do
+   when (world ^. cellData . at' j . pit) (logF warningM $ "Fell into a pit from " ++ show i ++ " to " ++ show j)
    when (isNothing . join . preview (cellData . at j . _Just . entity) $ world')
         (entityDied ent) 
    logF traceM $ "[moveEntity] old index: \n" ++ show (world ^. agents) 
@@ -374,7 +392,7 @@ moveEntity i j world = do
       updateIndex :: M.Map EntityName CellInd -> M.Map EntityName CellInd
       updateIndex = if isJust $ join (world' ^? cellData . at j . _Just . entity)
                     then ix (world ^. cellData . at' i . juM "moveEntity.updateIndex" entity . name) .~ j
-                    else id
+                    else at (world ^. cellData . at' i . juM "moveEntity.updateIndex" entity . name) .~ Nothing
 
       -- the updated worlds
       world' = world & cellData %~ move
@@ -390,8 +408,8 @@ attack :: (MonadReader WorldMetaInfo m, MonadWriter (WorldStats -> WorldStats) m
        -> World
        -> m World
 attack i j world = tell attackPerformed
-                   >> onCellM i (die . msg other . fight other) world
-                   >>= onCellM j (die . msg me . fight me)
+                   >> onCellM i ((die "attack/i") . msg other . fight other) world
+                   >>= onCellM j ((die "attack/j") . msg me . fight me)
                    >$> removeDeadFromIndex [(me, i), (other, j)]
    where
       me = entityAt "attack.me" i world
@@ -439,12 +457,12 @@ fight enemy c = logF trace ("[fight] myName=" ++ mn ++ "myHealth=" ++ mh ++ ", e
 --  the entity and dropping the contents of its inventory to
 --  the ground. In addition, one item of meat is dropped (the
 --  body of the agent/Wumpus).
-die :: (MonadReader WorldMetaInfo m, MonadWriter (WorldStats -> WorldStats) m) => CellData -> m CellData
-die x = let
+die :: (MonadReader WorldMetaInfo m, MonadWriter (WorldStats -> WorldStats) m) => String -> CellData -> m CellData
+die err x = let
    x' = if x ^. juM "die.x'" entity . health <= 0 then logF detailedLog ("An entity named " ++ (x ^. juM "die.x'.trace" entity . name) ++ " died.\n") $ x & entity .~ Nothing else x
    inv = x ^. entity . _Just . _Ag . inventory
    in
-      if (x ^. juM "die.x in the if" entity . health <= 0) then
+      if (x ^. juM ("die.x in the if/" ++ err) entity . health <= 0) then
          do entityDied $ view (juM "die.entityDied" entity) x
             return (x' & meat +~ (1 + inv ^. at Meat . to (fromMaybe 0))
                        & fruit +~ (inv ^. at Fruit . to (fromMaybe 0))
@@ -487,7 +505,7 @@ increaseHunger :: (MonadReader WorldMetaInfo m, MonadWriter (WorldStats -> World
                => CellData
                -> m (CellData, Maybe EntityName)
 increaseHunger cell = do
-   ret_cell <- die $ onAgent hunger cell
+   ret_cell <- (die "increaseHunger") $ onAgent hunger cell
    case (getEntityName cell, getEntityName ret_cell) of
       (Just n, Nothing) -> return (ret_cell, Just n)
       _ -> return (ret_cell, Nothing)

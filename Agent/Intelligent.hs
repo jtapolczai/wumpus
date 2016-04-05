@@ -271,15 +271,16 @@ constructWorld
       -- ^World data creating function.
    -> [AgentMessage']
       -- ^Messages from which to create the world.
+   -> EntityName -- ^The agent's own name (for debugging)
    -> BaseWorld cell edge
-constructWorld agentPost wumpusPost mkCell mkEdge mkWorldData xs =
+constructWorld agentPost wumpusPost mkCell mkEdge mkWorldData xs myName =
    {- logFmem trace "[constructWorld]" $
    logFmem trace "[constructWorld] edge data:" $
    logFmem trace (show edgeMsg) $ -}
    logFmem trace "[constructWorld] all messages: " $
    logFmem trace (show xs) $
    logFmem trace (replicate 80 '_') $
-   logFmem trace ("[constructWorld] entityIndex: " ++ show entityIndex)
+   logFmem log ("[constructWorld] my name: " ++ myName ++ " entityIndex: " ++ show entityIndex)
    logFmem trace (replicate 80 '_') $
    BaseWorld (mkWorldData worldDataMsg)
              UnboundedSquareGrid
@@ -330,12 +331,13 @@ constructWorldWithAI
       -- ^World data creating function.
    -> [AgentMessage']
       -- ^Messages from which to create the world.
+   -> EntityName -- ^The agent's own name (for debugging).
    -> World
-constructWorldWithAI agentPost mkCell mkEdge mkWorldData xs =
-   constructWorld agentPost (\i -> state .~ wumpusMind i) mkCell mkEdge mkWorldData xs
+constructWorldWithAI agentPost mkCell mkEdge mkWorldData xs myName =
+   constructWorld agentPost (\i -> state .~ wumpusMind i) mkCell mkEdge mkWorldData xs myName
    where
       wumpusMind = wumpusRealMind dummyWorld
-      dummyWorld = constructWorld M.empty (const id) mkCell mkEdge mkWorldData xs
+      dummyWorld = constructWorld M.empty (const id) mkCell mkEdge mkWorldData xs myName
 
 -- |Adds 'wumpusRealMind's to all Wumpuses in a world. This overwrites their previous minds.
 setWumpusMinds :: World -> World
@@ -448,20 +450,21 @@ resetMemory as xs = logFmem trace ("[resetMemory] output world: ")
                     $ logFmem trace (show $ ret ^. memory)
                     $ ret
    where
+      myName = as ^. name
       ret = as & memory %~ (\(T.Node mem _) -> T.Node (upd mem) [])
-      upd m = constructMemory xs (Just m)
+      upd m = constructMemory xs (Just m) myName
 
 -- |Adds a memory as a last child to an existent one. The memory given by the
 --  MemoryIndex has to exist.
 addMemory :: [AgentMessage'] -> MemoryIndex -> AgentState -> AgentState
 addMemory xs mi as = logFmem trace "[addMemory]" $ as & memory %~ addMemNode mi newMem
   where
-    newMem = constructMemory xs $ Just (as ^. memory . memInd mi)
+    newMem = constructMemory xs (Just (as ^. memory . memInd mi)) (as ^. name)
 
 -- |Constructs a memory from messages and an optional base memory.
-constructMemory :: [AgentMessage'] -> Maybe Memory -> Memory
-constructMemory ms baseWorld = maybe curWorld (SG.<> curWorld) baseWorld
-   where curWorld = constructWorld M.empty (const id) mkVisualCell mkEdge mkWorldData ms
+constructMemory :: [AgentMessage'] -> Maybe Memory -> EntityName -> Memory
+constructMemory ms baseWorld myName = maybe curWorld (SG.<> curWorld) baseWorld
+   where curWorld = constructWorld M.empty (const id) mkVisualCell mkEdge mkWorldData ms myName
 
 -- |A dummy mind for an agent that always performs the same action and stores
 --  incoming messages. It does not actively pull messages, though
