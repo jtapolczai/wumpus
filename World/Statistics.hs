@@ -16,14 +16,14 @@ import Types
 import World.Utils
 
 instance Monoid WorldStats where
-   mempty = WS (M.fromList $ map (,0) index) 0 0 (M.fromList $ map (,0) r) 0 0 S.empty
+   mempty = WS (M.fromList $ map (,0) index) 0 0 0 (M.fromList $ map (,0) r) 0 0 S.empty
       where
          r :: (Bounded t, Enum t) => [t]
          r = [minBound..maxBound]
 
          index = (,,,,) <$> r <*> r <*> r <*> r <*> r
-   mappend (WS a w h i g p as) (WS a' w' h' i' g' p' as') =
-      WS (M.unionWith (+) a a') (w+w') (h+h') (M.unionWith (+) i i') (g+g') (p+p') (as S.>< as')
+   mappend (WS a w h m i g p as) (WS a' w' h' m' i' g' p' as') =
+      WS (M.unionWith (+) a a') (w+w') (h+h') (m + m') (M.unionWith (+) i i') (g+g') (p+p') (as S.>< as')
 
 
 agentDied :: AgentIndex -> WorldStats -> WorldStats
@@ -34,6 +34,9 @@ wumpusDied = numWumpuses -~ 1
 
 plantHarvested :: WorldStats -> WorldStats
 plantHarvested = numHarvests +~ 1
+
+mealEaten :: WorldStats -> WorldStats
+mealEaten = numMeals +~ 1
 
 itemGiven :: Item -> WorldStats -> WorldStats
 itemGiven item = numItemsGiven . ix item +~ 1
@@ -68,6 +71,7 @@ showStats initialNumAgents ws =
    ++ concat (printAgents $ ws ^. numAgents)
    ++ "wumpuses: " ++ show (ws ^. numWumpuses) ++ "\n"
    ++ "harvests: " ++ show (ws ^. numHarvests) ++ "\n"
+   ++ "meals eaten: " ++ show (ws ^. numMeals) ++ "\n"
    ++ "items given: " ++ show (F.sum $ ws ^. numItemsGiven) ++ "\n"
    ++ "   gold: " ++ show (ws ^. numItemsGiven . at' Gold) ++ "\n"
    ++ "   meat: " ++ show (ws ^. numItemsGiven . at' Meat) ++ "\n"

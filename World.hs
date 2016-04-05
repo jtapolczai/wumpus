@@ -105,7 +105,7 @@ simulateStepReader alreadyMoved world =
         logF traceM ("[simulateStepReader] new world: " ++ show (newWorld' nw))
         return (newWorld' nw)
    where
-      entityList = removeKeys alreadyMoved . view agents $ world
+      entityList = M.keys . removeKeys alreadyMoved . view agents $ world
 
       newWorld = fst <$> foldM updateAgent (world,[]) entityList
       newWorld' = (worldData %~ advanceGlobalData) . (cellData %~ fmap advanceLocalData)
@@ -116,7 +116,8 @@ simulateStepReader alreadyMoved world =
       -- "updating an agent" means giving it its perceptions and performing
       -- its action. We also update the wumpus stench to have accurate stench
       -- information.
-      updateAgent (world, alreadyMoved) i = do
+      updateAgent (world, alreadyMoved) entityName = do
+         let i = world ^. agents . at' entityName
          case world ^. cellData . at' i . entity of
             Nothing -> do
                logF logM $ "Called updateAgent on cell " ++ show i ++ ", but the entity isn't present (already dead)?"
@@ -195,7 +196,9 @@ doAction :: (MonadReader WorldMetaInfo m, MonadWriter (WorldStats -> WorldStats)
 doAction i action world =
    if isActionPossible i action world
       then go action
-      else logF warning ("Tried to do the impossible action at " ++ show i ++ ": " ++ show action) $ return world
+      else logF warning ("Tried to do the impossible action at " ++ show i ++ ": " ++ show action)
+           logF warning ("Entity type at " ++ show i ++ ": " ++ show (getEntityType me))
+           $ return world
    where
       me = entityAt "doAction.me" i world
       myName = me ^. name
@@ -254,7 +257,8 @@ doAction i action world =
                               . (inventory . ix item -~ 1))
       -- Eat fruit or meat. Remove the item from the agent's inventory and regain
       -- 0.5 health (+0.01 to compensate for this round's hunger).
-      go (Eat item) = do tell $ iDid (Eat item)
+      go (Eat item) = do tell $ mealEaten
+                         tell $ iDid (Eat item)
                          return $ onCell i eatItem world
          where
             eatItem c = onAgent (sendMsg (MsgHealthChanged dH)

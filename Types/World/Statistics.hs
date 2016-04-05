@@ -19,6 +19,7 @@ data WorldStats = WS {
    _worldStatsNumAgents :: M.Map AgentIndex Int,
    _worldStatsNumWumpuses :: Int,
    _worldStatsNumHarvests :: Int,
+   _worldStatsNumMeals :: Int,
    _worldStatsNumItemsGiven :: M.Map Item Int,
    _worldStatsNumGesturesSent :: Int, 
    _worldStatsNumAttacksPerformed :: Int,
