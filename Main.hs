@@ -72,6 +72,7 @@ takeIncrementally n _ _ _ | n <= 0 = return []
 takeIncrementally n combF seed ms = do
    ((_,ws), t) <- unconsM ms
    newWs <- seed `combF` ws
+   putStrLn $ show n ++ " remaining."
    rest <- takeIncrementally (n-1) combF newWs t
    return $! newWs : rest
 
