@@ -213,7 +213,7 @@ doAction :: (MonadReader WorldMetaInfo m, MonadWriter (WorldStats -> WorldStats)
 doAction i action world =
    if isActionPossible i action world
       then go action
-      else logF warning ("An entity of type " ++ show (getEntityType me) ++ " tried to do the impossible action at " ++ show i ++ ": " ++ show action)
+      else logF trace ("An entity of type " ++ show (getEntityType me) ++ " tried to do the impossible action at " ++ show i ++ ": " ++ show action)
            $ return world
    where
       me = entityAt "doAction.me" i world

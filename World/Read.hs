@@ -79,7 +79,7 @@ readWorld dir = do
    readBitmap' (dir ++ "/items.bmp") >>= (return. show) >>= logF traceM
 
    logF traceM "entities"
-   readBitmap' (dir ++ "/entities.bmp") >>= (return . concat . map ((++"\n") . show) . filter ((/=black) . snd)) >>= logF logM
+   readBitmap' (dir ++ "/entities.bmp") >>= (return . concat . map ((++"\n") . show) . filter ((/=black) . snd)) >>= logF traceM
 
    logF traceM "--------------------------------------------------"
 
@@ -122,7 +122,7 @@ readWorld dir = do
    logF traceM (show world')
 
    logF traceM "intersected agent list:"
-   logF logM $ concat $ map (\(k,v) -> show k ++ ":" ++  show v ++ "\n") $ M.toList entityIndex
+   logF traceM $ concat $ map (\(k,v) -> show k ++ ":" ++  show v ++ "\n") $ M.toList entityIndex
 
    return (world', WMI index)
 
