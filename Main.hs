@@ -137,6 +137,8 @@ writeManyStats getters ss = mapM_ (\(fp, g) -> writeStats fp ss g) getters
 -- Getters for statistics, for use with 'writeStats'/'writeManyStats'.
 numAgentsG :: StatWriter
 numAgentsG = ("numAgents.txt", show . sum . map snd . M.toList . view numAgents)
+numWumpusesG :: StatWriter
+numWumpusesG = ("numWumpuses.txt", show . view numWumpuses)
 numHarvestsG :: StatWriter
 numHarvestsG = ("numHarvests.txt", show . view numHarvests)
 numMealsG :: StatWriter
@@ -163,6 +165,7 @@ allAgentIndices = zip [1..] . M.keys . view numAgents $ (mempty :: WorldStats)
 allStatsG :: StatWriters
 allStatsG = [
    numAgentsG,
+   numWumpusesG,
    numHarvestsG,
    numMealsG,
    numItemsGivenG,
