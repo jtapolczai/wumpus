@@ -23,7 +23,6 @@ import Data.Default
 import Data.Functor.Monadic
 import Data.List.Split (splitOn)
 import qualified Data.Map as M
-import Data.Maybe (mapMaybe)
 import qualified Data.Tree as T
 import Data.Word
 import Math.Geometry.Grid.Square
@@ -80,7 +79,7 @@ readWorld dir = do
    readBitmap' (dir ++ "/items.bmp") >>= (return. show) >>= logF traceM
 
    logF traceM "entities"
-   readBitmap' (dir ++ "/entities.bmp") >>= (return. show) >>= logF traceM
+   readBitmap' (dir ++ "/entities.bmp") >>= (return . concat . map ((++"\n") . show) . filter ((/=black) . snd)) >>= logF logM
 
    logF traceM "--------------------------------------------------"
 
@@ -123,16 +122,7 @@ readWorld dir = do
    logF traceM (show world')
 
    logF traceM "intersected agent list:"
-   logF traceM (show index)
-
-   let wt = map (getFilters . view state)
-            . mapMaybe (preview _Ag)
-            . mapMaybe (view entity . snd)
-            . M.toList
-            . view cellData
-            $ world'
-
-   logF logM (show wt)
+   logF logM $ concat $ map (\(k,v) -> show k ++ ":" ++  show v ++ "\n") $ M.toList entityIndex
 
    return (world', WMI index)
 

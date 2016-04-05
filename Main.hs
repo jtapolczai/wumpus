@@ -2,6 +2,7 @@ module Main where
 
 import Prelude hiding (log)
 
+import Control.Arrow (first)
 import Control.Lens
 import Control.Monad
 import qualified Data.Foldable as F
@@ -9,6 +10,7 @@ import qualified Data.Map as M
 import Data.Monoid
 import Data.MList
 import Math.Geometry.Grid.SquareInternal (SquareDirection(..))
+import System.Directory
 import System.FilePath
 
 import Types
@@ -18,6 +20,9 @@ import World.Read
 import World.Statistics
 
 import Debug.Trace.Wumpus
+
+type StatWriter = (FilePath, WorldStats -> String)
+type StatWriters = [StatWriter]
 
 -- Module-specific logging function.
 logF :: (String -> a) -> a
@@ -29,19 +34,24 @@ main' w numSteps setupFunc = do
    let world = setupFunc worldInit
        numAgents = world ^. agents . to M.size
        simulation = runWorld wmi world
-   print wmi
+
+       worldStatsG = map (first ((w </> "stats") </>)) allStatsG
+   statsDirExists <- doesDirectoryExist (w </> "stats")
+   when (not statsDirExists) $ createDirectory (w </> "stats")
    putStrLn "--------"
-   writeManyStats allStatsG [mkStats wmi world]
-   allStats <- takeIncrementally (numSteps+1) writeIncrementalStats mempty simulation
+   allStats <- takeIncrementally (numSteps+1)
+                                 (writeIncrementalStats worldStatsG)
+                                 mempty
+                                 simulation
    mapM_ (putStrLn . showStats numAgents) allStats
    putStrLn (replicate 40 '-')
    closeLogFileHandle
    return allStats
 
-writeIncrementalStats :: WorldStats -> WorldStats -> IO WorldStats
-writeIncrementalStats prevWs newWs = do
+writeIncrementalStats :: StatWriters -> WorldStats -> WorldStats -> IO WorldStats
+writeIncrementalStats stats prevWs newWs = do
    printActions newWs
-   writeManyStats allStatsG [retWs]
+   writeManyStats stats [retWs]
    return retWs
    where
       retWs = prevWs <> newWs
@@ -102,15 +112,12 @@ worlds = map ("worlds" </>)
    ]
 
 mainR :: Int -> IO [WorldStats]
-mainR numRounds = main' ("worlds" </> "twoFriends") numRounds setup
-   where setup = at_health 0.6 (2,4)
-                 . at_health 0.6 (2,0)
-                 . at_turn South (2,4)
-                 . at_give Meat 3 (2,0)
+mainR numRounds = main' ("worlds" </> "island") numRounds setup
+   where setup = at_health 0.6 (2,0)
                  . hotTemp
 
 main :: IO ()
-main = void $ mainR 2
+main = void $ mainR 200
 
 -- |For a list @x1,x2,...@, returns @mconcat [x1], mconcat [x1,x2],...@.
 accumulateStats :: Monoid m => [m] -> [m]
@@ -128,33 +135,36 @@ writeManyStats :: [(FilePath, a -> String)] -> [a] -> IO ()
 writeManyStats getters ss = mapM_ (\(fp, g) -> writeStats fp ss g) getters
 
 -- Getters for statistics, for use with 'writeStats'/'writeManyStats'.
-numAgentsG :: (FilePath, WorldStats -> String)
+numAgentsG :: StatWriter
 numAgentsG = ("numAgents.txt", show . sum . map snd . M.toList . view numAgents)
-numHarvestsG :: (FilePath, WorldStats -> String)
+numHarvestsG :: StatWriter
 numHarvestsG = ("numHarvests.txt", show . view numHarvests)
-numItemsGivenG :: (FilePath, WorldStats -> String)
+numMealsG :: StatWriter
+numMealsG = ("numMeals.txt", show . view numMeals)
+numItemsGivenG :: StatWriter
 numItemsGivenG = ("numItemsGiven.txt", show . sum . map snd . M.toList . view numItemsGiven)
-numMeatGivenG :: (FilePath, WorldStats -> String)
+numMeatGivenG :: StatWriter
 numMeatGivenG = ("numMeatGiven.txt", show . (M.! Meat) . view numItemsGiven)
-numFruitGivenG :: (FilePath, WorldStats -> String)
+numFruitGivenG :: StatWriter
 numFruitGivenG = ("numFruitGiven.txt", show . (M.! Fruit) . view numItemsGiven)
-numGoldGivenG :: (FilePath, WorldStats -> String)
+numGoldGivenG :: StatWriter
 numGoldGivenG = ("numGoldGiven.txt", show . (M.! Gold) . view numItemsGiven)
-numGesturesSentG :: (FilePath, WorldStats -> String)
+numGesturesSentG :: StatWriter
 numGesturesSentG = ("numGesturesSent.txt", show . view numGesturesSent)
-numAttacksPerformedG :: (FilePath, WorldStats -> String)
+numAttacksPerformedG :: StatWriter
 numAttacksPerformedG = ("numAttacksPerformed.txt", show . view numAttacksPerformed)
 
-persG :: (Int, AgentIndex) -> (FilePath, WorldStats -> String)
+persG :: (Int, AgentIndex) -> StatWriter
 persG (i,p) = ("numPers_" ++ show i ++ ".txt", show . (M.! p) . view numAgents)
 
 allAgentIndices :: [(Int, AgentIndex)]
 allAgentIndices = zip [1..] . M.keys . view numAgents $ (mempty :: WorldStats)
 
-allStatsG :: [(FilePath, WorldStats -> String)]
+allStatsG :: StatWriters
 allStatsG = [
    numAgentsG,
    numHarvestsG,
+   numMealsG,
    numItemsGivenG,
    numMeatGivenG,
    numFruitGivenG,

@@ -57,8 +57,8 @@ instance AgentMind WumpusMind where
       logF trace ("[WumpusMind] proximity': " ++ show proximity') $
       logF trace ("[WumpusMind] light': " ++ show light') $
       logF trace ("[WumpusMind] proximity'': " ++ show proximity'') $
-      if      not $ null adjacentPlayer then logF trace ("[WumpusMind.getAction] attack: " ++ show attack) $ return (attack, s)
-      else if not $ null withinRange    then logF trace ("[WumpusMind.getAction] move: " ++ show move) $ return (move, s)
+      if      not $ null adjacentPlayer then logF warning ("[WumpusMind.getAction] attack: " ++ show attack) $ return (attack, s)
+      else if not $ null withinRange    then logF warning ("[WumpusMind.getAction] move: " ++ show move) $ return (move, s)
       else    randomMove
 
       where

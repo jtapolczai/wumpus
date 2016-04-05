@@ -992,6 +992,8 @@ sumEmotionChanges goalMI messages =
 
 -- |Gets the cells that evoke a given emotion, sorted descendingly by the
 --  strength of the emotion invokeed.
+--
+--  Only cells with a distance of less than wMAX_DECISION_DISTANCE are considered.
 strongestEmotionCells :: IsImaginary -> EmotionName -> AgentState-> [(RelInd, Rational)]
 strongestEmotionCells imag en as = logFdm trace "[strongestEmotionCell]"
    $ logFdm trace ("[strongestEmotionCell.evCells] " ++ (show evCells))
@@ -1004,6 +1006,8 @@ strongestEmotionCells imag en as = logFdm trace "[strongestEmotionCell]"
       ret = sortedCells
 
 -- |Performs affective evaluation separately on every cell.
+--
+--  Only cells with a distance of less than wMAX_DECISION_DISTANCE are considered.
 evaluateCells :: IsImaginary -> EmotionName -> AgentState -> M.Map RelInd Rational
 evaluateCells imag en as = logFdm trace "[evaluateCells]" 
    $ logFdm trace ("   image: " ++ show imag)
@@ -1018,7 +1022,9 @@ evaluateCells imag en as = logFdm trace "[evaluateCells]"
       --  and local messages which influence judgments about other cells).
       --  Also, the RelInd (0,0) will get a 'You are here'-message inserted.
       cells :: M.Map RelInd [AgentMessage']
-      cells = M.mapWithKey addData $ fst $ sortByInd ms
+      cells = M.filterWithKey isClose $ M.mapWithKey addData $ fst $ sortByInd ms
+
+      isClose (RI i) _ = dist (0,0) i <= fromIntegral cWORLD_DECISION_DISTANCE
 
       addData k = (if k == RI (0,0) then ((True, AMYouAreHere, ephemeral) : ) else id)
                   . (globalData k ++)
