@@ -118,18 +118,18 @@ simulateStepReader alreadyMoved world =
       -- its action. We also update the wumpus stench to have accurate stench
       -- information.
       updateAgent (world, alreadyMoved) entityName = do
-         logF logM $ "Getting the action of " ++ entityName
-         logF logM $ "Current agent index: "
-         logF logM $ concat $ map (\(k,v) -> k ++ ": " ++ show v ++ "\n") $ M.toList $ world ^. agents
-         logF logM $ "---> " ++ entityName ++ ": " ++ show (world ^. agents. at entityName)
-         logF logM $ replicate 40 '~'
+         logF traceM $ "Getting the action of " ++ entityName
+         logF traceM $ "Current agent index: "
+         logF traceM $ concat $ map (\(k,v) -> k ++ ": " ++ show v ++ "\n") $ M.toList $ world ^. agents
+         logF traceM $ "---> " ++ entityName ++ ": " ++ show (world ^. agents. at entityName)
+         logF traceM $ replicate 40 '~'
 
          case world ^. agents . at entityName of
             Nothing -> do
-               logF logM $ "Called updateAgent on " ++ entityName ++ ", but the entity isn't present (already dead)?"
+               logF warningM $ "Called updateAgent on " ++ entityName ++ ", but the entity isn't present (already dead)?"
                return (world, alreadyMoved)
             Just i -> do
-               logF logM $ "UpdatedAgent on existing entity"
+               logF traceM $ "UpdatedAgent on existing entity"
                let world' = giveEntityPerceptions alreadyMoved world i
                    ent = entityAt "updateAgent" i world'
                    moved' = view name ent : alreadyMoved
@@ -137,14 +137,14 @@ simulateStepReader alreadyMoved world =
                case afterActionWorld ^. agents . at entityName of
                   Nothing -> return (afterActionWorld, moved')
                   Just i' -> do
-                     logF logM $ "[updateAgent] afterActionWorld; entity present at " ++ show i'
-                     logF logM $ "[updateAgent] afterActionWorld.entityIndex:\n" ++ (concat $ map (\(k,v) -> k ++ ": " ++ show v ++ "\n") $ M.toList $ afterActionWorld ^. agents)
-                     logF logM $ "[updateAgent] afterActionWorld.i'=" ++ show i'
-                     logF logM $ "[updateAgent] afterActionWorld.entity at i'=" ++ show (afterActionWorld ^. cellData . at i')
-                     logF logM $ "[updateAgent] afterActionWorld.entity at i', North=" ++ show (afterActionWorld ^. cellData . at (inDirection i' North))
-                     logF logM $ "[updateAgent] afterActionWorld.entity at i', South=" ++ show (afterActionWorld ^. cellData . at (inDirection i' South))
-                     logF logM $ "[updateAgent] afterActionWorld.entity at i', West=" ++ show (afterActionWorld ^. cellData . at (inDirection i' West))
-                     logF logM $ "[updateAgent] afterActionWorld.entity at i', East=" ++ show (afterActionWorld ^. cellData . at (inDirection i' East))
+                     logF traceM $ "[updateAgent] afterActionWorld; entity present at " ++ show i'
+                     logF traceM $ "[updateAgent] afterActionWorld.entityIndex:\n" ++ (concat $ map (\(k,v) -> k ++ ": " ++ show v ++ "\n") $ M.toList $ afterActionWorld ^. agents)
+                     logF traceM $ "[updateAgent] afterActionWorld.i'=" ++ show i'
+                     logF traceM $ "[updateAgent] afterActionWorld.entity at i'=" ++ show (afterActionWorld ^. cellData . at i')
+                     logF traceM $ "[updateAgent] afterActionWorld.entity at i', North=" ++ show (afterActionWorld ^. cellData . at (inDirection i' North))
+                     logF traceM $ "[updateAgent] afterActionWorld.entity at i', South=" ++ show (afterActionWorld ^. cellData . at (inDirection i' South))
+                     logF traceM $ "[updateAgent] afterActionWorld.entity at i', West=" ++ show (afterActionWorld ^. cellData . at (inDirection i' West))
+                     logF traceM $ "[updateAgent] afterActionWorld.entity at i', East=" ++ show (afterActionWorld ^. cellData . at (inDirection i' East))
 
 
                      (c', deadName) <- increaseHunger . increaseStamina $ afterActionWorld ^. cellData . at' i'
@@ -213,8 +213,7 @@ doAction :: (MonadReader WorldMetaInfo m, MonadWriter (WorldStats -> WorldStats)
 doAction i action world =
    if isActionPossible i action world
       then go action
-      else logF warning ("Tried to do the impossible action at " ++ show i ++ ": " ++ show action)
-           logF warning ("Entity type at " ++ show i ++ ": " ++ show (getEntityType me))
+      else logF warning ("An entity of type " ++ show (getEntityType me) ++ " tried to do the impossible action at " ++ show i ++ ": " ++ show action)
            $ return world
    where
       me = entityAt "doAction.me" i world
@@ -365,7 +364,7 @@ moveEntity :: (MonadReader WorldMetaInfo m, MonadWriter (WorldStats -> WorldStat
            -> World
            -> m World
 moveEntity i j world = do
-   when (world ^. cellData . at' j . pit) (logF warningM $ "Fell into a pit from " ++ show i ++ " to " ++ show j)
+   when (world ^. cellData . at' j . pit) (logF traceM $ "Fell into a pit going from " ++ show i ++ " to " ++ show j)
    when (isNothing . join . preview (cellData . at j . _Just . entity) $ world')
         (entityDied ent) 
    logF traceM $ "[moveEntity] old index: \n" ++ show (world ^. agents) 

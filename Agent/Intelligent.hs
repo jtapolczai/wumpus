@@ -89,7 +89,7 @@ instance AgentMind AgentState where
 
 getAction' :: AgentState -> IO (Action, AgentState)
 getAction' initAs = do
-   logFdm detailedLogM $ (initAs ^. name) ++ " is thinking..."
+   logFdm detailedLogM $ (initAs ^. name) ++ " is thinking...\n"
    logFdm traceM $ "[getAction] my name: " ++ (initAs ^. name)
    logFdm traceM $ "[getAction] my message space: " ++ (show $ initAs ^. messageSpace)
    -- create an initial memory and 
@@ -280,7 +280,7 @@ constructWorld agentPost wumpusPost mkCell mkEdge mkWorldData xs myName =
    logFmem trace "[constructWorld] all messages: " $
    logFmem trace (show xs) $
    logFmem trace (replicate 80 '_') $
-   logFmem log ("[constructWorld] my name: " ++ myName ++ " entityIndex: " ++ show entityIndex)
+   logFmem trace ("[constructWorld] my name: " ++ myName ++ " entityIndex: " ++ show entityIndex)
    logFmem trace (replicate 80 '_') $
    BaseWorld (mkWorldData worldDataMsg)
              UnboundedSquareGrid
