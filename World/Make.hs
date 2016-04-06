@@ -159,13 +159,13 @@ placeElems appF prob = mapM f
 --  returned.
 makeRandomWorld
    :: FilePath
-   -> Int -- ^Size of each subpopulation.
+   -> [String] -- ^Complete agents strings (as written into an agents.txt)
    -> Int -- ^Number of Wumpuses.
    -> Int -- ^Number of pits.
    -> Float -- ^Probability of placing gold on a cell; 0 to 1.
    -> Float -- ^Probability to placing a plant on a cell; 0 to 1.
    -> IO (M.Map (Int, Int) Pixel, M.Map (Int, Int) Pixel, [String])
-makeRandomWorld fp popSize numWumpuses numPits goldProb plantProb = do
+makeRandomWorld fp agents numWumpuses numPits goldProb plantProb = do
    top <- filter ((white==) . snd) <$> readBitmap fp
    logF traceM "[makeRandomWorld] bitmap read."
    let dir = takeDirectory fp
@@ -173,7 +173,6 @@ makeRandomWorld fp popSize numWumpuses numPits goldProb plantProb = do
        fromRight (Left err) = error $ "makeRandomWorld.fromRight called with Left: " ++ show err
    (w,h) <- bmpDimensions . fromRight <$> readBMP fp
    logF traceM $ "[makeRandomWorld] bitmap dimensions: " ++ show (w,h)
-   agents <- makePopulations popSize
    logF traceM "[makeRandomWorld] populations made."
    let (agentNames :: [Int]) = map (read . takeWhile isDigit) agents
    logF traceM $ "[makeRandomWorld] agent names: " ++ show agentNames
@@ -203,7 +202,9 @@ makeRandomWorld fp popSize numWumpuses numPits goldProb plantProb = do
 --  4. probability of gold = 0.01
 --  5. probability of plant = 0.05
 makeEvalWorld :: FilePath -> IO (M.Map (Int, Int) Pixel, M.Map (Int, Int) Pixel, [String])
-makeEvalWorld fp = makeRandomWorld fp 7 74 70 0.01 0.05
+makeEvalWorld fp = do
+   agents <- makePopulations 7
+   makeRandomWorld fp agents 74 70 0.01 0.05
 
 -- |Takes a list of cells and populates the corresponding empty world with
 --  agents, Wumpuses, plants, pits, and gold.
