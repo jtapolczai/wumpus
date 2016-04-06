@@ -6,9 +6,11 @@ import Control.Arrow (first)
 import Control.Lens
 import Control.Monad
 import qualified Data.Foldable as F
+import Data.List (sortBy)
 import qualified Data.Map as M
 import Data.Monoid
 import Data.MList
+import Data.Ord (comparing)
 import Math.Geometry.Grid.SquareInternal (SquareDirection(..))
 import System.Directory
 import System.FilePath
@@ -205,3 +207,46 @@ runWithPersonalities' :: FilePath -- ^Path of the base world.
                       -> IO ()
 runWithPersonalities' fp numRounds popSize =
    runWithPersonalities (\w -> void $ main' w numRounds hotTemp) fp popSize
+
+
+-- |Gets the m
+getStatFromFile
+   :: FilePath -- ^Name of the file.
+   -> FilePath -- ^The directory for the statistics.
+   -> ([Int] -> a)
+   -> IO [(FilePath, a)]
+getStatFromFile statName statDir statF = do
+   subDirs <- filter (not . flip elem [".",".."]) <$> getDirectoryContents statDir
+   stats <- mapM (\d -> do contents <- readFile (statDir </> d </> statName)
+                           return (d, statF $ map read $ lines contents)) subDirs
+   return stats
+
+getAvgStat :: FilePath -> FilePath -> IO [Float]
+getAvgStat statName statDir = avgStatF <$> getStatFromFile statName statDir id
+
+getMaxStat :: FilePath -> FilePath -> IO (FilePath, Int)
+getMaxStat statName statDir = maxStatF <$> getStatFromFile statName statDir last
+
+getMinStat :: FilePath -> FilePath -> IO (FilePath, Int)
+getMinStat statName statDir = minStatF <$> getStatFromFile statName statDir last
+
+getMedianStat :: FilePath -> FilePath -> IO (FilePath, Int)
+getMedianStat statName statDir = medianStatF <$> getStatFromFile statName statDir last
+
+avgStatF :: [(FilePath, [Int])] -> [Float]
+avgStatF = zipWithN avg . snd . unzip
+   where
+      avg = (\(s,l) -> fromIntegral s / fromIntegral l) . F.foldl' (\(s,l) x -> (s+x,l+1)) (0,0)
+
+zipWithN :: ([a] -> b) -> [[a]] -> [b]
+zipWithN f xs = if any null xs then []
+                else (f $ map head xs) : zipWithN f (map tail xs)
+
+maxStatF :: [(FilePath, Int)] -> (FilePath, Int)
+maxStatF = head . sortBy (comparing snd)
+
+minStatF :: [(FilePath, Int)] -> (FilePath, Int)
+minStatF = head . sortBy (flip $ comparing snd)
+
+medianStatF :: [(FilePath, Int)] -> (FilePath, Int)
+medianStatF xs = head . drop (length xs `div` 2) . sortBy (comparing snd) $ xs
