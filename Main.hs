@@ -114,8 +114,7 @@ worlds = map ("worlds" </>)
 
 mainR :: Int -> IO [WorldStats]
 mainR numRounds = main' ("worlds" </> "island") numRounds setup
-   where setup = at_health 0.6 (2,0)
-                 . hotTemp
+   where setup = hotTemp
 
 main :: IO ()
 main = void $ mainR 200

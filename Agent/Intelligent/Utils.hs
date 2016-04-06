@@ -32,6 +32,7 @@ module Agent.Intelligent.Utils (
    parentMemIndex,
    deleteMemory,
    printMemoryTree,
+   memPathTo,
    ) where
 
 import Control.Lens
@@ -241,6 +242,16 @@ leftMemIndex = MI . go mempty . (^. memory)
 -- |Isomorphic to 'init'. Partial.
 parentMemIndex :: String -> MemoryIndex -> MemoryIndex
 parentMemIndex s (MI x) = MI (initM ("parentMemIndex/" ++ s) x)
+
+-- |Returns all the memories that are on the path to a given memory index,
+--  starting with the root. The empty memory index just returns the root, every
+--  additional part goes one level down the tree.
+memPathTo :: String -> MemoryIndex -> AgentState -> [Memory]
+memPathTo err (MI xs) as = go xs (as ^. memory)
+   where
+      go [] (T.Node n _) = [n]
+      go (x:xs) (T.Node n ns) = if length ns < (x - 1) then error ("memPathTo/" ++ err)
+                                else n : go xs (ns !! x)
 
 -- |Deletes a sub-tree given by a memory index. If the entire tree is deleted
 --  (if the index is []), Nothing is returned.

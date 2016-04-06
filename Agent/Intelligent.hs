@@ -553,29 +553,29 @@ simulateConsequences
                           --  to get the next world state.
    -> IO (World, [AgentMessage])
 simulateConsequences action mi as simulateAction = do
-   --when (mi == mempty) (error "EMPTY MI GIVEN TO simulateConsequences!")
+   -- when (mi == mempty) (error "EMPTY MI GIVEN TO simulateConsequences!")
    logFbg traceM $ "[simulateConsequences]"
    logFbg traceM $ "[simulateConsequences] mi: " ++ show mi
    let myName = as ^. name
        myMind = M.fromList [(myName, \_ _ -> SM $ DummyMind action True [])]
        currentWorld :: World
        currentWorld = setAgentMinds myMind . setWumpusMinds . cast $ as ^. memory . memInd mi
-       parentWorld :: Memory
-       parentWorld = as ^. memory . memInd (parentMemIndex "simulateConsequences.parentWorld" mi)
+       memWorlds :: [Memory]
+       memWorlds = reverse $ memPathTo "simulateConsequences.parentWorlds" mi as
+
+       worldsWithPos = dropWhile (isNothing . entityPosition myName) memWorlds
+
+       (myPos, myDir) = fromMaybe (error "myPos, myDir returned nothing!")
+                                  (entityPosition myName (head worldsWithPos)
+                                   >>= addDir (head worldsWithPos))
 
        addDir w p = do
-         d <- w ^? cellData . at p . _Just . entity . _Just . _Ag . direction
-         return (p,d)
+          d <- w ^? cellData . at p . _Just . entity . _Just . _Ag . direction
+          return (p,d)
 
-
-       (myPos, myDir) =
-         logFbg trace "[simulateConsequences.myPos]" $ fromMaybe
-          (logFbg trace ("[simulateConsequences].myPos: +++Agent not found in current world "
-                  ++ show mi ++ ". Looking in parent world.") $ fromMaybe
-             (error "[simulateConsequences].myPos: Nothing for pos. in parent world!")
-             (entityPosition myName parentWorld  >>= addDir parentWorld))
-          (entityPosition myName currentWorld >>= addDir currentWorld)
        isAlive = logFbg trace "[simulateConsequences.isAlive]" $ isPresent myName currentWorld
+   
+   when (null worldsWithPos) (error $ "The agent " ++ myName ++ "doesn't have a position in any of the worlds. Something is very wrong here.")
    logFbg traceM $ "[simulateConsequences] reconstructed world: " ++ show currentWorld
    nextWorld <- simulateAction currentWorld
    logFbg traceM $ "[simulateConsequences] next world: " ++ show nextWorld
