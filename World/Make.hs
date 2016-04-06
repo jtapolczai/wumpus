@@ -9,6 +9,7 @@ module World.Make (
    generateAgentsFile,
    allPersonalities,
    makePopulations,
+   makeAgentsWithPersonality,
    shuffle,
    takeRandomN,
    distributeElems,
@@ -22,7 +23,7 @@ import Prelude hiding (log)
 
 import Codec.BMP
 import qualified Data.ByteString as BS
-import Data.Char (isDigit)
+import Data.Char (isDigit, toLower)
 import qualified Data.Foldable as F
 import Data.List (intercalate, sortBy)
 import qualified Data.Map as M
@@ -33,6 +34,7 @@ import System.FilePath
 import qualified System.Random as R
 import System.Random.Utils
 
+import Types
 import World.Read
 
 import Debug.Trace.Wumpus
@@ -110,6 +112,21 @@ allPersonalities = map (intercalate ";") pers
                                           c <- psbcFrag,
                                           h <- ["friendly", "hostile"]]
 
+-- |Creates N agents with the same personality and gives them numeric names.
+makeAgentsWithPersonality
+   :: PSBCFragmentType -- ^Anger
+   -> PSBCFragmentType -- ^Fear
+   -> PSBCFragmentType -- ^Enthusiasm
+   -> PSBCFragmentType -- ^Contentment
+   -> SJSFragmentType -- ^Sympathy
+   -> Int -- ^Start numbering from (inclusive)
+   -> Int -- ^Number of agents to create.
+   -> [String] -- ^Agents strings that can be written into an agents.txt
+makeAgentsWithPersonality a f e c s from to = map (intercalate ";") lines
+   where
+      lines = [[show i, frag a, frag f, frag e, frag c, frag s, "love", "hate"] | i <- [from..(from+to-1)]]
+      frag :: Show a => a -> String
+      frag = map toLower . show
 
 -- |Creates populations where each personality occurs N times.
 --  The agent strings will be shuffled, consecutively numbered starting with 1,
