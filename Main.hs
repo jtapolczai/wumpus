@@ -15,7 +15,7 @@ import System.FilePath
 
 import Types
 import World
---import World.Make
+import World.Make
 import World.Read
 import World.Statistics
 
@@ -113,16 +113,16 @@ worlds = map ("worlds" </>)
    ]
 
 mainR :: Int -> IO [WorldStats]
-mainR numRounds = main' ("worlds" </> "island") numRounds setup
+mainR numRounds = main' ("worlds" </> "small_island") numRounds setup
    where setup = hotTemp
 
 main :: IO ()
-main = void $ mainR 200
+main = -- void $ mainR 50
+   runWithPersonalities' "worlds/small_island" 50 30
 
 -- |For a list @x1,x2,...@, returns @mconcat [x1], mconcat [x1,x2],...@.
 accumulateStats :: Monoid m => [m] -> [m]
 accumulateStats ss = map mconcat $ zipWith (\i _ -> take i ss) [1..] ss
-
 
 -- |Applies a function to a series of statistics and writes the results out
 --  into a file, line by line.
@@ -175,3 +175,33 @@ allStatsG = [
    numGesturesSentG,
    numAttacksPerformedG]
    ++ map persG allAgentIndices
+
+-- |Copies a world and replaced the agents.txt with agents with the 
+--  given personality.
+copyWorldWithPersonality :: FilePath -> AgentIndex -> Int -> IO FilePath
+copyWorldWithPersonality w pers@(a,f,e,c,h) popSize = do
+   createDirectory w_trg 
+   copyFile (w </> "topography.bmp") (w_trg </> "topography.bmp")
+   copyFile (w </> "items.bmp") (w_trg </> "items.bmp")
+   copyFile (w </> "entities.bmp") (w_trg </> "entities.bmp")
+   writeFile (w_trg </> "agents.txt") $ concatMap (++"\n") $ makeAgentsWithPersonality a f e c h 1 popSize
+   return w_trg
+   where
+      w_trg = (takeDirectory w </> (takeFileName w ++ "_" ++ showAs pers))
+
+      showAs (a,f,e,c,h) = [head (show a), head (show f), head (show e), head (show c), head (show h)]
+
+-- |Takes a world-running function and runs copies of it with all possible
+--  agent personalities.
+runWithPersonalities :: (FilePath -> IO ()) -> FilePath -> Int -> IO ()
+runWithPersonalities runner baseW popSize = do
+   let pers = M.keys $ view numAgents (mempty :: WorldStats)
+   mapM_ (\p -> copyWorldWithPersonality baseW p popSize >>= runner) pers
+
+-- |Runs main' on a world for N rounds, starting with a hot temperature.
+runWithPersonalities' :: FilePath -- ^Path of the base world.
+                      -> Int -- ^Number of rounds.
+                      -> Int -- ^Number of agents in the base world.
+                      -> IO ()
+runWithPersonalities' fp numRounds popSize =
+   runWithPersonalities (\w -> void $ main' w numRounds hotTemp) fp popSize
